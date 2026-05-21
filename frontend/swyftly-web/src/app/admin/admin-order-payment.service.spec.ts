@@ -71,11 +71,31 @@ describe('AdminOrderPaymentService', () => {
   it('loads admin payment reconciliation candidates', async () => {
     const promise = service.getPaymentReconciliationCandidates(45);
 
-    const request = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/admin/payments/reconciliation-candidates?olderThanMinutes=45`);
+    const request = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/admin/payments/reconciliation-candidates?olderThanMinutes=45&includeSnoozed=false`);
     expect(request.request.method).toBe('GET');
     request.flush([{ paymentId: 'payment-id', reasonCode: 'StalePendingPayment' }]);
 
     const response = await promise;
     expect(response[0].reasonCode).toBe('StalePendingPayment');
+  });
+
+  it('records a payment reconciliation review', async () => {
+    const requestBody = {
+      observedProviderStatus: 'COMPLETE',
+      observedAmount: 140,
+      observedCurrency: 'ZAR',
+      outcome: 'ProviderPaidMissingWebhook' as const,
+      reason: 'Provider dashboard shows complete.',
+      nextReviewAfterUtc: null
+    };
+    const promise = service.createPaymentReconciliationReview('payment-id', requestBody);
+
+    const request = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/admin/payments/payment-id/reconciliation-reviews`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(requestBody);
+    request.flush({ reviewId: 'review-id', paymentId: 'payment-id', outcome: 'ProviderPaidMissingWebhook' });
+
+    const response = await promise;
+    expect(response.reviewId).toBe('review-id');
   });
 });

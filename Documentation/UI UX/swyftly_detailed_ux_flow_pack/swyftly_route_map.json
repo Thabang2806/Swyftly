@@ -1,0 +1,1372 @@
+[
+  {
+    "screenId": "B-001",
+    "module": "Public / Buyer",
+    "feature": "Home & discovery",
+    "screenName": "Home / discovery",
+    "route": "/",
+    "roles": "Guest, Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-002",
+    "module": "Public / Buyer",
+    "feature": "Home & discovery",
+    "screenName": "Shop index",
+    "route": "/shop",
+    "roles": "Guest, Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-003",
+    "module": "Public / Buyer",
+    "feature": "Category browsing",
+    "screenName": "Category landing",
+    "route": "/shop/:categorySlug",
+    "roles": "Guest, Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-004",
+    "module": "Public / Buyer",
+    "feature": "Search",
+    "screenName": "Search results",
+    "route": "/search?q=",
+    "roles": "Guest, Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-005",
+    "module": "Public / Buyer",
+    "feature": "Search",
+    "screenName": "Filter drawer / filter sidebar",
+    "route": "/search?filters=",
+    "roles": "Guest, Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-006",
+    "module": "Public / Buyer",
+    "feature": "Product shopping",
+    "screenName": "Product detail",
+    "route": "/product/:productSlug",
+    "roles": "Guest, Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-007",
+    "module": "Public / Buyer",
+    "feature": "Product shopping",
+    "screenName": "Product image gallery modal",
+    "route": "/product/:productSlug?gallery=1",
+    "roles": "Guest, Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-008",
+    "module": "Public / Buyer",
+    "feature": "Seller storefront",
+    "screenName": "Public seller storefront",
+    "route": "/store/:storeSlug",
+    "roles": "Guest, Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-009",
+    "module": "Public / Buyer",
+    "feature": "Wishlist",
+    "screenName": "Wishlist",
+    "route": "/account/wishlist",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-010",
+    "module": "Public / Buyer",
+    "feature": "Recently viewed",
+    "screenName": "Recently viewed",
+    "route": "/account/recently-viewed",
+    "roles": "Buyer",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-011",
+    "module": "Public / Buyer",
+    "feature": "Cart",
+    "screenName": "Cart drawer",
+    "route": "/cart?drawer=true",
+    "roles": "Guest, Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-012",
+    "module": "Public / Buyer",
+    "feature": "Cart",
+    "screenName": "Cart page",
+    "route": "/cart",
+    "roles": "Guest, Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-013",
+    "module": "Public / Buyer",
+    "feature": "Checkout",
+    "screenName": "Checkout: address",
+    "route": "/checkout/address",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-014",
+    "module": "Public / Buyer",
+    "feature": "Checkout",
+    "screenName": "Checkout: delivery",
+    "route": "/checkout/delivery",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-015",
+    "module": "Public / Buyer",
+    "feature": "Checkout",
+    "screenName": "Checkout: payment",
+    "route": "/checkout/payment",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-016",
+    "module": "Public / Buyer",
+    "feature": "Checkout",
+    "screenName": "Checkout: review",
+    "route": "/checkout/review",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-017",
+    "module": "Public / Buyer",
+    "feature": "Checkout",
+    "screenName": "Payment processing",
+    "route": "/checkout/processing",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-018",
+    "module": "Public / Buyer",
+    "feature": "Checkout",
+    "screenName": "Payment success / order confirmation",
+    "route": "/checkout/success/:orderId",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-019",
+    "module": "Public / Buyer",
+    "feature": "Checkout",
+    "screenName": "Payment failed / retry",
+    "route": "/checkout/failed",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-020",
+    "module": "Public / Buyer",
+    "feature": "Orders",
+    "screenName": "Buyer order list",
+    "route": "/account/orders",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-021",
+    "module": "Public / Buyer",
+    "feature": "Orders",
+    "screenName": "Buyer order detail",
+    "route": "/account/orders/:orderId",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-022",
+    "module": "Public / Buyer",
+    "feature": "Orders",
+    "screenName": "Shipment tracking detail",
+    "route": "/account/orders/:orderId/tracking",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-023",
+    "module": "Public / Buyer",
+    "feature": "Reviews",
+    "screenName": "Leave product/seller review",
+    "route": "/account/orders/:orderId/review",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-024",
+    "module": "Public / Buyer",
+    "feature": "Returns & disputes",
+    "screenName": "Start return request",
+    "route": "/account/orders/:orderId/return",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-025",
+    "module": "Public / Buyer",
+    "feature": "Returns & disputes",
+    "screenName": "Return reason and evidence",
+    "route": "/account/orders/:orderId/return/reason",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-026",
+    "module": "Public / Buyer",
+    "feature": "Returns & disputes",
+    "screenName": "Return/refund status",
+    "route": "/account/returns/:returnId",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-027",
+    "module": "Public / Buyer",
+    "feature": "Returns & disputes",
+    "screenName": "Dispute detail",
+    "route": "/account/disputes/:disputeId",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-028",
+    "module": "Public / Buyer",
+    "feature": "Account",
+    "screenName": "Buyer profile",
+    "route": "/account/profile",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-029",
+    "module": "Public / Buyer",
+    "feature": "Account",
+    "screenName": "Saved addresses",
+    "route": "/account/addresses",
+    "roles": "Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-030",
+    "module": "Public / Buyer",
+    "feature": "Account",
+    "screenName": "Payment methods placeholder",
+    "route": "/account/payment-methods",
+    "roles": "Buyer",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-031",
+    "module": "Public / Buyer",
+    "feature": "Notifications",
+    "screenName": "Notification centre",
+    "route": "/account/notifications",
+    "roles": "Buyer, Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-032",
+    "module": "Public / Buyer",
+    "feature": "Support",
+    "screenName": "Support tickets",
+    "route": "/account/support",
+    "roles": "Buyer, Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-033",
+    "module": "Public / Buyer",
+    "feature": "Support",
+    "screenName": "Help centre",
+    "route": "/help",
+    "roles": "Guest, Buyer, Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-034",
+    "module": "Public / Buyer",
+    "feature": "Buyer AI",
+    "screenName": "AI shopping/style assistant",
+    "route": "/ai-assistant",
+    "roles": "Buyer",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-035",
+    "module": "Public / Buyer",
+    "feature": "Buyer AI",
+    "screenName": "AI refined recommendations",
+    "route": "/ai-assistant/results",
+    "roles": "Buyer",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-036",
+    "module": "Public / Buyer",
+    "feature": "Visual search",
+    "screenName": "Visual search upload",
+    "route": "/visual-search",
+    "roles": "Buyer",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "B-037",
+    "module": "Public / Buyer",
+    "feature": "Visual search",
+    "screenName": "Visual search results",
+    "route": "/visual-search/results",
+    "roles": "Buyer",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "A-001",
+    "module": "Auth",
+    "feature": "Authentication",
+    "screenName": "Login",
+    "route": "/auth/login",
+    "roles": "Guest",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "A-002",
+    "module": "Auth",
+    "feature": "Authentication",
+    "screenName": "Register buyer",
+    "route": "/auth/register",
+    "roles": "Guest",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "A-003",
+    "module": "Auth",
+    "feature": "Authentication",
+    "screenName": "Forgot password",
+    "route": "/auth/forgot-password",
+    "roles": "Guest",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "A-004",
+    "module": "Auth",
+    "feature": "Authentication",
+    "screenName": "Email verification",
+    "route": "/auth/verify-email",
+    "roles": "Guest, Buyer, Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-001",
+    "module": "Seller",
+    "feature": "Seller onboarding",
+    "screenName": "Seller registration choice",
+    "route": "/sell",
+    "roles": "Guest, Buyer",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-002",
+    "module": "Seller",
+    "feature": "Seller onboarding",
+    "screenName": "Onboarding welcome checklist",
+    "route": "/seller/onboarding",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-003",
+    "module": "Seller",
+    "feature": "Seller onboarding",
+    "screenName": "Storefront setup",
+    "route": "/seller/onboarding/storefront",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-004",
+    "module": "Seller",
+    "feature": "Seller onboarding",
+    "screenName": "Business/personal details",
+    "route": "/seller/onboarding/details",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-005",
+    "module": "Seller",
+    "feature": "Seller onboarding",
+    "screenName": "Payout details",
+    "route": "/seller/onboarding/payout",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-006",
+    "module": "Seller",
+    "feature": "Seller onboarding",
+    "screenName": "Shipping origin and return address",
+    "route": "/seller/onboarding/shipping",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-007",
+    "module": "Seller",
+    "feature": "Seller onboarding",
+    "screenName": "Seller agreement",
+    "route": "/seller/onboarding/agreement",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-008",
+    "module": "Seller",
+    "feature": "Seller onboarding",
+    "screenName": "Verification pending",
+    "route": "/seller/onboarding/pending",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-009",
+    "module": "Seller",
+    "feature": "Seller onboarding",
+    "screenName": "Verification result",
+    "route": "/seller/onboarding/result",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-010",
+    "module": "Seller",
+    "feature": "Seller dashboard",
+    "screenName": "Seller dashboard overview",
+    "route": "/seller/dashboard",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-011",
+    "module": "Seller",
+    "feature": "Seller storefront",
+    "screenName": "Storefront preview",
+    "route": "/seller/storefront/preview",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-012",
+    "module": "Seller",
+    "feature": "Product management",
+    "screenName": "Seller products list",
+    "route": "/seller/products",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-013",
+    "module": "Seller",
+    "feature": "Product creation",
+    "screenName": "Product draft: upload images",
+    "route": "/seller/products/new/images",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-014",
+    "module": "Seller",
+    "feature": "Product creation",
+    "screenName": "Product draft: basic details",
+    "route": "/seller/products/:id/basics",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-015",
+    "module": "Seller",
+    "feature": "Product creation",
+    "screenName": "Product draft: category and attributes",
+    "route": "/seller/products/:id/category",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-016",
+    "module": "Seller",
+    "feature": "Product creation",
+    "screenName": "Product draft: variants and stock",
+    "route": "/seller/products/:id/variants",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-017",
+    "module": "Seller",
+    "feature": "Product creation",
+    "screenName": "Product draft: pricing",
+    "route": "/seller/products/:id/pricing",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-018",
+    "module": "Seller",
+    "feature": "Product creation",
+    "screenName": "Product draft: shipping and returns",
+    "route": "/seller/products/:id/shipping",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-019",
+    "module": "Seller",
+    "feature": "Product creation",
+    "screenName": "Product draft: preview listing",
+    "route": "/seller/products/:id/preview",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-020",
+    "module": "Seller",
+    "feature": "Product creation",
+    "screenName": "Product submitted confirmation",
+    "route": "/seller/products/:id/submitted",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-021",
+    "module": "Seller",
+    "feature": "Product management",
+    "screenName": "Product status/detail",
+    "route": "/seller/products/:id",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-022",
+    "module": "Seller",
+    "feature": "AI Listing Assistant",
+    "screenName": "AI assistant panel entry",
+    "route": "/seller/products/:id/ai",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-023",
+    "module": "Seller",
+    "feature": "AI Listing Assistant",
+    "screenName": "AI image analysis state",
+    "route": "/seller/products/:id/ai/analyzing",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-024",
+    "module": "Seller",
+    "feature": "AI Listing Assistant",
+    "screenName": "AI suggestion review",
+    "route": "/seller/products/:id/ai/suggestions",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-025",
+    "module": "Seller",
+    "feature": "AI Listing Assistant",
+    "screenName": "AI missing fields checklist",
+    "route": "/seller/products/:id/ai/missing-fields",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-026",
+    "module": "Seller",
+    "feature": "AI Listing Assistant",
+    "screenName": "AI risk warning review",
+    "route": "/seller/products/:id/ai/risk",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-027",
+    "module": "Seller",
+    "feature": "Product management",
+    "screenName": "Bulk product import",
+    "route": "/seller/products/import",
+    "roles": "Seller",
+    "priority": "Later",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "S-028",
+    "module": "Seller",
+    "feature": "Inventory",
+    "screenName": "Inventory overview",
+    "route": "/seller/inventory",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-029",
+    "module": "Seller",
+    "feature": "Inventory",
+    "screenName": "Inventory adjustment modal",
+    "route": "/seller/inventory/:variantId/adjust",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-030",
+    "module": "Seller",
+    "feature": "Order management",
+    "screenName": "Seller orders list",
+    "route": "/seller/orders",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-031",
+    "module": "Seller",
+    "feature": "Order management",
+    "screenName": "Seller order detail",
+    "route": "/seller/orders/:orderId",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-032",
+    "module": "Seller",
+    "feature": "Order management",
+    "screenName": "Fulfil order checklist",
+    "route": "/seller/orders/:orderId/fulfil",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-033",
+    "module": "Seller",
+    "feature": "Order management",
+    "screenName": "Upload tracking",
+    "route": "/seller/orders/:orderId/tracking",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-034",
+    "module": "Seller",
+    "feature": "Returns & disputes",
+    "screenName": "Seller return request detail",
+    "route": "/seller/returns/:returnId",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-035",
+    "module": "Seller",
+    "feature": "Returns & disputes",
+    "screenName": "Refund proposal / settlement",
+    "route": "/seller/returns/:returnId/refund",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-036",
+    "module": "Seller",
+    "feature": "Support",
+    "screenName": "Seller support/messages",
+    "route": "/seller/support",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-037",
+    "module": "Seller",
+    "feature": "Finance",
+    "screenName": "Seller balance",
+    "route": "/seller/finance/balance",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-038",
+    "module": "Seller",
+    "feature": "Finance",
+    "screenName": "Payout history",
+    "route": "/seller/finance/payouts",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-039",
+    "module": "Seller",
+    "feature": "Finance",
+    "screenName": "Payout settings",
+    "route": "/seller/finance/settings",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-040",
+    "module": "Seller",
+    "feature": "Analytics",
+    "screenName": "Seller analytics overview",
+    "route": "/seller/analytics",
+    "roles": "Seller",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-041",
+    "module": "Seller",
+    "feature": "Analytics",
+    "screenName": "Product performance detail",
+    "route": "/seller/analytics/products/:productId",
+    "roles": "Seller",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-042",
+    "module": "Seller",
+    "feature": "Advertising",
+    "screenName": "Ad campaign dashboard",
+    "route": "/seller/ads",
+    "roles": "Seller",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-043",
+    "module": "Seller",
+    "feature": "Advertising",
+    "screenName": "Create campaign: choose type",
+    "route": "/seller/ads/new/type",
+    "roles": "Seller",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-044",
+    "module": "Seller",
+    "feature": "Advertising",
+    "screenName": "Create campaign: select products",
+    "route": "/seller/ads/new/products",
+    "roles": "Seller",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-045",
+    "module": "Seller",
+    "feature": "Advertising",
+    "screenName": "Create campaign: targeting and placement",
+    "route": "/seller/ads/new/targeting",
+    "roles": "Seller",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-046",
+    "module": "Seller",
+    "feature": "Advertising",
+    "screenName": "Create campaign: budget and schedule",
+    "route": "/seller/ads/new/budget",
+    "roles": "Seller",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-047",
+    "module": "Seller",
+    "feature": "Advertising",
+    "screenName": "Create campaign: review and submit",
+    "route": "/seller/ads/new/review",
+    "roles": "Seller",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-048",
+    "module": "Seller",
+    "feature": "Advertising",
+    "screenName": "Campaign status/detail",
+    "route": "/seller/ads/:campaignId",
+    "roles": "Seller",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-049",
+    "module": "Seller",
+    "feature": "Advertising",
+    "screenName": "Campaign analytics",
+    "route": "/seller/ads/:campaignId/analytics",
+    "roles": "Seller",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-050",
+    "module": "Seller",
+    "feature": "Settings",
+    "screenName": "Store settings",
+    "route": "/seller/settings/store",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-051",
+    "module": "Seller",
+    "feature": "Notifications",
+    "screenName": "Seller notifications",
+    "route": "/seller/notifications",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "S-052",
+    "module": "Seller",
+    "feature": "Help",
+    "screenName": "Seller help centre",
+    "route": "/seller/help",
+    "roles": "Seller",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "AD-001",
+    "module": "Admin",
+    "feature": "Admin auth",
+    "screenName": "Admin login",
+    "route": "/admin/login",
+    "roles": "Admin, SupportAgent",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-002",
+    "module": "Admin",
+    "feature": "Dashboard",
+    "screenName": "Admin dashboard overview",
+    "route": "/admin",
+    "roles": "Admin, SupportAgent",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-003",
+    "module": "Admin",
+    "feature": "Seller approval",
+    "screenName": "Seller approval queue",
+    "route": "/admin/sellers/approvals",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-004",
+    "module": "Admin",
+    "feature": "Seller approval",
+    "screenName": "Seller verification detail",
+    "route": "/admin/sellers/:sellerId/verification",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-005",
+    "module": "Admin",
+    "feature": "Seller risk",
+    "screenName": "Seller risk profile",
+    "route": "/admin/sellers/:sellerId/risk",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-006",
+    "module": "Admin",
+    "feature": "Product moderation",
+    "screenName": "Product moderation queue",
+    "route": "/admin/products/moderation",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-007",
+    "module": "Admin",
+    "feature": "Product moderation",
+    "screenName": "Product moderation detail",
+    "route": "/admin/products/:productId/moderation",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-008",
+    "module": "Admin",
+    "feature": "AI moderation",
+    "screenName": "AI risk review",
+    "route": "/admin/ai-risk/:reviewId",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-009",
+    "module": "Admin",
+    "feature": "Product moderation",
+    "screenName": "Request changes/rejection composer",
+    "route": "/admin/products/:productId/reject",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-010",
+    "module": "Admin",
+    "feature": "Catalog management",
+    "screenName": "Category management",
+    "route": "/admin/catalog/categories",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-011",
+    "module": "Admin",
+    "feature": "Catalog management",
+    "screenName": "Category attribute builder",
+    "route": "/admin/catalog/categories/:id/attributes",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-012",
+    "module": "Admin",
+    "feature": "Catalog management",
+    "screenName": "Brand management",
+    "route": "/admin/catalog/brands",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-013",
+    "module": "Admin",
+    "feature": "Users",
+    "screenName": "User management",
+    "route": "/admin/users",
+    "roles": "Admin, SupportAgent",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-014",
+    "module": "Admin",
+    "feature": "Users",
+    "screenName": "Buyer admin profile",
+    "route": "/admin/buyers/:buyerId",
+    "roles": "Admin, SupportAgent",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-015",
+    "module": "Admin",
+    "feature": "Users",
+    "screenName": "Seller admin profile",
+    "route": "/admin/sellers/:sellerId",
+    "roles": "Admin, SupportAgent",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-016",
+    "module": "Admin",
+    "feature": "Orders",
+    "screenName": "Admin orders dashboard",
+    "route": "/admin/orders",
+    "roles": "Admin, SupportAgent",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-017",
+    "module": "Admin",
+    "feature": "Orders",
+    "screenName": "Admin order detail",
+    "route": "/admin/orders/:orderId",
+    "roles": "Admin, SupportAgent",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-018",
+    "module": "Admin",
+    "feature": "Payments",
+    "screenName": "Payment events",
+    "route": "/admin/payments/events",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-019",
+    "module": "Admin",
+    "feature": "Finance",
+    "screenName": "Ledger detail",
+    "route": "/admin/finance/ledger/:ledgerGroupId",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-020",
+    "module": "Admin",
+    "feature": "Refunds",
+    "screenName": "Refund queue",
+    "route": "/admin/refunds",
+    "roles": "Admin, SupportAgent",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-021",
+    "module": "Admin",
+    "feature": "Disputes",
+    "screenName": "Return/dispute queue",
+    "route": "/admin/disputes",
+    "roles": "Admin, SupportAgent",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-022",
+    "module": "Admin",
+    "feature": "Disputes",
+    "screenName": "Dispute detail",
+    "route": "/admin/disputes/:disputeId",
+    "roles": "Admin, SupportAgent",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-023",
+    "module": "Admin",
+    "feature": "Payouts",
+    "screenName": "Payout queue",
+    "route": "/admin/payouts",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-024",
+    "module": "Admin",
+    "feature": "Payouts",
+    "screenName": "Payout detail / release / hold",
+    "route": "/admin/payouts/:payoutId",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-025",
+    "module": "Admin",
+    "feature": "Finance",
+    "screenName": "Seller balance adjustment",
+    "route": "/admin/sellers/:sellerId/balance-adjustment",
+    "roles": "Admin",
+    "priority": "Later",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-026",
+    "module": "Admin",
+    "feature": "Support",
+    "screenName": "Support ticket inbox",
+    "route": "/admin/support",
+    "roles": "SupportAgent, Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-027",
+    "module": "Admin",
+    "feature": "Support",
+    "screenName": "Support ticket detail",
+    "route": "/admin/support/:ticketId",
+    "roles": "SupportAgent, Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-028",
+    "module": "Admin",
+    "feature": "Advertising",
+    "screenName": "Campaign approval queue",
+    "route": "/admin/ads/approvals",
+    "roles": "Admin",
+    "priority": "Later",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-029",
+    "module": "Admin",
+    "feature": "Advertising",
+    "screenName": "Campaign detail review",
+    "route": "/admin/ads/:campaignId",
+    "roles": "Admin",
+    "priority": "Later",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-030",
+    "module": "Admin",
+    "feature": "Analytics",
+    "screenName": "Admin analytics dashboard",
+    "route": "/admin/analytics",
+    "roles": "Admin",
+    "priority": "Later",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-031",
+    "module": "Admin",
+    "feature": "Finance",
+    "screenName": "Revenue reports",
+    "route": "/admin/reports/revenue",
+    "roles": "Admin",
+    "priority": "Later",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-032",
+    "module": "Admin",
+    "feature": "AI operations",
+    "screenName": "AI usage and cost dashboard",
+    "route": "/admin/ai/usage",
+    "roles": "Admin",
+    "priority": "Later",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-033",
+    "module": "Admin",
+    "feature": "Audit",
+    "screenName": "Audit logs",
+    "route": "/admin/audit-logs",
+    "roles": "Admin",
+    "priority": "MVP",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-034",
+    "module": "Admin",
+    "feature": "Policy engine",
+    "screenName": "Policy/rules management",
+    "route": "/admin/policies",
+    "roles": "Admin",
+    "priority": "Later",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-035",
+    "module": "Admin",
+    "feature": "Notifications",
+    "screenName": "Notification templates",
+    "route": "/admin/settings/notifications",
+    "roles": "Admin",
+    "priority": "Later",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-036",
+    "module": "Admin",
+    "feature": "Settings",
+    "screenName": "Roles and permissions settings",
+    "route": "/admin/settings/permissions",
+    "roles": "SuperAdmin",
+    "priority": "Later",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "AD-037",
+    "module": "Admin",
+    "feature": "Operations",
+    "screenName": "System health and webhook monitor",
+    "route": "/admin/ops/system-health",
+    "roles": "Admin",
+    "priority": "Later",
+    "orientation": "Desktop"
+  },
+  {
+    "screenId": "C-001",
+    "module": "Common",
+    "feature": "Global states",
+    "screenName": "Loading and skeleton state patterns",
+    "route": "N/A",
+    "roles": "All",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "C-002",
+    "module": "Common",
+    "feature": "Global states",
+    "screenName": "Empty state patterns",
+    "route": "N/A",
+    "roles": "All",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "C-003",
+    "module": "Common",
+    "feature": "Global states",
+    "screenName": "Error state patterns",
+    "route": "N/A",
+    "roles": "All",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "C-004",
+    "module": "Common",
+    "feature": "Global states",
+    "screenName": "Permission denied",
+    "route": "/403",
+    "roles": "All",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "C-005",
+    "module": "Common",
+    "feature": "Global states",
+    "screenName": "Offline/maintenance",
+    "route": "/maintenance",
+    "roles": "All",
+    "priority": "Later",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "C-006",
+    "module": "Common",
+    "feature": "Global states",
+    "screenName": "Confirmation modal pattern",
+    "route": "N/A",
+    "roles": "All",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  },
+  {
+    "screenId": "C-007",
+    "module": "Common",
+    "feature": "Global states",
+    "screenName": "Toast notification pattern",
+    "route": "N/A",
+    "roles": "All",
+    "priority": "MVP",
+    "orientation": "Desktop + Mobile"
+  }
+]

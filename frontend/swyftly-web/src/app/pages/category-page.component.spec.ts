@@ -53,6 +53,8 @@ describe('CategoryPageComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Women > Dresses');
     expect(compiled.textContent).toContain('Summer Dress');
+    expect(compiled.querySelector('.hf-category-hero')).not.toBeNull();
+    expect(compiled.querySelector('.category-visual-panel app-product-visual-fallback')).not.toBeNull();
   });
 
   it('renders child category links when available', async () => {

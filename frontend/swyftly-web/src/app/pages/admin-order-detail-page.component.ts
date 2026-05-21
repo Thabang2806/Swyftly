@@ -54,6 +54,9 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
             <dl class="seller-facts">
               <div><dt>Items subtotal</dt><dd>{{ order()!.itemsSubtotal | currency:'ZAR':'symbol-narrow' }}</dd></div>
               <div><dt>Shipping</dt><dd>{{ order()!.shippingAmount | currency:'ZAR':'symbol-narrow' }}</dd></div>
+              @if (order()!.deliveryMethodName) {
+                <div><dt>Delivery method</dt><dd>{{ order()!.deliveryMethodName }} - {{ deliveryEstimate(order()!) }}</dd></div>
+              }
               <div><dt>Platform fee</dt><dd>{{ order()!.platformFeeAmount | currency:'ZAR':'symbol-narrow' }}</dd></div>
               <div><dt>Discount</dt><dd>{{ order()!.discountAmount | currency:'ZAR':'symbol-narrow' }}</dd></div>
               <div><dt>Total</dt><dd>{{ order()!.totalAmount | currency:'ZAR':'symbol-narrow' }}</dd></div>
@@ -68,6 +71,22 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
               <div><dt>Cart</dt><dd>{{ order()!.cartId }}</dd></div>
               <div><dt>Created</dt><dd>{{ order()!.createdAtUtc | date:'medium' }}</dd></div>
             </dl>
+          </section>
+
+          <section class="buyer-panel">
+            <h2>Delivery address</h2>
+            @if (order()!.deliveryAddress) {
+              <dl class="seller-facts">
+                <div><dt>Recipient</dt><dd>{{ order()!.deliveryAddress!.recipientName }}</dd></div>
+                <div><dt>Phone</dt><dd>{{ order()!.deliveryAddress!.phoneNumber }}</dd></div>
+                <div><dt>Address</dt><dd>{{ formatDeliveryAddress(order()!.deliveryAddress!) }}</dd></div>
+                @if (order()!.deliveryAddress!.deliveryInstructions) {
+                  <div><dt>Instructions</dt><dd>{{ order()!.deliveryAddress!.deliveryInstructions }}</dd></div>
+                }
+              </dl>
+            } @else {
+              <app-ui-alert tone="info">This order does not have a delivery-address snapshot.</app-ui-alert>
+            }
           </section>
         </div>
 
@@ -164,7 +183,7 @@ export class AdminOrderDetailPageComponent implements OnInit {
       return 'success';
     }
 
-    if (['Cancelled', 'Refunded', 'Failed'].includes(status)) {
+    if (['Cancelled', 'Refunded', 'Failed', 'DeliveryFailed', 'ReturnedToSender'].includes(status)) {
       return 'danger';
     }
 
@@ -173,5 +192,30 @@ export class AdminOrderDetailPageComponent implements OnInit {
     }
 
     return 'neutral';
+  }
+
+  protected formatDeliveryAddress(address: NonNullable<AdminOrderDetailResponse['deliveryAddress']>): string {
+    return [
+      address.addressLine1,
+      address.addressLine2,
+      address.suburb,
+      address.city,
+      address.province,
+      address.postalCode,
+      address.countryCode
+    ].filter(Boolean).join(', ');
+  }
+
+  protected deliveryEstimate(order: AdminOrderDetailResponse): string {
+    if (order.deliveryEstimatedMinDays === null
+      || order.deliveryEstimatedMinDays === undefined
+      || order.deliveryEstimatedMaxDays === null
+      || order.deliveryEstimatedMaxDays === undefined) {
+      return 'estimate unavailable';
+    }
+
+    return order.deliveryEstimatedMinDays === order.deliveryEstimatedMaxDays
+      ? `${order.deliveryEstimatedMinDays} day${order.deliveryEstimatedMinDays === 1 ? '' : 's'}`
+      : `${order.deliveryEstimatedMinDays}-${order.deliveryEstimatedMaxDays} days`;
   }
 }

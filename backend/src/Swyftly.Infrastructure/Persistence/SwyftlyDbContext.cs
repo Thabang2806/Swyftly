@@ -13,6 +13,7 @@ using Swyftly.Domain.Catalog;
 using Swyftly.Domain.Disputes;
 using Swyftly.Domain.Inventory;
 using Swyftly.Domain.Ledger;
+using Swyftly.Domain.Media;
 using Swyftly.Domain.Notifications;
 using Swyftly.Domain.Orders;
 using Swyftly.Domain.Payments;
@@ -29,6 +30,10 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
 {
     public DbSet<BuyerProfile> BuyerProfiles => Set<BuyerProfile>();
 
+    public DbSet<BuyerNotificationPreference> BuyerNotificationPreferences => Set<BuyerNotificationPreference>();
+
+    public DbSet<BuyerDeliveryAddress> BuyerDeliveryAddresses => Set<BuyerDeliveryAddress>();
+
     public DbSet<BuyerWishlistItem> BuyerWishlistItems => Set<BuyerWishlistItem>();
 
     public DbSet<SellerProfile> SellerProfiles => Set<SellerProfile>();
@@ -36,6 +41,8 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
     public DbSet<SellerStorefront> SellerStorefronts => Set<SellerStorefront>();
 
     public DbSet<SellerAddress> SellerAddresses => Set<SellerAddress>();
+
+    public DbSet<SellerDeliveryMethod> SellerDeliveryMethods => Set<SellerDeliveryMethod>();
 
     public DbSet<SellerPayoutProfilePlaceholder> SellerPayoutProfiles => Set<SellerPayoutProfilePlaceholder>();
 
@@ -54,6 +61,14 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
 
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
+
+    public DbSet<ProductListingRevision> ProductListingRevisions => Set<ProductListingRevision>();
+
+    public DbSet<ProductListingRevisionImage> ProductListingRevisionImages => Set<ProductListingRevisionImage>();
+
+    public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
+
+    public DbSet<MediaAssetVariant> MediaAssetVariants => Set<MediaAssetVariant>();
 
     public DbSet<ProductAttributeValue> ProductAttributeValues => Set<ProductAttributeValue>();
 
@@ -127,6 +142,8 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
 
     public DbSet<PaymentEvent> PaymentEvents => Set<PaymentEvent>();
 
+    public DbSet<PaymentReconciliationReview> PaymentReconciliationReviews => Set<PaymentReconciliationReview>();
+
     public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
 
     public DbSet<SellerBalance> SellerBalances => Set<SellerBalance>();
@@ -140,6 +157,8 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
     public DbSet<SellerPayoutAdjustment> SellerPayoutAdjustments => Set<SellerPayoutAdjustment>();
 
     public DbSet<Notification> Notifications => Set<Notification>();
+
+    public DbSet<NotificationEmailDelivery> NotificationEmailDeliveries => Set<NotificationEmailDelivery>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -157,11 +176,55 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
             builder.ToTable("buyer_profiles");
             builder.HasKey(profile => profile.Id);
             builder.HasIndex(profile => profile.UserId).IsUnique();
+            builder.Property(profile => profile.DisplayName).HasMaxLength(BuyerProfile.DisplayNameMaxLength);
+            builder.Property(profile => profile.PhoneNumber).HasMaxLength(BuyerProfile.PhoneNumberMaxLength);
             builder.Property(profile => profile.CreatedAtUtc).IsRequired();
             builder.Property(profile => profile.UpdatedAtUtc).IsRequired();
             builder.HasOne<ApplicationUser>()
                 .WithOne()
                 .HasForeignKey<BuyerProfile>(profile => profile.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BuyerNotificationPreference>(builder =>
+        {
+            builder.ToTable("buyer_notification_preferences");
+            builder.HasKey(preference => preference.Id);
+            builder.HasIndex(preference => new { preference.BuyerId, preference.Category }).IsUnique();
+            builder.Property(preference => preference.Category).HasMaxLength(40).IsRequired();
+            builder.Property(preference => preference.IsEnabled).IsRequired();
+            builder.Property(preference => preference.EmailEnabled).IsRequired();
+            builder.Property(preference => preference.CreatedAtUtc).IsRequired();
+            builder.Property(preference => preference.UpdatedAtUtc).IsRequired();
+            builder.HasOne<BuyerProfile>()
+                .WithMany()
+                .HasForeignKey(preference => preference.BuyerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BuyerDeliveryAddress>(builder =>
+        {
+            builder.ToTable("buyer_delivery_addresses");
+            builder.HasKey(address => address.Id);
+            builder.HasIndex(address => address.BuyerId);
+            builder.HasIndex(address => new { address.BuyerId, address.IsDefault });
+            builder.Property(address => address.Label).HasMaxLength(BuyerDeliveryAddress.LabelMaxLength).IsRequired();
+            builder.Property(address => address.RecipientName).HasMaxLength(BuyerDeliveryAddress.RecipientNameMaxLength).IsRequired();
+            builder.Property(address => address.PhoneNumber).HasMaxLength(BuyerDeliveryAddress.PhoneNumberMaxLength).IsRequired();
+            builder.Property(address => address.AddressLine1).HasMaxLength(BuyerDeliveryAddress.AddressLineMaxLength).IsRequired();
+            builder.Property(address => address.AddressLine2).HasMaxLength(BuyerDeliveryAddress.AddressLineMaxLength);
+            builder.Property(address => address.Suburb).HasMaxLength(BuyerDeliveryAddress.SuburbMaxLength);
+            builder.Property(address => address.City).HasMaxLength(BuyerDeliveryAddress.CityMaxLength).IsRequired();
+            builder.Property(address => address.Province).HasMaxLength(BuyerDeliveryAddress.ProvinceMaxLength).IsRequired();
+            builder.Property(address => address.PostalCode).HasMaxLength(BuyerDeliveryAddress.PostalCodeMaxLength).IsRequired();
+            builder.Property(address => address.CountryCode).HasMaxLength(BuyerDeliveryAddress.CountryCodeLength).IsRequired();
+            builder.Property(address => address.DeliveryInstructions).HasMaxLength(BuyerDeliveryAddress.DeliveryInstructionsMaxLength);
+            builder.Property(address => address.IsDefault).IsRequired();
+            builder.Property(address => address.CreatedAtUtc).IsRequired();
+            builder.Property(address => address.UpdatedAtUtc).IsRequired();
+            builder.HasOne<BuyerProfile>()
+                .WithMany()
+                .HasForeignKey(address => address.BuyerId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -242,6 +305,37 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
             builder.HasOne<SellerProfile>()
                 .WithOne()
                 .HasForeignKey<SellerAddress>(address => address.SellerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SellerDeliveryMethod>(builder =>
+        {
+            builder.ToTable("seller_delivery_methods");
+            builder.HasKey(method => method.Id);
+            builder.HasIndex(method => method.SellerId);
+            builder.HasIndex(method => new { method.SellerId, method.IsActive, method.DisplayOrder });
+            builder.HasIndex(method => new { method.SellerId, method.CountryCode, method.Province });
+            builder.Property(method => method.Name).HasMaxLength(SellerDeliveryMethod.NameMaxLength).IsRequired();
+            builder.Property(method => method.Description).HasMaxLength(SellerDeliveryMethod.DescriptionMaxLength);
+            builder.Property(method => method.MethodType)
+                .HasConversion<string>()
+                .HasMaxLength(40)
+                .IsRequired();
+            builder.Property(method => method.CountryCode)
+                .HasMaxLength(SellerDeliveryMethod.CountryCodeLength)
+                .IsRequired();
+            builder.Property(method => method.Province).HasMaxLength(SellerDeliveryMethod.ProvinceMaxLength);
+            builder.Property(method => method.BasePrice).HasPrecision(18, 2).IsRequired();
+            builder.Property(method => method.FreeShippingThreshold).HasPrecision(18, 2);
+            builder.Property(method => method.EstimatedMinDays).IsRequired();
+            builder.Property(method => method.EstimatedMaxDays).IsRequired();
+            builder.Property(method => method.DisplayOrder).IsRequired();
+            builder.Property(method => method.IsActive).IsRequired();
+            builder.Property(method => method.CreatedAtUtc).IsRequired();
+            builder.Property(method => method.UpdatedAtUtc).IsRequired();
+            builder.HasOne<SellerProfile>()
+                .WithMany()
+                .HasForeignKey(method => method.SellerId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -437,6 +531,8 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
                 .IsUnique()
                 .HasFilter("\"IsPrimary\" = TRUE");
             builder.HasIndex(image => new { image.ProductId, image.SortOrder });
+            builder.HasIndex(image => image.MediaAssetId);
+            builder.Property(image => image.MediaAssetId);
             builder.Property(image => image.Url).HasMaxLength(2048).IsRequired();
             builder.Property(image => image.StorageKey).HasMaxLength(512).IsRequired();
             builder.Property(image => image.AltText).HasMaxLength(300);
@@ -446,6 +542,134 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
             builder.HasOne<Product>()
                 .WithMany()
                 .HasForeignKey(image => image.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne<MediaAsset>()
+                .WithMany()
+                .HasForeignKey(image => image.MediaAssetId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ProductListingRevision>(builder =>
+        {
+            builder.ToTable("product_listing_revisions");
+            builder.HasKey(revision => revision.Id);
+            builder.HasIndex(revision => revision.ProductId);
+            builder.HasIndex(revision => revision.SellerId);
+            builder.HasIndex(revision => revision.Status);
+            builder.HasIndex(revision => new { revision.ProductId, revision.Status })
+                .IsUnique()
+                .HasFilter("\"Status\" IN ('Draft', 'PendingReview', 'Rejected')");
+            builder.Property(revision => revision.Title).HasMaxLength(200);
+            builder.Property(revision => revision.Slug).HasMaxLength(220);
+            builder.Property(revision => revision.ShortDescription).HasMaxLength(500);
+            builder.Property(revision => revision.FullDescription).HasMaxLength(5000);
+            builder.Property(revision => revision.TagsJson)
+                .HasColumnName("tags_json")
+                .HasColumnType("jsonb")
+                .IsRequired();
+            builder.Property(revision => revision.AttributesJson)
+                .HasColumnName("attributes_json")
+                .HasColumnType("jsonb")
+                .IsRequired();
+            builder.Property(revision => revision.Status)
+                .HasConversion<string>()
+                .HasMaxLength(64)
+                .IsRequired();
+            builder.Property(revision => revision.RejectionReason).HasMaxLength(1000);
+            builder.Property(revision => revision.CreatedAtUtc).IsRequired();
+            builder.Property(revision => revision.UpdatedAtUtc).IsRequired();
+            builder.HasOne<Product>()
+                .WithMany()
+                .HasForeignKey(revision => revision.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne<SellerProfile>()
+                .WithMany()
+                .HasForeignKey(revision => revision.SellerId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProductListingRevisionImage>(builder =>
+        {
+            builder.ToTable("product_listing_revision_images");
+            builder.HasKey(image => image.Id);
+            builder.HasIndex(image => new { image.RevisionId, image.IsPrimary })
+                .IsUnique()
+                .HasFilter("\"IsPrimary\" = TRUE");
+            builder.HasIndex(image => new { image.RevisionId, image.SortOrder });
+            builder.HasIndex(image => image.MediaAssetId);
+            builder.Property(image => image.MediaAssetId);
+            builder.Property(image => image.Url).HasMaxLength(2048).IsRequired();
+            builder.Property(image => image.StorageKey).HasMaxLength(512).IsRequired();
+            builder.Property(image => image.AltText).HasMaxLength(300);
+            builder.Property(image => image.SortOrder).IsRequired();
+            builder.Property(image => image.IsPrimary).IsRequired();
+            builder.Property(image => image.CreatedAtUtc).IsRequired();
+            builder.HasOne<ProductListingRevision>()
+                .WithMany()
+                .HasForeignKey(image => image.RevisionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne<MediaAsset>()
+                .WithMany()
+                .HasForeignKey(image => image.MediaAssetId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<MediaAsset>(builder =>
+        {
+            builder.ToTable("media_assets");
+            builder.HasKey(asset => asset.Id);
+            builder.HasIndex(asset => asset.SellerId);
+            builder.HasIndex(asset => asset.ProductId);
+            builder.HasIndex(asset => asset.ProductListingRevisionId);
+            builder.HasIndex(asset => asset.LifecycleStatus);
+            builder.HasIndex(asset => asset.ScanStatus);
+            builder.HasIndex(asset => asset.StorageKey).IsUnique();
+            builder.Property(asset => asset.Provider).HasMaxLength(64).IsRequired();
+            builder.Property(asset => asset.Bucket).HasMaxLength(255).IsRequired();
+            builder.Property(asset => asset.StorageKey).HasMaxLength(700).IsRequired();
+            builder.Property(asset => asset.PublicUrl).HasMaxLength(2048).IsRequired();
+            builder.Property(asset => asset.OriginalFileName).HasMaxLength(255).IsRequired();
+            builder.Property(asset => asset.ContentType).HasMaxLength(100).IsRequired();
+            builder.Property(asset => asset.Sha256Hash).HasMaxLength(128).IsRequired();
+            builder.Property(asset => asset.ScanStatus)
+                .HasConversion<string>()
+                .HasMaxLength(32)
+                .IsRequired();
+            builder.Property(asset => asset.LifecycleStatus)
+                .HasConversion<string>()
+                .HasMaxLength(32)
+                .IsRequired();
+            builder.Property(asset => asset.LastError).HasMaxLength(500);
+            builder.HasOne<SellerProfile>()
+                .WithMany()
+                .HasForeignKey(asset => asset.SellerId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne<Product>()
+                .WithMany()
+                .HasForeignKey(asset => asset.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne<ProductListingRevision>()
+                .WithMany()
+                .HasForeignKey(asset => asset.ProductListingRevisionId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<MediaAssetVariant>(builder =>
+        {
+            builder.ToTable("media_asset_variants");
+            builder.HasKey(variant => variant.Id);
+            builder.HasIndex(variant => new { variant.MediaAssetId, variant.Kind }).IsUnique();
+            builder.HasIndex(variant => variant.StorageKey).IsUnique();
+            builder.Property(variant => variant.Kind)
+                .HasConversion<string>()
+                .HasMaxLength(32)
+                .IsRequired();
+            builder.Property(variant => variant.StorageKey).HasMaxLength(700).IsRequired();
+            builder.Property(variant => variant.PublicUrl).HasMaxLength(2048).IsRequired();
+            builder.Property(variant => variant.ContentType).HasMaxLength(100).IsRequired();
+            builder.HasOne<MediaAsset>()
+                .WithMany()
+                .HasForeignKey(variant => variant.MediaAssetId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -782,6 +1006,18 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
             builder.Property(order => order.ShippingAmount).HasPrecision(18, 2).IsRequired();
             builder.Property(order => order.PlatformFeeAmount).HasPrecision(18, 2).IsRequired();
             builder.Property(order => order.DiscountAmount).HasPrecision(18, 2).IsRequired();
+            builder.Property(order => order.DeliveryMethodName).HasMaxLength(SellerDeliveryMethod.NameMaxLength);
+            builder.Property(order => order.DeliveryMethodType).HasMaxLength(40);
+            builder.Property(order => order.DeliveryRecipientName).HasMaxLength(BuyerDeliveryAddress.RecipientNameMaxLength);
+            builder.Property(order => order.DeliveryPhoneNumber).HasMaxLength(BuyerDeliveryAddress.PhoneNumberMaxLength);
+            builder.Property(order => order.DeliveryAddressLine1).HasMaxLength(BuyerDeliveryAddress.AddressLineMaxLength);
+            builder.Property(order => order.DeliveryAddressLine2).HasMaxLength(BuyerDeliveryAddress.AddressLineMaxLength);
+            builder.Property(order => order.DeliverySuburb).HasMaxLength(BuyerDeliveryAddress.SuburbMaxLength);
+            builder.Property(order => order.DeliveryCity).HasMaxLength(BuyerDeliveryAddress.CityMaxLength);
+            builder.Property(order => order.DeliveryProvince).HasMaxLength(BuyerDeliveryAddress.ProvinceMaxLength);
+            builder.Property(order => order.DeliveryPostalCode).HasMaxLength(BuyerDeliveryAddress.PostalCodeMaxLength);
+            builder.Property(order => order.DeliveryCountryCode).HasMaxLength(BuyerDeliveryAddress.CountryCodeLength);
+            builder.Property(order => order.DeliveryInstructions).HasMaxLength(BuyerDeliveryAddress.DeliveryInstructionsMaxLength);
             builder.Property(order => order.CreatedAtUtc).IsRequired();
             builder.Property(order => order.UpdatedAtUtc).IsRequired();
             builder.HasOne<BuyerProfile>()
@@ -1467,6 +1703,32 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        modelBuilder.Entity<PaymentReconciliationReview>(builder =>
+        {
+            builder.ToTable("payment_reconciliation_reviews");
+            builder.HasKey(review => review.Id);
+            builder.HasIndex(review => new { review.PaymentId, review.ReviewedAtUtc });
+            builder.HasIndex(review => new { review.Provider, review.ProviderReference });
+            builder.HasIndex(review => review.Outcome);
+            builder.HasIndex(review => review.NextReviewAfterUtc);
+            builder.Property(review => review.Provider).HasMaxLength(64).IsRequired();
+            builder.Property(review => review.ProviderReference).HasMaxLength(256);
+            builder.Property(review => review.ObservedProviderStatus).HasMaxLength(128).IsRequired();
+            builder.Property(review => review.ObservedAmount).HasPrecision(18, 2);
+            builder.Property(review => review.ObservedCurrency).HasMaxLength(3);
+            builder.Property(review => review.Outcome)
+                .HasConversion<string>()
+                .HasMaxLength(64)
+                .IsRequired();
+            builder.Property(review => review.Reason).HasMaxLength(1000).IsRequired();
+            builder.Property(review => review.ReviewedAtUtc).IsRequired();
+            builder.Property(review => review.NextReviewAfterUtc);
+            builder.HasOne<Payment>()
+                .WithMany()
+                .HasForeignKey(review => review.PaymentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<LedgerEntry>(builder =>
         {
             builder.ToTable("ledger_entries");
@@ -1655,10 +1917,31 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
             builder.Property(notification => notification.Title).HasMaxLength(200).IsRequired();
             builder.Property(notification => notification.Message).HasMaxLength(1000).IsRequired();
             builder.Property(notification => notification.RelatedEntityType).HasMaxLength(120);
+            builder.Property(notification => notification.IsInAppVisible).IsRequired();
             builder.Property(notification => notification.CreatedAtUtc).IsRequired();
             builder.HasOne<ApplicationUser>()
                 .WithMany()
                 .HasForeignKey(notification => notification.RecipientUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<NotificationEmailDelivery>(builder =>
+        {
+            builder.ToTable("notification_email_deliveries");
+            builder.HasKey(delivery => delivery.Id);
+            builder.HasIndex(delivery => delivery.NotificationId);
+            builder.HasIndex(delivery => new { delivery.Status, delivery.NextAttemptAtUtc });
+            builder.Property(delivery => delivery.RecipientEmail).HasMaxLength(320).IsRequired();
+            builder.Property(delivery => delivery.Subject).HasMaxLength(200).IsRequired();
+            builder.Property(delivery => delivery.Body).HasMaxLength(4000).IsRequired();
+            builder.Property(delivery => delivery.Status).HasConversion<string>().HasMaxLength(40).IsRequired();
+            builder.Property(delivery => delivery.AttemptCount).IsRequired();
+            builder.Property(delivery => delivery.FailureReason).HasMaxLength(1000);
+            builder.Property(delivery => delivery.CreatedAtUtc).IsRequired();
+            builder.Property(delivery => delivery.UpdatedAtUtc).IsRequired();
+            builder.HasOne<Notification>(delivery => delivery.Notification)
+                .WithMany()
+                .HasForeignKey(delivery => delivery.NotificationId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

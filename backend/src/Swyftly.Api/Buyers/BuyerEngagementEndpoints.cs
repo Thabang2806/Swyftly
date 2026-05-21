@@ -5,10 +5,12 @@ using Swyftly.Api.Catalog;
 using Swyftly.Application.Identity;
 using Swyftly.Application.Notifications;
 using Swyftly.Domain.Buyers;
+using Swyftly.Domain.Carts;
 using Swyftly.Domain.Catalog;
 using Swyftly.Domain.Notifications;
 using Swyftly.Domain.Orders;
 using Swyftly.Domain.Sellers;
+using Swyftly.Api.Carts;
 using Swyftly.Infrastructure.Notifications;
 using Swyftly.Infrastructure.Persistence;
 using HttpResults = Microsoft.AspNetCore.Http.Results;
@@ -29,10 +31,23 @@ public static class BuyerEngagementEndpoints
             .Produces<IReadOnlyCollection<BuyerWishlistItemResponse>>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        wishlist.MapGet("/product-ids", GetWishlistProductIdsAsync)
+            .WithName("GetBuyerWishlistProductIds")
+            .WithSummary("Returns product ids saved by the authenticated buyer.")
+            .Produces<BuyerWishlistProductIdsResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         wishlist.MapPost("/{productId:guid}", AddWishlistItemAsync)
             .WithName("AddBuyerWishlistItem")
             .WithSummary("Adds a public product to the authenticated buyer's wishlist.")
             .Produces<BuyerWishlistItemResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        wishlist.MapPost("/{productId:guid}/move-to-cart", MoveWishlistItemToCartAsync)
+            .WithName("MoveBuyerWishlistItemToCart")
+            .WithSummary("Moves a wishlist item to the authenticated buyer's cart.")
+            .Produces<CartResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         wishlist.MapDelete("/{productId:guid}", RemoveWishlistItemAsync)
@@ -135,11 +150,36 @@ public static class BuyerEngagementEndpoints
             var product = await CreateProductCardAsync(item.ProductId, dbContext, cancellationToken);
             if (product is not null)
             {
-                response.Add(new BuyerWishlistItemResponse(item.Id, item.CreatedAtUtc, product));
+                response.Add(new BuyerWishlistItemResponse(
+                    item.Id,
+                    item.CreatedAtUtc,
+                    product,
+                    await GetWishlistVariantOptionsAsync(item.ProductId, dbContext, cancellationToken)));
             }
         }
 
         return HttpResults.Ok(response);
+    }
+
+    private static async Task<IResult> GetWishlistProductIdsAsync(
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var buyer = await GetCurrentBuyerAsync(principal, dbContext, cancellationToken);
+        if (buyer is null)
+        {
+            return BuyerNotFound();
+        }
+
+        var productIds = await dbContext.BuyerWishlistItems
+            .Where(item => item.BuyerId == buyer.Id)
+            .AsNoTracking()
+            .OrderByDescending(item => item.CreatedAtUtc)
+            .Select(item => item.ProductId)
+            .ToArrayAsync(cancellationToken);
+
+        return HttpResults.Ok(new BuyerWishlistProductIdsResponse(productIds));
     }
 
     private static async Task<IResult> AddWishlistItemAsync(
@@ -168,14 +208,101 @@ public static class BuyerEngagementEndpoints
 
         if (existing is not null)
         {
-            return HttpResults.Ok(new BuyerWishlistItemResponse(existing.Id, existing.CreatedAtUtc, product));
+            return HttpResults.Ok(new BuyerWishlistItemResponse(
+                existing.Id,
+                existing.CreatedAtUtc,
+                product,
+                await GetWishlistVariantOptionsAsync(productId, dbContext, cancellationToken)));
         }
 
         var wishlistItem = new BuyerWishlistItem(buyer.Id, productId, timeProvider.GetUtcNow());
         dbContext.BuyerWishlistItems.Add(wishlistItem);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return HttpResults.Ok(new BuyerWishlistItemResponse(wishlistItem.Id, wishlistItem.CreatedAtUtc, product));
+        return HttpResults.Ok(new BuyerWishlistItemResponse(
+            wishlistItem.Id,
+            wishlistItem.CreatedAtUtc,
+            product,
+            await GetWishlistVariantOptionsAsync(productId, dbContext, cancellationToken)));
+    }
+
+    private static async Task<IResult> MoveWishlistItemToCartAsync(
+        Guid productId,
+        MoveWishlistItemToCartRequest request,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        if (request.Quantity <= 0)
+        {
+            return Validation("quantity", "Quantity must be at least 1.");
+        }
+
+        var buyer = await GetCurrentBuyerAsync(principal, dbContext, cancellationToken);
+        if (buyer is null)
+        {
+            return BuyerNotFound();
+        }
+
+        var wishlistItem = await dbContext.BuyerWishlistItems
+            .SingleOrDefaultAsync(
+                item => item.BuyerId == buyer.Id && item.ProductId == productId,
+                cancellationToken);
+        if (wishlistItem is null)
+        {
+            return WishlistItemNotFound();
+        }
+
+        var product = await BuildVisiblePublishedProductQuery(dbContext)
+            .SingleOrDefaultAsync(existing => existing.Id == productId, cancellationToken);
+        if (product is null)
+        {
+            return ProductNotFound();
+        }
+
+        var variant = await dbContext.ProductVariants.SingleOrDefaultAsync(
+            existing => existing.Id == request.ProductVariantId && existing.ProductId == product.Id,
+            cancellationToken);
+        if (variant is null)
+        {
+            return VariantNotFound();
+        }
+
+        if (variant.Status != ProductVariantStatus.Active)
+        {
+            return Validation("productVariantId", "Product variant is not available.");
+        }
+
+        var cart = await GetActiveCartAsync(buyer.Id, dbContext, cancellationToken);
+        if (cart is null)
+        {
+            cart = new Cart(buyer.Id);
+            dbContext.Carts.Add(cart);
+        }
+
+        try
+        {
+            cart.AddOrUpdateItem(
+                product.Id,
+                variant.Id,
+                product.SellerId,
+                product.Title,
+                variant.Sku,
+                variant.Size,
+                variant.Colour,
+                variant.Price,
+                request.Quantity,
+                variant.AvailableQuantity);
+        }
+        catch (Exception exception) when (exception is ArgumentException or ArgumentOutOfRangeException or InvalidOperationException)
+        {
+            return Validation("cart", exception.Message);
+        }
+
+        dbContext.BuyerWishlistItems.Remove(wishlistItem);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return HttpResults.Ok(await CartEndpoints.CreateCartResponseAsync(cart, dbContext, cancellationToken));
     }
 
     private static async Task<IResult> RemoveWishlistItemAsync(
@@ -388,7 +515,7 @@ public static class BuyerEngagementEndpoints
         }
 
         var notifications = await dbContext.Notifications
-            .Where(notification => notification.RecipientUserId == buyer.UserId)
+            .Where(notification => notification.RecipientUserId == buyer.UserId && notification.IsInAppVisible)
             .AsNoTracking()
             .OrderByDescending(notification => notification.CreatedAtUtc)
             .ToListAsync(cancellationToken);
@@ -411,7 +538,9 @@ public static class BuyerEngagementEndpoints
 
         var notification = await dbContext.Notifications
             .SingleOrDefaultAsync(
-                existing => existing.Id == notificationId && existing.RecipientUserId == buyer.UserId,
+                existing => existing.Id == notificationId
+                    && existing.RecipientUserId == buyer.UserId
+                    && existing.IsInAppVisible,
                 cancellationToken);
         if (notification is null)
         {
@@ -437,7 +566,9 @@ public static class BuyerEngagementEndpoints
         }
 
         var unreadNotifications = await dbContext.Notifications
-            .Where(notification => notification.RecipientUserId == buyer.UserId && notification.ReadAtUtc == null)
+            .Where(notification => notification.RecipientUserId == buyer.UserId
+                && notification.IsInAppVisible
+                && notification.ReadAtUtc == null)
             .ToListAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         foreach (var notification in unreadNotifications)
@@ -531,6 +662,16 @@ public static class BuyerEngagementEndpoints
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    private static async Task<Cart?> GetActiveCartAsync(
+        Guid buyerId,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken) =>
+        await dbContext.Carts
+            .Include(cart => cart.Items)
+            .SingleOrDefaultAsync(
+                cart => cart.BuyerId == buyerId && cart.Status == CartStatus.Active,
+                cancellationToken);
+
     private static async Task<ProductSearchItemResponse?> CreateProductCardAsync(
         Guid productId,
         SwyftlyDbContext dbContext,
@@ -581,6 +722,25 @@ public static class BuyerEngagementEndpoints
             ReadStringArray(product.TagsJson),
             product.PublishedAtUtc);
     }
+
+    private static async Task<IReadOnlyCollection<BuyerWishlistVariantOptionResponse>> GetWishlistVariantOptionsAsync(
+        Guid productId,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken) =>
+        await dbContext.ProductVariants
+            .AsNoTracking()
+            .Where(variant => variant.ProductId == productId && variant.Status == ProductVariantStatus.Active)
+            .OrderBy(variant => variant.Size)
+            .ThenBy(variant => variant.Colour)
+            .Select(variant => new BuyerWishlistVariantOptionResponse(
+                variant.Id,
+                variant.Size,
+                variant.Colour,
+                variant.Price,
+                variant.CompareAtPrice,
+                variant.StockQuantity > variant.ReservedQuantity,
+                variant.StockQuantity - variant.ReservedQuantity))
+            .ToArrayAsync(cancellationToken);
 
     private static IQueryable<Product> BuildVisiblePublishedProductQuery(SwyftlyDbContext dbContext) =>
         dbContext.Products
@@ -705,6 +865,24 @@ public static class BuyerEngagementEndpoints
             detail: "Product was not found.",
             statusCode: StatusCodes.Status404NotFound);
 
+    private static IResult VariantNotFound() =>
+        HttpResults.Problem(
+            title: "Cart.ProductVariantNotFound",
+            detail: "Product variant was not found.",
+            statusCode: StatusCodes.Status404NotFound);
+
+    private static IResult WishlistItemNotFound() =>
+        HttpResults.Problem(
+            title: "Wishlist.ItemNotFound",
+            detail: "Wishlist item was not found.",
+            statusCode: StatusCodes.Status404NotFound);
+
+    private static IResult Validation(string key, string message) =>
+        HttpResults.ValidationProblem(new Dictionary<string, string[]>
+        {
+            [key] = [message]
+        });
+
     private static IResult OrderNotFound() =>
         HttpResults.Problem(
             title: "Reviews.OrderNotFound",
@@ -736,7 +914,23 @@ public static class BuyerEngagementEndpoints
 public sealed record BuyerWishlistItemResponse(
     Guid WishlistItemId,
     DateTimeOffset CreatedAtUtc,
-    ProductSearchItemResponse Product);
+    ProductSearchItemResponse Product,
+    IReadOnlyCollection<BuyerWishlistVariantOptionResponse> AvailableVariants);
+
+public sealed record BuyerWishlistProductIdsResponse(IReadOnlyCollection<Guid> ProductIds);
+
+public sealed record BuyerWishlistVariantOptionResponse(
+    Guid ProductVariantId,
+    string Size,
+    string Colour,
+    decimal Price,
+    decimal? CompareAtPrice,
+    bool InStock,
+    int AvailableQuantity);
+
+public sealed record MoveWishlistItemToCartRequest(
+    Guid ProductVariantId,
+    int Quantity);
 
 public sealed record ProductReviewRequest(
     int Rating,

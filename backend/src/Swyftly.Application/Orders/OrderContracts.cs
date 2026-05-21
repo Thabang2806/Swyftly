@@ -16,7 +16,22 @@ public sealed record CreateOrderFromCartRequest(
     TimeSpan ReservationDuration,
     decimal ShippingAmount = 0,
     decimal PlatformFeeAmount = 0,
-    decimal DiscountAmount = 0);
+    decimal DiscountAmount = 0,
+    Guid? DeliveryAddressId = null,
+    OrderDeliveryAddressRequest? DeliveryAddress = null,
+    Guid? DeliveryMethodId = null);
+
+public sealed record OrderDeliveryAddressRequest(
+    string RecipientName,
+    string PhoneNumber,
+    string AddressLine1,
+    string? AddressLine2,
+    string? Suburb,
+    string City,
+    string Province,
+    string PostalCode,
+    string CountryCode,
+    string? DeliveryInstructions = null);
 
 public sealed record OrderResult(
     Guid OrderId,
@@ -30,8 +45,26 @@ public sealed record OrderResult(
     decimal PlatformFeeAmount,
     decimal DiscountAmount,
     decimal TotalAmount,
+    OrderDeliveryAddressResult? DeliveryAddress,
     IReadOnlyCollection<OrderStatusHistoryResult> StatusHistory,
-    IReadOnlyCollection<ShipmentResult> Shipments);
+    IReadOnlyCollection<ShipmentResult> Shipments,
+    Guid? DeliveryMethodId = null,
+    string? DeliveryMethodName = null,
+    string? DeliveryMethodType = null,
+    int? DeliveryEstimatedMinDays = null,
+    int? DeliveryEstimatedMaxDays = null);
+
+public sealed record OrderDeliveryAddressResult(
+    string RecipientName,
+    string PhoneNumber,
+    string AddressLine1,
+    string? AddressLine2,
+    string? Suburb,
+    string City,
+    string Province,
+    string PostalCode,
+    string CountryCode,
+    string? DeliveryInstructions = null);
 
 public sealed record OrderItemResult(
     Guid OrderItemId,

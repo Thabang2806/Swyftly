@@ -17,10 +17,20 @@ describe('SellerProductFormPageComponent', () => {
         'createProduct',
         'updateProduct',
         'addVariant',
+        'updateVariant',
         'deleteVariant',
         'addImage',
+        'uploadImage',
+        'updateImage',
         'deleteImage',
         'submitForReview',
+        'getRevision',
+        'updateRevision',
+        'uploadRevisionImage',
+        'updateRevisionImage',
+        'deleteRevisionImage',
+        'submitRevisionForReview',
+        'cancelRevision',
         'generateAiSuggestion',
         'applyAiSuggestion'
       ]);
@@ -28,6 +38,10 @@ describe('SellerProductFormPageComponent', () => {
     productService.createProduct.and.resolveTo(createProductDetail());
     productService.updateProduct.and.resolveTo(createProductDetail());
     productService.getProduct.and.resolveTo(createProductDetail());
+    productService.getRevision.and.resolveTo(createRevision());
+    productService.updateImage.and.resolveTo(createProductDetail({
+      images: [createImage({ altText: 'Updated side image', sortOrder: 2, isPrimary: true })]
+    }));
     productService.generateAiSuggestion.and.resolveTo(createAiSuggestion());
     productService.applyAiSuggestion.and.resolveTo(createProductDetail({
       title: 'Seller reviewed AI title',
@@ -47,6 +61,9 @@ describe('SellerProductFormPageComponent', () => {
         barcode: null,
         availableQuantity: 10
       }]
+    }));
+    productService.updateVariant.and.resolveTo(createProductDetail({
+      variants: [createVariant({ sku: 'SKU-EDIT', price: 129 })]
     }));
 
     await TestBed.configureTestingModule({
@@ -113,6 +130,127 @@ describe('SellerProductFormPageComponent', () => {
     }));
   });
 
+  it('renders seller workspace navigation, editor status, and image gallery metadata actions', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const image = createImage();
+    const component = fixture.componentInstance as unknown as {
+      product: { set(value: unknown): void };
+      currentStep: { set(value: number): void };
+      editImage(image: unknown): void;
+      imageEditForm: {
+        setValue(value: { altText: string; sortOrder: number; isPrimary: boolean }): void;
+      };
+      saveImageMetadata(): Promise<void>;
+    };
+    component.product.set(createProductDetail({ images: [image] }));
+    component.currentStep.set(2);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Products');
+    expect(compiled.textContent).toContain('Product editor');
+    expect(compiled.textContent).toContain('Primary');
+
+    component.editImage(image);
+    component.imageEditForm.setValue({ altText: 'Updated side image', sortOrder: 2, isPrimary: true });
+    await component.saveImageMetadata();
+
+    expect(productService.updateImage).toHaveBeenCalledWith('product-id', 'image-id', {
+      altText: 'Updated side image',
+      sortOrder: 2,
+      isPrimary: true
+    });
+  });
+
+  it('updates existing variants and still supports add mode', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const variant = createVariant();
+    const component = fixture.componentInstance as unknown as {
+      product: { set(value: unknown): void };
+      editVariant(variant: unknown): void;
+      startNewVariant(): void;
+      variantForm: {
+        setValue(value: {
+          sku: string;
+          size: string;
+          colour: string;
+          price: number;
+          compareAtPrice: number | null;
+          stockQuantity: number;
+          reservedQuantity: number;
+          status: 'Active' | 'Inactive' | 'OutOfStock';
+          barcode: string;
+        }): void;
+      };
+      saveVariant(): Promise<void>;
+    };
+    component.product.set(createProductDetail({ variants: [variant] }));
+
+    component.editVariant(variant);
+    component.variantForm.setValue({
+      sku: 'SKU-EDIT',
+      size: 'L',
+      colour: 'Black',
+      price: 129,
+      compareAtPrice: null,
+      stockQuantity: 8,
+      reservedQuantity: 0,
+      status: 'Active',
+      barcode: ''
+    });
+    await component.saveVariant();
+
+    expect(productService.updateVariant).toHaveBeenCalledWith('product-id', 'variant-id', jasmine.objectContaining({
+      sku: 'SKU-EDIT',
+      price: 129
+    }));
+
+    component.startNewVariant();
+    component.variantForm.setValue({
+      sku: 'SKU-NEW',
+      size: 'M',
+      colour: 'Ivory',
+      price: 100,
+      compareAtPrice: null,
+      stockQuantity: 5,
+      reservedQuantity: 0,
+      status: 'Active',
+      barcode: ''
+    });
+    await component.saveVariant();
+
+    expect(productService.addVariant).toHaveBeenCalledWith('product-id', jasmine.objectContaining({
+      sku: 'SKU-NEW',
+      colour: 'Ivory'
+    }));
+  });
+
+  it('blocks mutating editor actions for read-only product statuses', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const image = createImage();
+    const component = fixture.componentInstance as unknown as {
+      product: { set(value: unknown): void };
+      editImage(image: unknown): void;
+      saveImageMetadata(): Promise<void>;
+      isProductEditable(): boolean;
+    };
+    component.product.set(createProductDetail({ status: 'Published', images: [image] }));
+    component.editImage(image);
+    fixture.detectChanges();
+
+    await component.saveImageMetadata();
+
+    expect(component.isProductEditable()).toBeFalse();
+    expect(productService.updateImage).not.toHaveBeenCalled();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('current approved listing');
+  });
+
   it('generates an AI suggestion from the saved product draft', async () => {
     fixture.detectChanges();
     await fixture.whenStable();
@@ -138,6 +276,10 @@ describe('SellerProductFormPageComponent', () => {
       knownAttributes: jasmine.objectContaining({ size: 'M' })
     }));
     expect(component.aiSuggestion()?.recommendedTitle).toBe('AI title');
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.hf-ai-listing-assistant')).not.toBeNull();
+    expect(compiled.textContent).toContain('Quality score: 70%');
   });
 
   it('applies selected AI suggestions with seller edits', async () => {
@@ -229,6 +371,68 @@ function createProductDetail(overrides: Record<string, unknown> = {}) {
     attributes: { size: '"M"' },
     variants: [],
     images: [],
+    ...overrides
+  };
+}
+
+function createImage(overrides: Record<string, unknown> = {}) {
+  return {
+    imageId: 'image-id',
+    url: 'https://example.test/image.jpg',
+    storageKey: 'image-key',
+    altText: 'Product image',
+    sortOrder: 0,
+    isPrimary: true,
+    createdAtUtc: '2026-05-18T12:00:00Z',
+    ...overrides
+  };
+}
+
+function createRevision(overrides: Record<string, unknown> = {}) {
+  return {
+    revisionId: 'revision-id',
+    productId: 'product-id',
+    sellerId: 'seller-id',
+    status: 'Draft',
+    canEdit: true,
+    rejectionReason: null,
+    submittedAtUtc: null,
+    reviewedAtUtc: null,
+    categoryId: 'category-id',
+    brandId: null,
+    title: 'Summer Dress',
+    slug: 'summer-dress',
+    shortDescription: 'Short',
+    fullDescription: 'Full',
+    tags: [],
+    attributes: { size: '"M"' },
+    images: [{
+      revisionImageId: 'revision-image-id',
+      sourceProductImageId: 'image-id',
+      url: 'https://example.test/image.jpg',
+      storageKey: 'image-key',
+      altText: 'Product image',
+      sortOrder: 0,
+      isPrimary: true,
+      createdAtUtc: '2026-05-18T12:00:00Z'
+    }],
+    ...overrides
+  };
+}
+
+function createVariant(overrides: Record<string, unknown> = {}) {
+  return {
+    variantId: 'variant-id',
+    sku: 'SKU-1',
+    size: 'M',
+    colour: 'Black',
+    price: 100,
+    compareAtPrice: null,
+    stockQuantity: 10,
+    reservedQuantity: 0,
+    status: 'Active' as const,
+    barcode: null,
+    availableQuantity: 10,
     ...overrides
   };
 }

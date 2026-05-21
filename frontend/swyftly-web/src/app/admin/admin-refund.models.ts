@@ -33,3 +33,8 @@ export interface CreateAdminRefundRequest {
 export interface ApproveAdminRefundRequest {
   reason: string;
 }
+
+export interface ConfirmManualProviderRefundRequest {
+  providerRefundReference: string;
+  reason: string;
+}

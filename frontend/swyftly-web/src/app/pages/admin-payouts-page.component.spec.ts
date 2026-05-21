@@ -50,6 +50,8 @@ describe('AdminPayoutsPageComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('payout-id');
     expect(compiled.textContent).toContain('Operate and approve');
+    expect(compiled.querySelector('.hf-admin-finance-layout')).toBeTruthy();
+    expect(compiled.textContent).toContain('Ledger snapshot');
 
     selectPayout(compiled);
     setReason('Risk review');

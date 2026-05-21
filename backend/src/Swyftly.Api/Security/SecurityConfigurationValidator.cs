@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Swyftly.Api.Authentication;
+using Swyftly.Infrastructure.Notifications;
 using Swyftly.Infrastructure.Payments;
 
 namespace Swyftly.Api.Security;
@@ -60,6 +61,7 @@ public static class SecurityConfigurationValidator
 
         ValidatePaymentProviderConfiguration(configuration);
         ValidateAuthCookieConfiguration(configuration);
+        ValidateEmailDeliveryConfiguration(configuration);
     }
 
     private static void ValidatePaymentProviderConfiguration(IConfiguration configuration)
@@ -138,6 +140,37 @@ public static class SecurityConfigurationValidator
                 throw new InvalidOperationException(
                     "Production AuthCookies:Domain must be a production host or parent domain, not localhost or a placeholder.");
             }
+        }
+    }
+
+    private static void ValidateEmailDeliveryConfiguration(IConfiguration configuration)
+    {
+        var providerName = configuration["EmailDelivery:ProviderName"] ?? LogOnlyEmailDeliveryProvider.Name;
+        if (string.Equals(providerName, LogOnlyEmailDeliveryProvider.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                "Production EmailDelivery:ProviderName cannot be LogOnly. Configure SMTP or another real email delivery provider before running in production.");
+        }
+
+        if (!string.Equals(providerName, SmtpEmailDeliveryProvider.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Production EmailDelivery:ProviderName '{providerName}' is not supported.");
+        }
+
+        RequireNonPlaceholder(configuration, "EmailDelivery:FromAddress");
+        if (!configuration["EmailDelivery:FromAddress"]!.Contains('@', StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Production EmailDelivery:FromAddress must be a valid email address.");
+        }
+
+        RequireNonPlaceholder(configuration, "EmailDelivery:Smtp:Host");
+        var smtpPort = configuration["EmailDelivery:Smtp:Port"];
+        if (!int.TryParse(smtpPort, out var port) || port <= 0)
+        {
+            throw new InvalidOperationException(
+                "Production EmailDelivery:Smtp:Port must be a valid positive port.");
         }
     }
 

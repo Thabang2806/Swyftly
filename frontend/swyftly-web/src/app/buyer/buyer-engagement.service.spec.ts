@@ -31,11 +31,24 @@ describe('BuyerEngagementService', () => {
     listRequest.flush([]);
     await expectAsync(listPromise).toBeResolvedTo([]);
 
+    const productIdsPromise = service.listWishlistProductIds();
+    const productIdsRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/buyer/wishlist/product-ids`);
+    expect(productIdsRequest.request.method).toBe('GET');
+    productIdsRequest.flush({ productIds: ['product-id'] });
+    await expectAsync(productIdsPromise).toBeResolvedTo({ productIds: ['product-id'] });
+
     const addPromise = service.addWishlistItem('product-id');
     const addRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/buyer/wishlist/product-id`);
     expect(addRequest.request.method).toBe('POST');
-    addRequest.flush({ wishlistItemId: 'wishlist-id', createdAtUtc: '2026-05-19T10:00:00Z', product: createProduct() });
+    addRequest.flush({ wishlistItemId: 'wishlist-id', createdAtUtc: '2026-05-19T10:00:00Z', product: createProduct(), availableVariants: [] });
     await expectAsync(addPromise).toBeResolved();
+
+    const movePromise = service.moveWishlistItemToCart('product-id', { productVariantId: 'variant-id', quantity: 1 });
+    const moveRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/buyer/wishlist/product-id/move-to-cart`);
+    expect(moveRequest.request.method).toBe('POST');
+    expect(moveRequest.request.body).toEqual({ productVariantId: 'variant-id', quantity: 1 });
+    moveRequest.flush({ cartId: 'cart-id', buyerId: 'buyer-id', sellerId: 'seller-id', sellerStoreName: 'Seller Store', items: [], totalQuantity: 1, subtotal: 499 });
+    await expectAsync(movePromise).toBeResolved();
 
     const removePromise = service.removeWishlistItem('product-id');
     const removeRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/buyer/wishlist/product-id`);

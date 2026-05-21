@@ -70,6 +70,37 @@ export interface SellerProductImageResponse {
   createdAtUtc: string;
 }
 
+export interface SellerProductRevisionResponse {
+  revisionId: string;
+  productId: string;
+  sellerId: string;
+  status: string;
+  canEdit: boolean;
+  rejectionReason: string | null;
+  submittedAtUtc: string | null;
+  reviewedAtUtc: string | null;
+  categoryId: string | null;
+  brandId: string | null;
+  title: string | null;
+  slug: string | null;
+  shortDescription: string | null;
+  fullDescription: string | null;
+  tags: string[];
+  attributes: Record<string, string>;
+  images: SellerProductRevisionImageResponse[];
+}
+
+export interface SellerProductRevisionImageResponse {
+  revisionImageId: string;
+  sourceProductImageId: string | null;
+  url: string;
+  storageKey: string;
+  altText: string | null;
+  sortOrder: number;
+  isPrimary: boolean;
+  createdAtUtc: string;
+}
+
 export interface UpsertSellerProductRequest {
   categoryId: string | null;
   brandId: string | null;
@@ -78,6 +109,10 @@ export interface UpsertSellerProductRequest {
   shortDescription: string | null;
   fullDescription: string | null;
   attributes: Record<string, unknown>;
+}
+
+export interface UpsertSellerProductRevisionRequest extends UpsertSellerProductRequest {
+  tags: string[];
 }
 
 export interface UpsertSellerProductVariantRequest {
@@ -95,6 +130,12 @@ export interface UpsertSellerProductVariantRequest {
 export interface AttachSellerProductImageRequest {
   storageKey: string;
   url: string | null;
+  altText: string | null;
+  sortOrder: number;
+  isPrimary: boolean;
+}
+
+export interface UpdateSellerProductImageRequest {
   altText: string | null;
   sortOrder: number;
   isPrimary: boolean;

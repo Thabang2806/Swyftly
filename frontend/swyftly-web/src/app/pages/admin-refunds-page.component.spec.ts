@@ -16,11 +16,16 @@ describe('AdminRefundsPageComponent', () => {
     currentRoles = ['SuperAdmin'];
     refundService = jasmine.createSpyObj<AdminRefundService>(
       'AdminRefundService',
-      ['getRefunds', 'createOrderRefund', 'createReturnRefund', 'approveRefund']);
+      ['getRefunds', 'createOrderRefund', 'createReturnRefund', 'approveRefund', 'confirmManualProviderRefund']);
     refundService.getRefunds.and.resolveTo([createRefund()]);
     refundService.createOrderRefund.and.resolveTo(createRefund({ refundId: 'order-refund-id' }));
     refundService.createReturnRefund.and.resolveTo(createRefund({ refundId: 'return-refund-id', returnRequestId: 'return-id' }));
     refundService.approveRefund.and.resolveTo(createRefund({ status: 'Approved', approvedAtUtc: '2026-05-19T11:00:00Z' }));
+    refundService.confirmManualProviderRefund.and.resolveTo(createRefund({
+      status: 'Refunded',
+      providerRefundReference: 'PF-REF-1',
+      refundedAtUtc: '2026-05-19T12:00:00Z'
+    }));
 
     await TestBed.configureTestingModule({
       imports: [AdminRefundsPageComponent],
@@ -99,6 +104,38 @@ describe('AdminRefundsPageComponent', () => {
     fixture.detectChanges();
 
     expect(findButton(compiled, 'Approve refund')?.disabled).toBeTrue();
+  });
+
+  it('shows PayFast manual refund guidance and confirms provider reference', async () => {
+    refundService.getRefunds.and.resolveTo([createRefund({ status: 'Processing' })]);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    clickButton(compiled, 'Select');
+    fixture.detectChanges();
+    expect(compiled.textContent).toContain('PayFast refunds are completed in the provider dashboard');
+
+    const component = fixture.componentInstance as unknown as {
+      manualConfirmForm: {
+        setValue(value: { providerRefundReference: string; reason: string }): void;
+      };
+    };
+    component.manualConfirmForm.setValue({
+      providerRefundReference: 'PF-REF-1',
+      reason: 'Dashboard refund completed.'
+    });
+
+    const forms = compiled.querySelectorAll('form');
+    forms[2]?.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+
+    expect(refundService.confirmManualProviderRefund).toHaveBeenCalledWith('refund-id', {
+      providerRefundReference: 'PF-REF-1',
+      reason: 'Dashboard refund completed.'
+    });
   });
 });
 

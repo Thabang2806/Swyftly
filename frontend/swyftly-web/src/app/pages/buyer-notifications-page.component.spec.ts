@@ -32,6 +32,7 @@ describe('BuyerNotificationsPageComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Order shipped');
     expect(compiled.textContent).toContain('unread notification');
+    expect(compiled.textContent).toContain('Notification settings');
 
     const readButton = Array.from(compiled.querySelectorAll('button'))
       .find(button => button.textContent?.includes('Mark read')) as HTMLButtonElement;

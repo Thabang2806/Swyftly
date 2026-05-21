@@ -76,6 +76,26 @@ public sealed class CategoryAttribute : Entity
     public bool HasAllowedValue(string value) =>
         AllowedValues.Any(allowedValue => string.Equals(allowedValue, value, StringComparison.OrdinalIgnoreCase));
 
+    public void Update(
+        string name,
+        string key,
+        CategoryAttributeDataType dataType,
+        bool isRequired,
+        IEnumerable<string>? allowedValues,
+        int displayOrder)
+    {
+        Name = Required(name, nameof(name));
+        Key = NormalizeKey(key);
+        DataType = dataType;
+        IsRequired = isRequired;
+        AllowedValuesJson = SerializeAllowedValues(dataType, allowedValues);
+        DisplayOrder = NonNegative(displayOrder, nameof(displayOrder));
+    }
+
+    public void Activate() => IsActive = true;
+
+    public void Deactivate() => IsActive = false;
+
     private static string Required(string? value, string parameterName)
     {
         var trimmed = value?.Trim();

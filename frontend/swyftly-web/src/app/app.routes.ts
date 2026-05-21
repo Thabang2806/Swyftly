@@ -21,6 +21,18 @@ export const routes: Routes = [
     canActivate: [requireRoleGuard(['Seller'])]
   },
   {
+    path: 'seller/inventory',
+    loadComponent: () => import('./pages/seller-inventory-page.component').then(component => component.SellerInventoryPageComponent),
+    title: 'Seller inventory | Swyftly',
+    canActivate: [requireRoleGuard(['Seller'])]
+  },
+  {
+    path: 'seller/settings/store',
+    loadComponent: () => import('./pages/seller-store-settings-page.component').then(component => component.SellerStoreSettingsPageComponent),
+    title: 'Store settings | Swyftly',
+    canActivate: [requireRoleGuard(['Seller'])]
+  },
+  {
     path: 'seller/products/new',
     loadComponent: () => import('./pages/seller-product-form-page.component').then(component => component.SellerProductFormPageComponent),
     title: 'New product | Swyftly',
@@ -126,6 +138,12 @@ export const routes: Routes = [
     path: 'admin/products',
     loadComponent: () => import('./pages/admin-products-page.component').then(component => component.AdminProductsPageComponent),
     title: 'Product review queue | Swyftly',
+    canActivate: [requireRoleGuard(ADMIN_ROLES)]
+  },
+  {
+    path: 'admin/products/revisions/:revisionId',
+    loadComponent: () => import('./pages/admin-product-revision-detail-page.component').then(component => component.AdminProductRevisionDetailPageComponent),
+    title: 'Product revision review | Swyftly',
     canActivate: [requireRoleGuard(ADMIN_ROLES)]
   },
   {
@@ -276,6 +294,12 @@ export const routes: Routes = [
     path: 'account/notifications',
     loadComponent: () => import('./pages/buyer-notifications-page.component').then(component => component.BuyerNotificationsPageComponent),
     title: 'Notifications | Swyftly',
+    canActivate: [requireRoleGuard(['Buyer'])]
+  },
+  {
+    path: 'account/settings',
+    loadComponent: () => import('./pages/buyer-settings-page.component').then(component => component.BuyerSettingsPageComponent),
+    title: 'Account settings | Swyftly',
     canActivate: [requireRoleGuard(['Buyer'])]
   },
   {

@@ -17,18 +17,25 @@ import { MatSelectModule } from '@angular/material/select';
 import { getApiErrorMessage } from '../auth/api-error';
 import {
   ApplySellerAiSuggestionRequest,
-  AttachSellerProductImageRequest,
   GenerateSellerAiSuggestionRequest,
   SellerAiSuggestionResponse,
   SellerCatalogCategoryAttributeResponse,
   SellerCatalogCategoryResponse,
   SellerProductDetailResponse,
+  SellerProductImageResponse,
+  SellerProductRevisionImageResponse,
+  SellerProductRevisionResponse,
+  SellerProductVariantResponse,
   UpsertSellerProductRequest,
+  UpsertSellerProductRevisionRequest,
   UpsertSellerProductVariantRequest
 } from '../seller/seller-product.models';
 import { SellerProductService } from '../seller/seller-product.service';
+import { SellerWorkspaceNavComponent } from '../seller/seller-workspace-nav.component';
+import { ProductVisualFallbackComponent } from '../shared/ui/product-visual-fallback.component';
 
 type ProductStep = 0 | 1 | 2 | 3 | 4 | 5;
+type ProductEditorImage = (SellerProductImageResponse | SellerProductRevisionImageResponse) & { imageId?: string };
 
 @Component({
   selector: 'app-seller-product-form-page',
@@ -39,17 +46,29 @@ type ProductStep = 0 | 1 | 2 | 3 | 4 | 5;
     MatInputModule,
     MatSelectModule,
     FormsModule,
+    ProductVisualFallbackComponent,
     ReactiveFormsModule,
-    RouterLink
+    RouterLink,
+    SellerWorkspaceNavComponent
   ],
   template: `
     <section class="page product-editor">
+      <app-seller-workspace-nav />
+
       <a class="admin-back-link" routerLink="/seller/products">Back to products</a>
 
-      <div class="page-header">
-        <span class="eyebrow">Product editor</span>
-        <h1>{{ product()?.title ?? 'New product' }}</h1>
-        <p>{{ product()?.status ?? 'Draft' }}</p>
+      <div class="page-header product-editor-hero">
+        <div>
+          <span class="eyebrow">Product editor</span>
+          <h1>{{ product()?.title ?? 'New product' }}</h1>
+          <p>{{ editorModeMessage() }}</p>
+        </div>
+        <div class="product-editor-status">
+          <span class="status-pill">{{ product()?.status ?? 'Draft' }}</span>
+          @if (publicPreviewUrl()) {
+            <a mat-stroked-button [routerLink]="publicPreviewUrl()">Public preview</a>
+          }
+        </div>
       </div>
 
       @if (isLoading()) {
@@ -63,37 +82,80 @@ type ProductStep = 0 | 1 | 2 | 3 | 4 | 5;
           <p class="auth-alert success" role="status">{{ successMessage() }}</p>
         }
 
-        <section class="ai-assistant-panel" aria-labelledby="ai-product-assistant-title">
-          <div class="ai-assistant-header">
-            <div>
-              <span class="ai-badge">AI</span>
-              <h2 id="ai-product-assistant-title">AI Product Assistant</h2>
+        @if (!isListingEditable()) {
+          <p class="auth-alert" role="status">
+            {{ isRevisionMode() ? 'This listing has a revision in review. Buyers continue to see the current approved listing until admin approval.' : 'This listing is not editable in its current status. Use Inventory for stock changes, or wait for moderation before editing listing content again.' }}
+          </p>
+        }
+
+        @if (revision()?.rejectionReason) {
+          <p class="auth-alert error" role="status">{{ revision()?.rejectionReason }}</p>
+        }
+
+        @if (product()?.rejectionReason) {
+          <p class="auth-alert error" role="status">{{ product()?.rejectionReason }}</p>
+        }
+
+        <section class="ai-assistant-panel hf-ai-listing-assistant" aria-labelledby="ai-product-assistant-title">
+          <div class="hf-ai-listing-layout">
+            <div class="hf-ai-listing-input">
+              <div class="ai-assistant-header">
+                <div>
+                  <span class="eyebrow">Create product</span>
+                  <h2 id="ai-product-assistant-title">AI Fashion Product Listing Assistant</h2>
+                </div>
+                <span class="ai-quality">{{ aiSuggestion()?.qualityScore ?? 0 }} / 100</span>
+              </div>
+
+              <div class="hf-ai-listing-context">
+                <div class="hf-ai-listing-preview" aria-label="Product draft visual">
+                  @if (primaryImage(); as image) {
+                    <img [src]="image.url" [alt]="image.altText ?? product()?.title ?? 'Product image'" />
+                  } @else {
+                    <app-product-visual-fallback [title]="product()?.title ?? 'Draft listing'" label="Seller draft" tone="dress" />
+                  }
+                </div>
+
+                <div class="hf-ai-listing-notes">
+                  <strong>Seller input</strong>
+                  <span>{{ product()?.title ?? 'Save the product draft before generating suggestions.' }}</span>
+                  <span>{{ selectedCategory()?.name ?? 'Choose a category to improve attribute suggestions.' }}</span>
+                  <span>{{ (product()?.images?.length ?? 0) }} image{{ (product()?.images?.length ?? 0) === 1 ? '' : 's' }} attached</span>
+                  <span>{{ (product()?.variants?.length ?? 0) }} variant{{ (product()?.variants?.length ?? 0) === 1 ? '' : 's' }} configured</span>
+                </div>
+              </div>
+
+              <form [formGroup]="aiForm" (ngSubmit)="generateAiSuggestion()" class="ai-form hf-ai-listing-form" novalidate>
+                <mat-form-field appearance="outline">
+                  <mat-label>Seller notes</mat-label>
+                  <textarea matInput rows="3" formControlName="sellerNotes"></textarea>
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Product type hint</mat-label>
+                  <input matInput formControlName="productTypeHint" />
+                </mat-form-field>
+                <button mat-flat-button type="submit" [disabled]="!isProductEditable() || isAiGenerating() || isSaving()">
+                  {{ isAiGenerating() ? 'Generating...' : 'Generate AI suggestion' }}
+                </button>
+              </form>
+
+              <p class="ai-disclaimer">AI suggestions are drafts. Review and confirm every field before publishing.</p>
             </div>
-            <span class="ai-quality">{{ aiSuggestion()?.qualityScore ?? 0 }} / 100</span>
+
+            <div class="hf-ai-listing-suggestion">
+              <span class="eyebrow">AI suggestion</span>
+              <h2>Quality score: {{ aiSuggestion()?.qualityScore ?? 0 }}%</h2>
+              <p>Use AI for title, description, category, attributes, tags, missing fields, and alt text. It never publishes a product for you.</p>
+              <div class="hf-progress-ring" aria-label="AI suggestion quality"><strong>{{ aiSuggestion()?.qualityScore ?? 0 }}</strong></div>
+            </div>
           </div>
-
-          <form [formGroup]="aiForm" (ngSubmit)="generateAiSuggestion()" class="ai-form" novalidate>
-            <mat-form-field appearance="outline">
-              <mat-label>Seller notes</mat-label>
-              <textarea matInput rows="3" formControlName="sellerNotes"></textarea>
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Product type hint</mat-label>
-              <input matInput formControlName="productTypeHint" />
-            </mat-form-field>
-            <button mat-flat-button type="submit" [disabled]="isAiGenerating() || isSaving()">
-              {{ isAiGenerating() ? 'Generating...' : 'Generate with AI' }}
-            </button>
-          </form>
-
-          <p class="ai-disclaimer">AI suggestions are drafts. Please review and confirm all product details before publishing.</p>
 
           @if (aiErrorMessage()) {
             <p class="auth-alert error" role="alert">{{ aiErrorMessage() }}</p>
           }
 
           @if (aiSuggestion(); as suggestion) {
-            <div class="ai-suggestion-grid">
+            <div class="ai-suggestion-grid hf-ai-suggestion-grid">
               <article class="ai-suggestion-card">
                 <span class="status-pill">Title</span>
                 <h2>{{ suggestion.recommendedTitle ?? 'No title suggested' }}</h2>
@@ -205,7 +267,7 @@ type ProductStep = 0 | 1 | 2 | 3 | 4 | 5;
                 <mat-checkbox formControlName="confirmRiskFlags">Confirm risk flags</mat-checkbox>
               }
 
-              <button mat-flat-button type="submit" [disabled]="isAiApplying()">
+              <button mat-flat-button type="submit" [disabled]="!isProductEditable() || isAiApplying()">
                 {{ isAiApplying() ? 'Applying...' : 'Apply selected suggestions' }}
               </button>
             </form>
@@ -232,6 +294,7 @@ type ProductStep = 0 | 1 | 2 | 3 | 4 | 5;
               @case (0) {
                 <form [formGroup]="basicForm" (ngSubmit)="saveDraft()" class="wizard-form" novalidate>
                   <h2>Basic details</h2>
+                  <p class="form-helper">These fields define how buyers see and find the listing. Save drafts before adding images, variants, or AI suggestions.</p>
                   <mat-form-field appearance="outline">
                     <mat-label>Title</mat-label>
                     <input matInput formControlName="title" />
@@ -243,6 +306,7 @@ type ProductStep = 0 | 1 | 2 | 3 | 4 | 5;
                   <mat-form-field appearance="outline">
                     <mat-label>Slug</mat-label>
                     <input matInput formControlName="slug" />
+                    <mat-hint>Lowercase letters, numbers, and hyphens only. Example: black-evening-dress.</mat-hint>
                     @if (basicForm.controls.slug.hasError('required')) {
                       <mat-error>Slug is required.</mat-error>
                     } @else if (basicForm.controls.slug.hasError('pattern')) {
@@ -266,12 +330,13 @@ type ProductStep = 0 | 1 | 2 | 3 | 4 | 5;
                     }
                   </mat-form-field>
 
-                  <button mat-flat-button type="submit" [disabled]="isSaving()">Save draft</button>
+                  <button mat-flat-button type="submit" [disabled]="!isListingEditable() || isSaving()">{{ isRevisionMode() ? 'Save revision' : 'Save draft' }}</button>
                 </form>
               }
               @case (1) {
                 <form [formGroup]="basicForm" (ngSubmit)="saveDraft()" class="wizard-form" novalidate>
                   <h2>Category</h2>
+                  <p class="form-helper">Choose the closest active catalog category. Required attributes are marked and must be completed before review submission.</p>
                   <mat-form-field appearance="outline">
                     <mat-label>Category</mat-label>
                     <mat-select formControlName="categoryId" (selectionChange)="onCategoryChanged($event.value)">
@@ -283,6 +348,18 @@ type ProductStep = 0 | 1 | 2 | 3 | 4 | 5;
                       <mat-error>Category is required.</mat-error>
                     }
                   </mat-form-field>
+
+                  @if (selectedCategory(); as category) {
+                    <div class="product-editor-context">
+                      <strong>{{ category.name }}</strong>
+                      <span>{{ category.attributes.length }} attribute{{ category.attributes.length === 1 ? '' : 's' }} configured for this category.</span>
+                    </div>
+                  } @else {
+                    <div class="product-editor-context">
+                      <strong>No category selected</strong>
+                      <span>Select a category to show the attributes buyers and reviewers expect.</span>
+                    </div>
+                  }
 
                   <div [formGroup]="attributeForm" class="dynamic-attributes">
                     @for (attribute of selectedCategory()?.attributes ?? []; track attribute.attributeId) {
@@ -325,27 +402,25 @@ type ProductStep = 0 | 1 | 2 | 3 | 4 | 5;
                         @if (attributeForm.controls[attribute.key].hasError('required')) {
                           <mat-error>{{ attribute.name }} is required.</mat-error>
                         }
+                        <mat-hint>{{ attribute.isRequired ? 'Required' : 'Optional' }} - {{ attribute.dataType }}</mat-hint>
                       </mat-form-field>
+                    } @empty {
+                      <p class="form-helper">This category does not currently require additional attributes.</p>
                     }
                   </div>
 
-                  <button mat-flat-button type="submit" [disabled]="isSaving()">Save category</button>
+                  <button mat-flat-button type="submit" [disabled]="!isListingEditable() || isSaving()">{{ isRevisionMode() ? 'Save revision category' : 'Save category' }}</button>
                 </form>
               }
               @case (2) {
                 <form [formGroup]="imageForm" (ngSubmit)="addImage()" class="wizard-form" novalidate>
                   <h2>Images</h2>
-                  <mat-form-field appearance="outline">
-                    <mat-label>Storage key</mat-label>
-                    <input matInput formControlName="storageKey" />
-                    @if (imageForm.controls.storageKey.hasError('required')) {
-                      <mat-error>Storage key is required.</mat-error>
-                    }
-                  </mat-form-field>
-                  <mat-form-field appearance="outline">
-                    <mat-label>Image URL</mat-label>
-                    <input matInput formControlName="url" />
-                  </mat-form-field>
+                  <p class="form-helper">{{ isRevisionMode() ? 'Upload proposed revision images. Buyers will keep seeing the current published gallery until admin approval.' : 'Upload product images before review. The first image buyers see should be marked primary, with clear alt text for accessibility and moderation.' }}</p>
+                  <label class="upload-dropzone">
+                    <span>{{ selectedImageFile()?.name ?? 'Choose JPEG, PNG, or WebP image' }}</span>
+                    <small>Maximum 5 MB. Local development storage is served by the API.</small>
+                    <input type="file" accept="image/jpeg,image/png,image/webp" (change)="onImageFileSelected($event)" />
+                  </label>
                   <mat-form-field appearance="outline">
                     <mat-label>Alt text</mat-label>
                     <input matInput formControlName="altText" />
@@ -363,23 +438,80 @@ type ProductStep = 0 | 1 | 2 | 3 | 4 | 5;
                       </mat-select>
                     </mat-form-field>
                   </div>
-                  <button mat-flat-button type="submit" [disabled]="isSaving()">Attach image</button>
+                  <button mat-flat-button type="submit" [disabled]="!isListingEditable() || !selectedImageFile() || isSaving()">Upload image</button>
                 </form>
 
-                <div class="product-list-block">
-                  @for (image of product()?.images ?? []; track image.imageId) {
-                    <article class="route-card compact-card">
-                      <span class="status-pill">{{ image.isPrimary ? 'Primary' : 'Image' }}</span>
-                      <h2>{{ image.altText ?? image.storageKey }}</h2>
-                      <p>{{ image.url }}</p>
-                      <button mat-stroked-button type="button" (click)="removeImage(image.imageId)">Remove</button>
+                <div class="product-image-gallery">
+                  @for (image of displayImages(); track imageKey(image)) {
+                    <article class="product-image-card" [class.primary]="image.isPrimary">
+                      <div class="product-image-thumb">
+                        @if (image.url) {
+                          <img [src]="image.url" [alt]="image.altText ?? product()?.title ?? 'Product image'" />
+                        } @else {
+                          <app-product-visual-fallback [title]="image.storageKey" label="Image" tone="dress" />
+                        }
+                      </div>
+                      <div>
+                        <span class="status-pill">{{ image.isPrimary ? 'Primary' : 'Image' }}</span>
+                        <h2>{{ image.altText ?? image.storageKey }}</h2>
+                        <p>{{ image.storageKey }}</p>
+                        <small>{{ image.url }}</small>
+                      </div>
+                      <div class="buyer-action-row">
+                        <button mat-stroked-button type="button" [disabled]="!isListingEditable()" (click)="editImage(image)">Edit</button>
+                        @if (!image.isPrimary) {
+                          <button mat-stroked-button type="button" [disabled]="!isListingEditable()" (click)="makeImagePrimary(image)">Make primary</button>
+                        }
+                        <button mat-stroked-button type="button" [disabled]="!isListingEditable()" (click)="removeImage(imageKey(image))">Remove</button>
+                      </div>
                     </article>
+                  } @empty {
+                    <div class="product-editor-context">
+                      <strong>No images attached</strong>
+                      <span>Add at least one product image before submitting for review.</span>
+                    </div>
                   }
                 </div>
+
+                @if (editingImage(); as image) {
+                  <form [formGroup]="imageEditForm" (ngSubmit)="saveImageMetadata()" class="wizard-form product-editor-edit-panel" novalidate>
+                    <h3>Edit image metadata</h3>
+                    <p class="form-helper">{{ image.storageKey }} - URL and storage key are managed outside this editor.</p>
+                    <mat-form-field appearance="outline">
+                      <mat-label>Alt text</mat-label>
+                      <input matInput formControlName="altText" />
+                    </mat-form-field>
+                    <div class="form-grid">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Sort order</mat-label>
+                        <input matInput type="number" min="0" formControlName="sortOrder" />
+                      </mat-form-field>
+                      <mat-form-field appearance="outline">
+                        <mat-label>Primary image</mat-label>
+                        <mat-select formControlName="isPrimary">
+                          <mat-option [value]="true">Yes</mat-option>
+                          <mat-option [value]="false">No</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                    <div class="buyer-action-row">
+                      <button mat-flat-button type="submit" [disabled]="!isListingEditable() || isSaving()">Save image</button>
+                      <button mat-stroked-button type="button" (click)="clearImageEdit()">Cancel</button>
+                    </div>
+                  </form>
+                }
               }
               @case (3) {
-                <form [formGroup]="variantForm" (ngSubmit)="addVariant()" class="wizard-form" novalidate>
-                  <h2>Variants and stock</h2>
+                <form [formGroup]="variantForm" (ngSubmit)="saveVariant()" class="wizard-form" novalidate>
+                  <div class="admin-section-heading">
+                    <div>
+                      <h2>{{ editingVariantId() ? 'Edit variant' : 'Variants and stock' }}</h2>
+                      <p class="form-helper">Use variants for sellable size, colour, price, and stock combinations. Published stock changes belong in Inventory.</p>
+                    </div>
+                    @if (editingVariantId()) {
+                      <button mat-stroked-button type="button" (click)="startNewVariant()">New variant</button>
+                    }
+                  </div>
                   <div class="form-grid">
                     <mat-form-field appearance="outline">
                       <mat-label>SKU</mat-label>
@@ -428,47 +560,95 @@ type ProductStep = 0 | 1 | 2 | 3 | 4 | 5;
                     <mat-label>Barcode</mat-label>
                     <input matInput formControlName="barcode" />
                   </mat-form-field>
-                  <button mat-flat-button type="submit" [disabled]="isSaving()">Add variant</button>
+                  <button mat-flat-button type="submit" [disabled]="!isProductEditable() || isSaving()">
+                    {{ editingVariantId() ? 'Save variant' : 'Add variant' }}
+                  </button>
                 </form>
 
-                <div class="product-list-block">
+                <div class="product-variant-editor-grid">
                   @for (variant of product()?.variants ?? []; track variant.variantId) {
-                    <article class="route-card compact-card">
-                      <span class="status-pill">{{ variant.status }}</span>
-                      <h2>{{ variant.sku }}</h2>
-                      <p>{{ variant.size }} / {{ variant.colour }} / {{ variant.price }}</p>
-                      <button mat-stroked-button type="button" (click)="removeVariant(variant.variantId)">Remove</button>
+                    <article class="product-variant-editor-card">
+                      <div class="admin-section-heading">
+                        <div>
+                          <span class="status-pill">{{ variant.status }}</span>
+                          <h2>{{ variant.sku }}</h2>
+                        </div>
+                        <strong>{{ formatCurrency(variant.price) }}</strong>
+                      </div>
+                      <dl class="seller-facts">
+                        <div><dt>Size</dt><dd>{{ variant.size }}</dd></div>
+                        <div><dt>Colour</dt><dd>{{ variant.colour }}</dd></div>
+                        <div><dt>Stock</dt><dd>{{ variant.stockQuantity }}</dd></div>
+                        <div><dt>Reserved</dt><dd>{{ variant.reservedQuantity }}</dd></div>
+                        <div><dt>Available</dt><dd>{{ variant.availableQuantity }}</dd></div>
+                      </dl>
+                      @if (variant.availableQuantity <= 0) {
+                        <p class="auth-alert error">Out of stock for buyers.</p>
+                      } @else if (variant.availableQuantity <= 5) {
+                        <p class="auth-alert">Low stock. Check inventory before promoting this listing.</p>
+                      }
+                      <div class="buyer-action-row">
+                        <button mat-stroked-button type="button" [disabled]="!isProductEditable()" (click)="editVariant(variant)">Edit</button>
+                        <button mat-stroked-button type="button" [disabled]="!isProductEditable()" (click)="removeVariant(variant.variantId)">Remove</button>
+                      </div>
                     </article>
+                  } @empty {
+                    <div class="product-editor-context">
+                      <strong>No variants configured</strong>
+                      <span>Add at least one active variant with available stock before review submission.</span>
+                    </div>
                   }
                 </div>
               }
               @case (4) {
                 <form [formGroup]="shippingForm" class="wizard-form" novalidate>
                   <h2>Shipping and returns</h2>
+                  <p class="form-helper">Shipping and return policies are not persisted from this editor yet. Use store settings and support workflows for operational policy changes until dedicated policy APIs exist.</p>
                   <mat-form-field appearance="outline">
                     <mat-label>Shipping notes</mat-label>
-                    <textarea matInput rows="4" formControlName="shippingNotes"></textarea>
+                    <textarea matInput rows="4" formControlName="shippingNotes" placeholder="Internal planning notes only"></textarea>
                   </mat-form-field>
                   <mat-form-field appearance="outline">
                     <mat-label>Return notes</mat-label>
-                    <textarea matInput rows="4" formControlName="returnNotes"></textarea>
+                    <textarea matInput rows="4" formControlName="returnNotes" placeholder="Internal planning notes only"></textarea>
                   </mat-form-field>
                 </form>
               }
               @case (5) {
                 <div class="review-panel">
                   <h2>Review and submit</h2>
-                  <div class="review-grid">
-                    @for (item of reviewItems(); track item.label) {
-                      <article class="route-card compact-card">
-                        <span class="status-pill">{{ item.complete ? 'Complete' : 'Missing' }}</span>
-                        <h2>{{ item.label }}</h2>
-                        <p>{{ item.summary }}</p>
-                      </article>
-                    }
+                  <p class="form-helper">Check the buyer-facing preview and readiness list before sending the product to marketplace review.</p>
+                  <div class="product-editor-review-layout">
+                    <article class="product-editor-preview-card">
+                      <div class="product-editor-preview-visual">
+                        @if (primaryImage(); as image) {
+                          <img [src]="image.url" [alt]="image.altText ?? product()?.title ?? 'Product image'" />
+                        } @else {
+                          <app-product-visual-fallback [title]="basicForm.controls.title.value || 'Draft listing'" label="Preview" tone="dress" />
+                        }
+                      </div>
+                      <div>
+                        <span class="status-pill">{{ product()?.status ?? 'Draft' }}</span>
+                        <h3>{{ basicForm.controls.title.value || 'Untitled product' }}</h3>
+                        <p>{{ basicForm.controls.shortDescription.value || 'Short description will appear here.' }}</p>
+                        <strong>{{ previewPriceLabel() }}</strong>
+                      </div>
+                    </article>
+                    <div class="review-grid">
+                      @for (item of reviewItems(); track item.label) {
+                        <article class="route-card compact-card">
+                          <span class="status-pill">{{ item.complete ? 'Complete' : 'Missing' }}</span>
+                          <h2>{{ item.label }}</h2>
+                          <p>{{ item.summary }}</p>
+                        </article>
+                      }
+                    </div>
                   </div>
-                  <button mat-flat-button type="button" [disabled]="!canSubmitReview() || isSaving()" (click)="submitForReview()">
-                    Submit for review
+                  @if (!canSubmitReview()) {
+                    <p class="auth-alert">Complete details, category attributes, one image, and one active in-stock variant before review submission.</p>
+                  }
+                  <button mat-flat-button type="button" [disabled]="!isListingEditable() || !canSubmitReview() || isSaving()" (click)="submitForReview()">
+                    {{ isRevisionMode() ? 'Submit revision for review' : 'Submit for review' }}
                   </button>
                 </div>
               }
@@ -486,7 +666,11 @@ export class SellerProductFormPageComponent implements OnInit {
 
   protected readonly categories = signal<SellerCatalogCategoryResponse[]>([]);
   protected readonly product = signal<SellerProductDetailResponse | null>(null);
+  protected readonly revision = signal<SellerProductRevisionResponse | null>(null);
   protected readonly selectedCategoryId = signal<string | null>(null);
+  protected readonly editingImageId = signal<string | null>(null);
+  protected readonly editingVariantId = signal<string | null>(null);
+  protected readonly selectedImageFile = signal<File | null>(null);
   protected readonly currentStep = signal<ProductStep>(0);
   protected readonly isLoading = signal(true);
   protected readonly isSaving = signal(false);
@@ -509,6 +693,21 @@ export class SellerProductFormPageComponent implements OnInit {
   protected readonly selectedCategory = computed(() =>
     this.categories().find(category => category.categoryId === this.selectedCategoryId()) ?? null);
 
+  protected readonly primaryImage = computed(() => {
+    const images = this.displayImages();
+    return images.find(image => image.isPrimary) ?? images[0] ?? null;
+  });
+
+  protected readonly editingImage = computed(() =>
+    this.displayImages().find(image => this.imageKey(image) === this.editingImageId()) ?? null);
+
+  protected readonly publicPreviewUrl = computed(() => {
+    const product = this.product();
+    return product?.status === 'Published' && product.slug
+      ? `/product/${product.slug}`
+      : null;
+  });
+
   protected readonly basicForm = new FormGroup({
     categoryId: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     title: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -520,8 +719,12 @@ export class SellerProductFormPageComponent implements OnInit {
   protected readonly attributeForm = new FormRecord<FormControl<unknown>>({});
 
   protected readonly imageForm = new FormGroup({
-    storageKey: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    url: new FormControl('', { nonNullable: true }),
+    altText: new FormControl('', { nonNullable: true }),
+    sortOrder: new FormControl(0, { nonNullable: true, validators: [Validators.min(0)] }),
+    isPrimary: new FormControl(false, { nonNullable: true })
+  });
+
+  protected readonly imageEditForm = new FormGroup({
     altText: new FormControl('', { nonNullable: true }),
     sortOrder: new FormControl(0, { nonNullable: true, validators: [Validators.min(0)] }),
     isPrimary: new FormControl(false, { nonNullable: true })
@@ -586,6 +789,10 @@ export class SellerProductFormPageComponent implements OnInit {
   }
 
   protected async saveDraft(): Promise<SellerProductDetailResponse | null> {
+    if (!this.isListingEditable()) {
+      return null;
+    }
+
     if (!this.ensureValid(this.basicForm) || !this.ensureValid(this.attributeForm)) {
       return null;
     }
@@ -597,6 +804,16 @@ export class SellerProductFormPageComponent implements OnInit {
     try {
       const request = this.createProductRequest();
       const existing = this.product();
+      if (existing && this.isRevisionMode()) {
+        const revision = await this.productService.updateRevision(existing.productId, {
+          ...request,
+          tags: this.revision()?.tags ?? existing.tags
+        } satisfies UpsertSellerProductRevisionRequest);
+        this.setRevision(revision);
+        this.successMessage.set('Listing revision saved.');
+        return existing;
+      }
+
       const saved = existing
         ? await this.productService.updateProduct(existing.productId, request)
         : await this.productService.createProduct(request);
@@ -618,6 +835,16 @@ export class SellerProductFormPageComponent implements OnInit {
   }
 
   protected async addImage(): Promise<void> {
+    if (!this.isListingEditable()) {
+      return;
+    }
+
+    const file = this.selectedImageFile();
+    if (!file) {
+      this.errorMessage.set('Choose an image file to upload.');
+      return;
+    }
+
     if (!this.ensureValid(this.imageForm)) {
       return;
     }
@@ -628,30 +855,106 @@ export class SellerProductFormPageComponent implements OnInit {
     }
 
     const value = this.imageForm.getRawValue();
-    await this.runProductAction(
-      () => this.productService.addImage(saved.productId, {
-        storageKey: value.storageKey,
-        url: emptyToNull(value.url),
-        altText: emptyToNull(value.altText),
-        sortOrder: Number(value.sortOrder),
-        isPrimary: value.isPrimary
-      } satisfies AttachSellerProductImageRequest),
-      'Image attached.');
-    this.imageForm.reset({ storageKey: '', url: '', altText: '', sortOrder: 0, isPrimary: false });
+    if (this.isRevisionMode()) {
+      await this.runRevisionAction(
+        () => this.productService.uploadRevisionImage(
+          saved.productId,
+          file,
+          emptyToNull(value.altText),
+          Number(value.sortOrder),
+          value.isPrimary),
+        'Revision image uploaded.');
+    } else {
+      await this.runProductAction(
+        () => this.productService.uploadImage(
+          saved.productId,
+          file,
+          emptyToNull(value.altText),
+          Number(value.sortOrder),
+          value.isPrimary),
+        'Image uploaded.');
+    }
+
+    this.selectedImageFile.set(null);
+    this.imageForm.reset({ altText: '', sortOrder: 0, isPrimary: false });
+  }
+
+  protected editImage(image: ProductEditorImage): void {
+    this.editingImageId.set(this.imageKey(image));
+    this.imageEditForm.reset({
+      altText: image.altText ?? '',
+      sortOrder: image.sortOrder,
+      isPrimary: image.isPrimary
+    });
+  }
+
+  protected clearImageEdit(): void {
+    this.editingImageId.set(null);
+    this.imageEditForm.reset({ altText: '', sortOrder: 0, isPrimary: false });
+  }
+
+  protected async makeImagePrimary(image: ProductEditorImage): Promise<void> {
+    this.editImage(image);
+    this.imageEditForm.patchValue({ isPrimary: true });
+    await this.saveImageMetadata();
+  }
+
+  protected async saveImageMetadata(): Promise<void> {
+    const product = this.product();
+    const image = this.editingImage();
+    if (!product || !image || !this.isListingEditable() || !this.ensureValid(this.imageEditForm)) {
+      return;
+    }
+
+    const value = this.imageEditForm.getRawValue();
+    const request = {
+      altText: emptyToNull(value.altText),
+      sortOrder: Number(value.sortOrder),
+      isPrimary: value.isPrimary
+    };
+    if (this.isRevisionMode()) {
+      await this.runRevisionAction(
+        () => this.productService.updateRevisionImage(product.productId, this.imageKey(image), request),
+        'Revision image updated.');
+    } else {
+      await this.runProductAction(
+        () => this.productService.updateImage(product.productId, this.imageKey(image), request),
+        'Image updated.');
+    }
+    this.clearImageEdit();
   }
 
   protected async removeImage(imageId: string): Promise<void> {
     const product = this.product();
-    if (!product) {
+    if (!product || !this.isListingEditable()) {
       return;
     }
 
-    await this.runProductAction(
-      () => this.productService.deleteImage(product.productId, imageId),
-      'Image removed.');
+    if (this.isRevisionMode()) {
+      await this.runRevisionAction(
+        () => this.productService.deleteRevisionImage(product.productId, imageId),
+        'Revision image removed.');
+    } else {
+      await this.runProductAction(
+        () => this.productService.deleteImage(product.productId, imageId),
+        'Image removed.');
+    }
+  }
+
+  protected async saveVariant(): Promise<void> {
+    if (this.editingVariantId()) {
+      await this.updateVariant();
+      return;
+    }
+
+    await this.addVariant();
   }
 
   protected async addVariant(): Promise<void> {
+    if (!this.isProductEditable()) {
+      return;
+    }
+
     if (!this.ensureValid(this.variantForm)) {
       return;
     }
@@ -661,20 +964,29 @@ export class SellerProductFormPageComponent implements OnInit {
       return;
     }
 
-    const value = this.variantForm.getRawValue();
     await this.runProductAction(
-      () => this.productService.addVariant(saved.productId, {
-        sku: value.sku,
-        size: value.size,
-        colour: value.colour,
-        price: Number(value.price),
-        compareAtPrice: value.compareAtPrice ? Number(value.compareAtPrice) : null,
-        stockQuantity: Number(value.stockQuantity),
-        reservedQuantity: Number(value.reservedQuantity),
-        status: value.status,
-        barcode: emptyToNull(value.barcode)
-      } satisfies UpsertSellerProductVariantRequest),
+      () => this.productService.addVariant(saved.productId, this.createVariantRequest()),
       'Variant added.');
+    this.startNewVariant();
+  }
+
+  protected editVariant(variant: SellerProductVariantResponse): void {
+    this.editingVariantId.set(variant.variantId);
+    this.variantForm.reset({
+      sku: variant.sku,
+      size: variant.size,
+      colour: variant.colour,
+      price: variant.price,
+      compareAtPrice: variant.compareAtPrice,
+      stockQuantity: variant.stockQuantity,
+      reservedQuantity: variant.reservedQuantity,
+      status: variant.status,
+      barcode: variant.barcode ?? ''
+    });
+  }
+
+  protected startNewVariant(): void {
+    this.editingVariantId.set(null);
     this.variantForm.reset({
       sku: '',
       size: '',
@@ -688,9 +1000,22 @@ export class SellerProductFormPageComponent implements OnInit {
     });
   }
 
+  protected async updateVariant(): Promise<void> {
+    const product = this.product();
+    const variantId = this.editingVariantId();
+    if (!product || !variantId || !this.isProductEditable() || !this.ensureValid(this.variantForm)) {
+      return;
+    }
+
+    await this.runProductAction(
+      () => this.productService.updateVariant(product.productId, variantId, this.createVariantRequest()),
+      'Variant updated.');
+    this.startNewVariant();
+  }
+
   protected async removeVariant(variantId: string): Promise<void> {
     const product = this.product();
-    if (!product) {
+    if (!product || !this.isProductEditable()) {
       return;
     }
 
@@ -701,16 +1026,26 @@ export class SellerProductFormPageComponent implements OnInit {
 
   protected async submitForReview(): Promise<void> {
     const saved = await this.ensureProductSaved();
-    if (!saved || !this.canSubmitReview()) {
+    if (!saved || !this.isListingEditable() || !this.canSubmitReview()) {
       return;
     }
 
-    await this.runProductAction(
-      () => this.productService.submitForReview(saved.productId),
-      'Product submitted for review.');
+    if (this.isRevisionMode()) {
+      await this.runRevisionAction(
+        () => this.productService.submitRevisionForReview(saved.productId),
+        'Listing revision submitted for review.');
+    } else {
+      await this.runProductAction(
+        () => this.productService.submitForReview(saved.productId),
+        'Product submitted for review.');
+    }
   }
 
   protected async generateAiSuggestion(): Promise<void> {
+    if (!this.isProductEditable()) {
+      return;
+    }
+
     const saved = await this.ensureProductSaved();
     if (!saved) {
       return;
@@ -743,7 +1078,7 @@ export class SellerProductFormPageComponent implements OnInit {
   protected async applyAiSuggestion(): Promise<void> {
     const product = this.product();
     const suggestion = this.aiSuggestion();
-    if (!product || !suggestion) {
+    if (!product || !suggestion || !this.isProductEditable()) {
       return;
     }
 
@@ -790,8 +1125,103 @@ export class SellerProductFormPageComponent implements OnInit {
     return this.categories().find(category => category.categoryId === categoryId)?.name ?? null;
   }
 
+  protected displayImages(): ProductEditorImage[] {
+    return this.revision()?.images ?? this.product()?.images ?? [];
+  }
+
+  protected imageKey(image: ProductEditorImage): string {
+    return 'revisionImageId' in image ? image.revisionImageId : image.imageId!;
+  }
+
+  protected isRevisionMode(): boolean {
+    return this.product()?.status === 'Published';
+  }
+
+  protected isProductEditable(): boolean {
+    const status = this.product()?.status;
+    return status === undefined || status === 'Draft' || status === 'Rejected' || status === 'ChangesRequested';
+  }
+
+  protected isListingEditable(): boolean {
+    if (this.isRevisionMode()) {
+      return this.revision()?.canEdit ?? false;
+    }
+
+    return this.isProductEditable();
+  }
+
+  protected onImageFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    if (!file) {
+      this.selectedImageFile.set(null);
+      return;
+    }
+
+    const supportedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!supportedTypes.includes(file.type)) {
+      this.errorMessage.set('Choose a JPEG, PNG, or WebP image.');
+      this.selectedImageFile.set(null);
+      input.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      this.errorMessage.set('Image file cannot exceed 5 MB.');
+      this.selectedImageFile.set(null);
+      input.value = '';
+      return;
+    }
+
+    this.errorMessage.set(null);
+    this.selectedImageFile.set(file);
+  }
+
+  protected editorModeMessage(): string {
+    const status = this.product()?.status ?? 'Draft';
+    if (this.isProductEditable()) {
+      return status === 'Draft'
+        ? 'Build the listing, save changes, and submit it when every section is ready.'
+        : 'Update the requested listing content and resubmit for marketplace review.';
+    }
+
+    if (status === 'Published') {
+      const revisionStatus = this.revision()?.status ?? 'Draft';
+      return revisionStatus === 'PendingReview'
+        ? 'A proposed listing revision is waiting for admin review. The live listing remains visible to buyers.'
+        : 'Stage listing and image changes as a revision. Buyers keep seeing the current approved listing until admin approval.';
+    }
+
+    if (status === 'OutOfStock') {
+      return 'Listing content is locked. Manage stock in Inventory until the product is published again.';
+    }
+
+    return 'Listing content is locked while this product is in marketplace review.';
+  }
+
+  protected formatCurrency(amount: number): string {
+    return `R${amount.toFixed(2)}`;
+  }
+
+  protected previewPriceLabel(): string {
+    const prices = this.product()?.variants
+      .filter(variant => variant.status === 'Active')
+      .map(variant => variant.price) ?? [];
+    if (prices.length === 0) {
+      return 'Add an active variant to show buyer pricing.';
+    }
+
+    return this.formatCurrency(Math.min(...prices));
+  }
+
   protected canSubmitReview(): boolean {
     const product = this.product();
+    if (this.isRevisionMode()) {
+      return this.basicForm.valid
+        && this.attributeForm.valid
+        && this.displayImages().length > 0;
+    }
+
     return this.basicForm.valid
       && this.attributeForm.valid
       && (product?.images.length ?? 0) > 0
@@ -803,7 +1233,7 @@ export class SellerProductFormPageComponent implements OnInit {
     return [
       this.basicForm.valid,
       this.basicForm.controls.categoryId.valid && this.attributeForm.valid,
-      (product?.images.length ?? 0) > 0,
+      this.displayImages().length > 0,
       (product?.variants.length ?? 0) > 0,
       true,
       this.canSubmitReview() || product?.status === 'PendingReview'
@@ -815,8 +1245,12 @@ export class SellerProductFormPageComponent implements OnInit {
     return [
       { label: 'Details', complete: this.basicForm.valid, summary: this.basicForm.controls.title.value || 'Basic details are required.' },
       { label: 'Category', complete: this.basicForm.controls.categoryId.valid && this.attributeForm.valid, summary: this.selectedCategory()?.name ?? 'Category is required.' },
-      { label: 'Images', complete: (product?.images.length ?? 0) > 0, summary: `${product?.images.length ?? 0} attached` },
-      { label: 'Variants', complete: product?.variants.some(variant => variant.status === 'Active' && variant.availableQuantity > 0) ?? false, summary: `${product?.variants.length ?? 0} variants` }
+      { label: 'Images', complete: this.displayImages().length > 0, summary: `${this.displayImages().length} attached` },
+      {
+        label: 'Variants',
+        complete: this.isRevisionMode() || (product?.variants.some(variant => variant.status === 'Active' && variant.availableQuantity > 0) ?? false),
+        summary: this.isRevisionMode() ? 'Variant and price changes are managed separately.' : `${product?.variants.length ?? 0} variants`
+      }
     ];
   }
 
@@ -828,7 +1262,11 @@ export class SellerProductFormPageComponent implements OnInit {
       this.categories.set(await this.productService.getCategories());
       const productId = this.route.snapshot.paramMap.get('id');
       if (productId) {
-        this.setProduct(await this.productService.getProduct(productId));
+        const product = await this.productService.getProduct(productId);
+        this.setProduct(product);
+        if (product.status === 'Published') {
+          this.setRevision(await this.productService.getRevision(product.productId));
+        }
       } else {
         this.rebuildAttributeControls({});
       }
@@ -841,6 +1279,9 @@ export class SellerProductFormPageComponent implements OnInit {
 
   private setProduct(product: SellerProductDetailResponse): void {
     this.product.set(product);
+    if (product.status !== 'Published') {
+      this.revision.set(null);
+    }
     this.selectedCategoryId.set(product.categoryId);
     this.basicForm.patchValue({
       categoryId: product.categoryId ?? '',
@@ -855,6 +1296,19 @@ export class SellerProductFormPageComponent implements OnInit {
     if (suggestion) {
       this.rebuildAiImageAltTextControls(suggestion.imageAltText);
     }
+  }
+
+  private setRevision(revision: SellerProductRevisionResponse): void {
+    this.revision.set(revision);
+    this.selectedCategoryId.set(revision.categoryId);
+    this.basicForm.patchValue({
+      categoryId: revision.categoryId ?? '',
+      title: revision.title ?? '',
+      slug: revision.slug ?? '',
+      shortDescription: revision.shortDescription ?? '',
+      fullDescription: revision.fullDescription ?? ''
+    });
+    this.rebuildAttributeControls(revision.attributes);
   }
 
   private rebuildAttributeControls(rawAttributes: Record<string, string>): void {
@@ -880,6 +1334,21 @@ export class SellerProductFormPageComponent implements OnInit {
       shortDescription: this.basicForm.controls.shortDescription.value,
       fullDescription: this.basicForm.controls.fullDescription.value,
       attributes: this.createAttributesRequest()
+    };
+  }
+
+  private createVariantRequest(): UpsertSellerProductVariantRequest {
+    const value = this.variantForm.getRawValue();
+    return {
+      sku: value.sku,
+      size: value.size,
+      colour: value.colour,
+      price: Number(value.price),
+      compareAtPrice: value.compareAtPrice ? Number(value.compareAtPrice) : null,
+      stockQuantity: Number(value.stockQuantity),
+      reservedQuantity: Number(value.reservedQuantity),
+      status: value.status,
+      barcode: emptyToNull(value.barcode)
     };
   }
 
@@ -1032,6 +1501,23 @@ export class SellerProductFormPageComponent implements OnInit {
 
     try {
       this.setProduct(await action());
+      this.successMessage.set(successMessage);
+    } catch (error) {
+      this.errorMessage.set(getApiErrorMessage(error));
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  private async runRevisionAction(
+    action: () => Promise<SellerProductRevisionResponse>,
+    successMessage: string): Promise<void> {
+    this.isSaving.set(true);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    try {
+      this.setRevision(await action());
       this.successMessage.set(successMessage);
     } catch (error) {
       this.errorMessage.set(getApiErrorMessage(error));

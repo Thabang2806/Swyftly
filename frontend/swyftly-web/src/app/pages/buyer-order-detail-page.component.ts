@@ -74,10 +74,29 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
               <dl class="seller-facts">
                 <div><dt>Items subtotal</dt><dd>{{ order()!.itemsSubtotal | currency:'ZAR':'symbol-narrow' }}</dd></div>
                 <div><dt>Shipping</dt><dd>{{ order()!.shippingAmount | currency:'ZAR':'symbol-narrow' }}</dd></div>
+                @if (order()!.deliveryMethodName) {
+                  <div><dt>Delivery method</dt><dd>{{ order()!.deliveryMethodName }} - {{ deliveryEstimate(order()!) }}</dd></div>
+                }
                 <div><dt>Platform fee</dt><dd>{{ order()!.platformFeeAmount | currency:'ZAR':'symbol-narrow' }}</dd></div>
                 <div><dt>Discount</dt><dd>{{ order()!.discountAmount | currency:'ZAR':'symbol-narrow' }}</dd></div>
                 <div><dt>Total</dt><dd>{{ order()!.totalAmount | currency:'ZAR':'symbol-narrow' }}</dd></div>
               </dl>
+            </section>
+
+            <section class="buyer-panel">
+              <h2>Delivery address</h2>
+              @if (order()!.deliveryAddress) {
+                <dl class="seller-facts">
+                  <div><dt>Recipient</dt><dd>{{ order()!.deliveryAddress!.recipientName }}</dd></div>
+                  <div><dt>Phone</dt><dd>{{ order()!.deliveryAddress!.phoneNumber }}</dd></div>
+                  <div><dt>Address</dt><dd>{{ formatDeliveryAddress(order()!.deliveryAddress!) }}</dd></div>
+                  @if (order()!.deliveryAddress!.deliveryInstructions) {
+                    <div><dt>Instructions</dt><dd>{{ order()!.deliveryAddress!.deliveryInstructions }}</dd></div>
+                  }
+                </dl>
+              } @else {
+                <app-ui-alert tone="info">This older order does not have a saved delivery-address snapshot.</app-ui-alert>
+              }
             </section>
 
             <section class="buyer-panel">
@@ -228,6 +247,12 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                       @if (shipment.trackingUrl) {
                         <a [href]="shipment.trackingUrl" target="_blank" rel="noreferrer">Track shipment</a>
                       }
+                      @if (shipment.status === 'DeliveryFailed' || shipment.status === 'ReturnedToSender') {
+                        <a routerLink="/account/support">Contact support</a>
+                      }
+                      @for (event of shipment.events; track event.shipmentEventId) {
+                        <small>{{ event.eventType }} - {{ event.occurredAtUtc | date:'medium' }}{{ event.message ? ': ' + event.message : '' }}</small>
+                      }
                     </div>
                   }
                 </div>
@@ -377,11 +402,36 @@ export class BuyerOrderDetailPageComponent implements OnInit {
       return 'success';
     }
 
-    if (['Cancelled', 'Refunded', 'Disputed', 'Failed'].includes(status)) {
+    if (['Cancelled', 'Refunded', 'Disputed', 'Failed', 'DeliveryFailed', 'ReturnedToSender'].includes(status)) {
       return 'danger';
     }
 
     return 'neutral';
+  }
+
+  protected formatDeliveryAddress(address: NonNullable<BuyerOrderResult['deliveryAddress']>): string {
+    return [
+      address.addressLine1,
+      address.addressLine2,
+      address.suburb,
+      address.city,
+      address.province,
+      address.postalCode,
+      address.countryCode
+    ].filter(Boolean).join(', ');
+  }
+
+  protected deliveryEstimate(order: BuyerOrderResult): string {
+    if (order.deliveryEstimatedMinDays === null
+      || order.deliveryEstimatedMinDays === undefined
+      || order.deliveryEstimatedMaxDays === null
+      || order.deliveryEstimatedMaxDays === undefined) {
+      return 'estimate unavailable';
+    }
+
+    return order.deliveryEstimatedMinDays === order.deliveryEstimatedMaxDays
+      ? `${order.deliveryEstimatedMinDays} day${order.deliveryEstimatedMinDays === 1 ? '' : 's'}`
+      : `${order.deliveryEstimatedMinDays}-${order.deliveryEstimatedMaxDays} days`;
   }
 
   private selectedReturnItem() {

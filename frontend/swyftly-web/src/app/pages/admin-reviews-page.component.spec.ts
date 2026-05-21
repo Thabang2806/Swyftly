@@ -51,6 +51,8 @@ describe('AdminReviewsPageComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Great fit');
     expect(compiled.textContent).toContain('Seller Store');
+    expect(compiled.querySelector('.hf-admin-evidence-panel')).toBeTruthy();
+    expect(compiled.textContent).toContain('Selected review');
 
     const searchInput = compiled.querySelector('input[formControlName="search"]') as HTMLInputElement;
     searchInput.value = 'Canvas';

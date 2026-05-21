@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from './auth/auth.service';
+import { MobileBottomNavComponent, MobileBottomNavItem } from './shared/ui/mobile-bottom-nav.component';
 
 type NavigationItem = {
   label: string;
@@ -9,7 +10,7 @@ type NavigationItem = {
 
 @Component({
   selector: 'app-root',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [MobileBottomNavComponent, RouterLink, RouterLinkActive, RouterOutlet],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
@@ -81,6 +82,47 @@ export class AppComponent implements OnInit {
     return this.buyerNavigationItems().length > 0 ||
       this.sellerNavigationItems().length > 0 ||
       this.adminNavigationItems().length > 0;
+  });
+
+  protected readonly mobileNavigationItems = computed<MobileBottomNavItem[]>(() => {
+    const items: MobileBottomNavItem[] = [
+      { label: 'Home', route: '/' },
+      { label: 'Search', route: '/shop' }
+    ];
+
+    if (this.authService.hasAnyRole(['Admin', 'SuperAdmin', 'FinanceOperator', 'FinanceApprover', 'SupportAgent'])) {
+      return [
+        ...items,
+        { label: 'Admin', route: '/admin' },
+        { label: 'Queues', route: '/admin/products' },
+        { label: 'Finance', route: '/admin/payouts' }
+      ];
+    }
+
+    if (this.authService.hasAnyRole(['Seller'])) {
+      return [
+        ...items,
+        { label: 'Seller', route: '/seller' },
+        { label: 'Orders', route: '/seller/orders' },
+        { label: 'Payouts', route: '/seller/payouts' }
+      ];
+    }
+
+    if (this.authService.hasAnyRole(['Buyer'])) {
+      return [
+        ...items,
+        { label: 'AI', route: '/assistant' },
+        { label: 'Orders', route: '/account/orders' },
+        { label: 'Me', route: '/account' }
+      ];
+    }
+
+    return [
+      ...items,
+      { label: 'Sell', route: '/register/seller' },
+      { label: 'Join', route: '/register/buyer' },
+      { label: 'Sign in', route: '/login' }
+    ];
   });
 
   ngOnInit(): void {

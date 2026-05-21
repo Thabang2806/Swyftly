@@ -49,7 +49,11 @@ public sealed class SecurityConfigurationValidatorTests
             ["AuthCookies:SameSite"] = "Lax",
             ["AuthCookies:RefreshTokenPath"] = "/api/auth",
             ["AuthCookies:CsrfPath"] = "/",
-            ["AuthCookies:Domain"] = ".swyftly.example"
+            ["AuthCookies:Domain"] = ".swyftly.example",
+            ["EmailDelivery:ProviderName"] = "Smtp",
+            ["EmailDelivery:FromAddress"] = "no-reply@swyftly.example",
+            ["EmailDelivery:Smtp:Host"] = "smtp.swyftly.example",
+            ["EmailDelivery:Smtp:Port"] = "587"
         });
 
         SecurityConfigurationValidator.ValidateProductionConfiguration(configuration);
@@ -143,6 +147,18 @@ public sealed class SecurityConfigurationValidatorTests
         Assert.Contains("AuthCookies:Domain", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ValidateProductionConfiguration_RejectsLogOnlyEmailDelivery()
+    {
+        var configuration = BuildValidProductionConfiguration();
+        configuration["EmailDelivery:ProviderName"] = "LogOnly";
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => SecurityConfigurationValidator.ValidateProductionConfiguration(configuration));
+
+        Assert.Contains("EmailDelivery:ProviderName", exception.Message, StringComparison.Ordinal);
+    }
+
     private static IConfigurationRoot BuildConfiguration(Dictionary<string, string?> values) =>
         new ConfigurationBuilder()
             .AddInMemoryCollection(values)
@@ -166,6 +182,10 @@ public sealed class SecurityConfigurationValidatorTests
             ["AuthCookies:SameSite"] = "Lax",
             ["AuthCookies:RefreshTokenPath"] = "/api/auth",
             ["AuthCookies:CsrfPath"] = "/",
-            ["AuthCookies:Domain"] = ".swyftly.example"
+            ["AuthCookies:Domain"] = ".swyftly.example",
+            ["EmailDelivery:ProviderName"] = "Smtp",
+            ["EmailDelivery:FromAddress"] = "no-reply@swyftly.example",
+            ["EmailDelivery:Smtp:Host"] = "smtp.swyftly.example",
+            ["EmailDelivery:Smtp:Port"] = "587"
         });
 }

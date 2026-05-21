@@ -10,8 +10,27 @@ export interface SellerOrderResult {
   platformFeeAmount: number;
   discountAmount: number;
   totalAmount: number;
+  deliveryAddress?: SellerOrderDeliveryAddressResult | null;
+  deliveryMethodId?: string | null;
+  deliveryMethodName?: string | null;
+  deliveryMethodType?: string | null;
+  deliveryEstimatedMinDays?: number | null;
+  deliveryEstimatedMaxDays?: number | null;
   statusHistory: SellerOrderStatusHistoryResult[];
   shipments: SellerShipmentResult[];
+}
+
+export interface SellerOrderDeliveryAddressResult {
+  recipientName: string;
+  phoneNumber: string;
+  addressLine1: string;
+  addressLine2: string | null;
+  suburb: string | null;
+  city: string;
+  province: string;
+  postalCode: string;
+  countryCode: string;
+  deliveryInstructions: string | null;
 }
 
 export interface SellerOrderItemResult {
@@ -61,4 +80,8 @@ export interface AddSellerOrderTrackingRequest {
   trackingNumber: string;
   trackingUrl: string | null;
   note: string | null;
+}
+
+export interface SellerFulfillmentExceptionRequest {
+  reason: string;
 }

@@ -7,6 +7,7 @@ import { ProductSearchItemResponse, PublicCategoryResponse } from '../shop/publi
 import { PublicCatalogService } from '../shop/public-catalog.service';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
 import { PageHeaderComponent } from '../shared/ui/page-header.component';
+import { ProductVisualFallbackComponent } from '../shared/ui/product-visual-fallback.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
 import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 
@@ -17,15 +18,16 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     MatButtonModule,
     PageHeaderComponent,
     ProductCardComponent,
+    ProductVisualFallbackComponent,
     RouterLink,
     StatusBadgeComponent,
     UiAlertComponent
   ],
   template: `
-    <section class="page shop-surface">
+    <section class="page shop-surface category-surface">
       <a class="admin-back-link" routerLink="/shop">Back to shop</a>
 
-      <section class="category-hero">
+      <section class="category-hero hf-category-hero">
         <div>
           <app-page-header
             eyebrow="Category edit"
@@ -36,6 +38,13 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
             <app-status-badge [label]="categoryPath()" tone="accent" />
             <app-status-badge [label]="products().length + ' listed here'" />
           </div>
+        </div>
+        <div class="category-visual-panel" aria-hidden="true">
+          <app-product-visual-fallback
+            [label]="categoryPath()"
+            [title]="category()?.name ?? 'Category edit'"
+            [tone]="categoryTone()"
+          />
         </div>
       </section>
 
@@ -147,6 +156,31 @@ export class CategoryPageComponent implements OnInit {
     }
 
     return `Browse ${selected.name.toLowerCase()} with seller and stock details visible before checkout.`;
+  }
+
+  protected categoryTone(): 'dress' | 'jewel' | 'beauty' | 'bag' | 'shoe' | 'neutral' {
+    const text = `${this.category()?.name ?? ''} ${this.categoryPath()}`.toLowerCase();
+    if (/(jewel|ring|earring|necklace|bracelet)/.test(text)) {
+      return 'jewel';
+    }
+
+    if (/(beauty|skin|makeup|lip|hair|fragrance)/.test(text)) {
+      return 'beauty';
+    }
+
+    if (/(bag|accessor|wallet|purse)/.test(text)) {
+      return 'bag';
+    }
+
+    if (/(shoe|heel|sneaker|boot|sandal)/.test(text)) {
+      return 'shoe';
+    }
+
+    if (/(dress|fashion|clothing|women|men|apparel)/.test(text)) {
+      return 'dress';
+    }
+
+    return 'neutral';
   }
 
   private pathForCategory(selected: PublicCategoryResponse): string {

@@ -49,6 +49,7 @@ describe('CheckoutFailedPageComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.hf-checkout-result-card--warning')).not.toBeNull();
     expect(compiled.textContent).toContain('Retry payment');
 
     const retryButton = Array.from(compiled.querySelectorAll('button'))
@@ -72,4 +73,3 @@ describe('CheckoutFailedPageComponent', () => {
     expect(text).not.toContain('Retry payment');
   });
 });
-

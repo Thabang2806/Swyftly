@@ -10,9 +10,12 @@ import { AdminProductReviewDetailResponse } from '../admin/admin-review.models';
 import { AdminWorkspaceNavComponent } from '../admin/admin-workspace-nav.component';
 import { getApiErrorMessage } from '../auth/api-error';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
+import { MetricTileComponent } from '../shared/ui/metric-tile.component';
 import { PageHeaderComponent } from '../shared/ui/page-header.component';
+import { ProductVisualFallbackComponent } from '../shared/ui/product-visual-fallback.component';
 import { StatusBadgeComponent, StatusBadgeTone } from '../shared/ui/status-badge.component';
 import { UiAlertComponent } from '../shared/ui/ui-alert.component';
+import { WorkspaceShellComponent } from '../shared/ui/workspace-shell.component';
 
 @Component({
   selector: 'app-admin-reviews-page',
@@ -23,26 +26,41 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    MetricTileComponent,
     PageHeaderComponent,
+    ProductVisualFallbackComponent,
     ReactiveFormsModule,
     RouterLink,
     StatusBadgeComponent,
-    UiAlertComponent
+    UiAlertComponent,
+    WorkspaceShellComponent
   ],
   template: `
-    <section class="page admin-review">
-      <app-admin-workspace-nav />
+    <section class="page admin-review hf-admin-console">
+      <app-workspace-shell>
+        <app-admin-workspace-nav workspaceNav />
 
-      <app-page-header
-        eyebrow="Admin review"
-        heading="Buyer review moderation"
-        description="Moderate verified-purchase reviews before they become visible on product pages."
-      >
-        <div pageHeaderActions>
-          <a mat-stroked-button routerLink="/admin/products">Product queue</a>
-          <a mat-stroked-button routerLink="/admin/audit-logs">Audit logs</a>
+        <app-page-header
+          eyebrow="Admin console"
+          heading="Buyer review moderation"
+          description="Moderate verified-purchase reviews before they become visible on product pages."
+        >
+          <div pageHeaderActions>
+            <a mat-stroked-button routerLink="/admin/products">Product queue</a>
+            <a mat-stroked-button routerLink="/admin/audit-logs">Audit logs</a>
+          </div>
+        </app-page-header>
+
+        <div class="hf-metric-grid">
+          @for (metric of reviewMetrics(); track metric.label) {
+            <app-metric-tile
+              [label]="metric.label"
+              [value]="metric.value"
+              [badge]="metric.badge"
+              [badgeTone]="metric.tone"
+            />
+          }
         </div>
-      </app-page-header>
 
       <form [formGroup]="filtersForm" (ngSubmit)="applyFilters()" class="route-card admin-moderation-filters" novalidate>
         <mat-form-field appearance="outline">
@@ -79,7 +97,16 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
             message="New and edited buyer reviews will appear here before publication."
           />
         } @else {
-          <div class="admin-review-layout">
+          <div class="admin-review-layout hf-admin-review-layout">
+            <div class="hf-admin-queue-card">
+            <div class="hf-admin-card-heading">
+              <div>
+                <span>Review list</span>
+                <h2>Pending buyer reviews</h2>
+              </div>
+              <app-status-badge [label]="filteredReviews().length + ' visible'" tone="accent" />
+            </div>
+
             <div class="admin-table admin-moderation-table" role="table" aria-label="Pending buyer reviews">
               <div class="admin-table-row heading admin-moderation-table-row" role="row">
                 <span role="columnheader">Review</span>
@@ -90,7 +117,12 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
               </div>
 
               @for (review of filteredReviews(); track review.reviewId) {
-                <div class="admin-table-row admin-moderation-table-row" role="row">
+                <div
+                  class="admin-table-row admin-moderation-table-row hf-admin-select-row"
+                  role="row"
+                  [class.active]="selectedReview()?.reviewId === review.reviewId"
+                  (click)="selectReview(review)"
+                >
                   <span role="cell">
                     <strong>{{ review.rating }}/5</strong>
                     <small>{{ review.title ?? 'Untitled review' }}</small>
@@ -108,21 +140,44 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                     <app-status-badge [label]="review.status" [tone]="reviewTone(review.status)" />
                   </span>
                   <span role="cell">
-                    <button mat-stroked-button type="button" (click)="selectReview(review)">Review</button>
+                    <button mat-stroked-button type="button" (click)="selectReview(review); $event.stopPropagation()">Review</button>
                   </span>
                 </div>
               }
             </div>
 
+            <p class="audit-count">{{ filteredReviews().length }} of {{ pendingReviews().length }} review{{ pendingReviews().length === 1 ? '' : 's' }}</p>
+            </div>
+
             @if (selectedReview()) {
-              <article class="route-card moderation-detail-panel">
-                <div class="buyer-review-heading">
-                  <strong>{{ selectedReview()!.rating }}/5</strong>
+              <article class="hf-admin-evidence-panel moderation-detail-panel">
+                <div class="hf-admin-card-heading">
+                  <div>
+                    <span>Selected review</span>
+                    <h2>{{ selectedReview()!.title ?? 'Untitled review' }}</h2>
+                  </div>
                   <app-status-badge [label]="selectedReview()!.status" [tone]="reviewTone(selectedReview()!.status)" />
                 </div>
 
-                <h2>{{ selectedReview()!.title ?? 'Untitled review' }}</h2>
-                <p>{{ selectedReview()!.body ?? 'No written review body.' }}</p>
+                @if (selectedReview()!.product.primaryImageUrl) {
+                  <img
+                    class="hf-admin-review-image"
+                    [src]="selectedReview()!.product.primaryImageUrl!"
+                    [alt]="selectedReview()!.product.primaryImageAltText ?? selectedReview()!.product.title ?? 'Reviewed product'"
+                    loading="lazy"
+                  >
+                } @else {
+                  <app-product-visual-fallback
+                    [title]="selectedReview()!.product.title ?? selectedReview()!.order.productTitle ?? 'Reviewed product'"
+                    label="Reviewed item"
+                    tone="dress"
+                  />
+                }
+
+                <div class="hf-admin-summary-panel">
+                  <strong>{{ selectedReview()!.rating }}/5 buyer rating</strong>
+                  <span>{{ selectedReview()!.body ?? 'No written review body.' }}</span>
+                </div>
 
                 <div class="detail-grid">
                   <span>
@@ -165,9 +220,9 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
             }
           </div>
 
-          <p class="audit-count">{{ filteredReviews().length }} of {{ pendingReviews().length }} review{{ pendingReviews().length === 1 ? '' : 's' }}</p>
         }
       }
+      </app-workspace-shell>
     </section>
   `
 })
@@ -217,12 +272,49 @@ export class AdminReviewsPageComponent implements OnInit {
     });
   });
 
+  protected readonly reviewMetrics = computed(() => {
+    const reviews = this.pendingReviews();
+    const lowRatings = reviews.filter(review => review.rating <= 2).length;
+    const sellerCount = new Set(reviews.map(review => review.sellerId)).size;
+
+    return [
+      {
+        label: 'Pending reviews',
+        value: reviews.length.toString(),
+        badge: 'Moderate',
+        tone: 'warning' as StatusBadgeTone
+      },
+      {
+        label: 'Low ratings',
+        value: lowRatings.toString(),
+        badge: lowRatings > 0 ? 'Check' : 'Clear',
+        tone: lowRatings > 0 ? 'warning' as StatusBadgeTone : 'success' as StatusBadgeTone
+      },
+      {
+        label: 'Seller count',
+        value: sellerCount.toString(),
+        badge: 'Context',
+        tone: 'accent' as StatusBadgeTone
+      },
+      {
+        label: 'Filtered view',
+        value: this.filteredReviews().length.toString(),
+        badge: 'Visible',
+        tone: 'neutral' as StatusBadgeTone
+      }
+    ];
+  });
+
   async ngOnInit(): Promise<void> {
     await this.loadReviews();
   }
 
   protected applyFilters(): void {
     this.filters.set(this.filtersForm.getRawValue());
+    const filteredReviews = this.filteredReviews();
+    if (!filteredReviews.some(review => review.reviewId === this.selectedReview()?.reviewId)) {
+      this.selectedReview.set(filteredReviews[0] ?? null);
+    }
   }
 
   protected clearFilters(): void {

@@ -108,6 +108,175 @@ public sealed class AdminOrderPaymentTests
         Assert.DoesNotContain(candidates, candidate => candidate.PaymentId == seed.FreshPendingPaymentId);
     }
 
+    [Fact]
+    public async Task FinanceApprover_CanRecordPaymentReconciliationReview()
+    {
+        using var factory = new AdminOrderPaymentTestFactory();
+        using var client = factory.CreateClient();
+        var seed = await SeedReconciliationCandidateDataAsync(factory);
+        var financeToken = await CreateAndLoginAdminAsync(factory, client, SwyftlyRoles.FinanceApprover);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", financeToken);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/admin/payments/{seed.StalePendingPaymentId}/reconciliation-reviews",
+            new
+            {
+                observedProviderStatus = "PENDING",
+                observedAmount = 145.00m,
+                observedCurrency = "zar",
+                outcome = "ProviderPending",
+                reason = "Provider dashboard still shows pending checkout."
+            });
+
+        response.EnsureSuccessStatusCode();
+        var review = await response.Content.ReadFromJsonAsync<AdminPaymentReconciliationReviewResponse>();
+        Assert.NotNull(review);
+        Assert.Equal(seed.StalePendingPaymentId, review!.PaymentId);
+        Assert.Equal("ProviderPending", review.Outcome);
+        Assert.Equal("ZAR", review.ObservedCurrency);
+
+        using var candidatesResponse = await client.GetAsync("/api/admin/payments/reconciliation-candidates?olderThanMinutes=30");
+        candidatesResponse.EnsureSuccessStatusCode();
+        var candidates = await candidatesResponse.Content.ReadFromJsonAsync<AdminPaymentReconciliationCandidateResponse[]>();
+        var candidate = Assert.Single(candidates!, candidate => candidate.PaymentId == seed.StalePendingPaymentId);
+        Assert.NotNull(candidate.LatestReview);
+        Assert.Equal(review.ReviewId, candidate.LatestReview!.ReviewId);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SwyftlyDbContext>();
+        Assert.Single(dbContext.PaymentReconciliationReviews.Where(item => item.PaymentId == seed.StalePendingPaymentId));
+        Assert.Contains(dbContext.AuditLogs, log =>
+            log.ActionType == "PaymentReconciliationReviewed"
+            && log.EntityId == seed.StalePendingPaymentId.ToString());
+    }
+
+    [Fact]
+    public async Task FinanceOperator_CannotRecordPaymentReconciliationReview()
+    {
+        using var factory = new AdminOrderPaymentTestFactory();
+        using var client = factory.CreateClient();
+        var seed = await SeedReconciliationCandidateDataAsync(factory);
+        var operatorToken = await CreateAndLoginAdminAsync(factory, client, SwyftlyRoles.FinanceOperator);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", operatorToken);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/admin/payments/{seed.StalePendingPaymentId}/reconciliation-reviews",
+            new
+            {
+                observedProviderStatus = "COMPLETE",
+                observedAmount = 145.00m,
+                observedCurrency = "ZAR",
+                outcome = "ProviderPaidMissingWebhook",
+                reason = "Provider dashboard shows complete."
+            });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReconciliationReview_ValidatesOutcomeAndReason()
+    {
+        using var factory = new AdminOrderPaymentTestFactory();
+        using var client = factory.CreateClient();
+        var seed = await SeedReconciliationCandidateDataAsync(factory);
+        var financeToken = await CreateAndLoginAdminAsync(factory, client, SwyftlyRoles.FinanceApprover);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", financeToken);
+
+        using var invalidOutcomeResponse = await client.PostAsJsonAsync(
+            $"/api/admin/payments/{seed.StalePendingPaymentId}/reconciliation-reviews",
+            new
+            {
+                observedProviderStatus = "COMPLETE",
+                observedAmount = 145.00m,
+                observedCurrency = "ZAR",
+                outcome = "Settled",
+                reason = "Provider dashboard shows complete."
+            });
+        Assert.Equal(HttpStatusCode.BadRequest, invalidOutcomeResponse.StatusCode);
+
+        using var emptyReasonResponse = await client.PostAsJsonAsync(
+            $"/api/admin/payments/{seed.StalePendingPaymentId}/reconciliation-reviews",
+            new
+            {
+                observedProviderStatus = "COMPLETE",
+                observedAmount = 145.00m,
+                observedCurrency = "ZAR",
+                outcome = "ProviderPaidMissingWebhook",
+                reason = ""
+            });
+        Assert.Equal(HttpStatusCode.BadRequest, emptyReasonResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReconciliationCandidates_HideSnoozedReviewsUnlessRequested()
+    {
+        using var factory = new AdminOrderPaymentTestFactory();
+        using var client = factory.CreateClient();
+        var seed = await SeedReconciliationCandidateDataAsync(factory);
+        var financeToken = await CreateAndLoginAdminAsync(factory, client, SwyftlyRoles.FinanceApprover);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", financeToken);
+
+        using var reviewResponse = await client.PostAsJsonAsync(
+            $"/api/admin/payments/{seed.StalePendingPaymentId}/reconciliation-reviews",
+            new
+            {
+                observedProviderStatus = "PENDING",
+                observedAmount = 145.00m,
+                observedCurrency = "ZAR",
+                outcome = "ProviderPending",
+                reason = "Provider dashboard is still pending; review tomorrow.",
+                nextReviewAfterUtc = DateTimeOffset.UtcNow.AddDays(1)
+            });
+        reviewResponse.EnsureSuccessStatusCode();
+
+        using var defaultResponse = await client.GetAsync("/api/admin/payments/reconciliation-candidates?olderThanMinutes=30");
+        defaultResponse.EnsureSuccessStatusCode();
+        var defaultCandidates = await defaultResponse.Content.ReadFromJsonAsync<AdminPaymentReconciliationCandidateResponse[]>();
+        Assert.DoesNotContain(defaultCandidates!, candidate => candidate.PaymentId == seed.StalePendingPaymentId);
+
+        using var includeSnoozedResponse = await client.GetAsync("/api/admin/payments/reconciliation-candidates?olderThanMinutes=30&includeSnoozed=true");
+        includeSnoozedResponse.EnsureSuccessStatusCode();
+        var snoozedCandidates = await includeSnoozedResponse.Content.ReadFromJsonAsync<AdminPaymentReconciliationCandidateResponse[]>();
+        Assert.Contains(snoozedCandidates!, candidate =>
+            candidate.PaymentId == seed.StalePendingPaymentId
+            && candidate.LatestReview?.Outcome == "ProviderPending");
+    }
+
+    [Fact]
+    public async Task ProviderPaidMissingWebhookReview_DoesNotSettlePaymentOrOrder()
+    {
+        using var factory = new AdminOrderPaymentTestFactory();
+        using var client = factory.CreateClient();
+        var seed = await SeedReconciliationCandidateDataAsync(factory);
+        var financeToken = await CreateAndLoginAdminAsync(factory, client, SwyftlyRoles.FinanceApprover);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", financeToken);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/admin/payments/{seed.StalePendingPaymentId}/reconciliation-reviews",
+            new
+            {
+                observedProviderStatus = "COMPLETE",
+                observedAmount = 145.00m,
+                observedCurrency = "ZAR",
+                outcome = "ProviderPaidMissingWebhook",
+                reason = "Provider dashboard shows COMPLETE but no valid ITN was received."
+            });
+        response.EnsureSuccessStatusCode();
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SwyftlyDbContext>();
+        var payment = await dbContext.Payments.SingleAsync(payment => payment.Id == seed.StalePendingPaymentId);
+        var order = await dbContext.Orders.SingleAsync(order => order.Id == payment.OrderId);
+        Assert.Equal(PaymentStatus.Pending, payment.Status);
+        Assert.Equal(OrderStatus.PendingPayment, order.Status);
+        Assert.Empty(dbContext.LedgerEntries);
+    }
+
     private static async Task<OrderPaymentSeed> SeedOrderPaymentDataAsync(AdminOrderPaymentTestFactory factory)
     {
         using var scope = factory.Services.CreateScope();
@@ -213,9 +382,11 @@ public sealed class AdminOrderPaymentTests
 
     private static async Task<string> CreateAndLoginAdminAsync(
         AdminOrderPaymentTestFactory factory,
-        HttpClient client)
+        HttpClient client,
+        params string[] roles)
     {
-        const string email = "admin-order-payments@example.test";
+        var email = $"admin-order-payments-{Guid.NewGuid():N}@example.test";
+        var assignedRoles = roles.Length == 0 ? [SwyftlyRoles.Admin] : roles;
 
         using (var scope = factory.Services.CreateScope())
         {
@@ -231,8 +402,11 @@ public sealed class AdminOrderPaymentTests
             var createResult = await userManager.CreateAsync(admin, "Password123!");
             Assert.True(createResult.Succeeded, string.Join("; ", createResult.Errors.Select(error => error.Description)));
 
-            var roleResult = await userManager.AddToRoleAsync(admin, SwyftlyRoles.Admin);
-            Assert.True(roleResult.Succeeded, string.Join("; ", roleResult.Errors.Select(error => error.Description)));
+            foreach (var role in assignedRoles)
+            {
+                var roleResult = await userManager.AddToRoleAsync(admin, role);
+                Assert.True(roleResult.Succeeded, string.Join("; ", roleResult.Errors.Select(error => error.Description)));
+            }
         }
 
         return await LoginAsync(client, email);

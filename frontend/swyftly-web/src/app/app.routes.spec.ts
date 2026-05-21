@@ -54,6 +54,7 @@ describe('app routes', () => {
       'account/wishlist',
       'account/reviews',
       'account/notifications',
+      'account/settings',
       'account/disputes',
       'account/support',
       'account/support/:ticketId'

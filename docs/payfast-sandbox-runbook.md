@@ -1,6 +1,6 @@
 # PayFast Sandbox Runbook
 
-Last updated: 2026-05-19
+Last updated: 2026-05-21
 
 This runbook verifies the PayFast adapter without committing merchant credentials. It is intentionally operational: do not mark PayFast production-ready until these checks pass against a real PayFast sandbox account and a publicly reachable API callback URL.
 
@@ -96,6 +96,27 @@ POST /api/admin/refunds/{refundId}/confirm-manual-provider-refund
 
 6. Swyftly then writes refund ledger reversals, payout adjustments, payment refund state, order/return updates, and audit logs.
 
+## Manual Reconciliation Review Flow
+
+Dashboard-observed provider status is evidence, not settlement authority.
+
+1. Finance opens `/admin/payments` and reviews stale pending/authorized payments or payments with failed webhook events.
+2. Finance checks the PayFast dashboard, ITN history, and Swyftly support/audit context.
+3. Finance records a review through:
+
+```http
+POST /api/admin/payments/{paymentId}/reconciliation-reviews
+```
+
+4. Use one of:
+   - `ProviderPending`
+   - `MatchedNoAction`
+   - `ProviderPaidMissingWebhook`
+   - `ProviderFailedMissingWebhook`
+   - `ManualRecoveryRequired`
+5. If the provider status is `COMPLETE` but Swyftly has no valid paid ITN, record `ProviderPaidMissingWebhook` and investigate or replay the PayFast ITN. Do not mark the payment or order paid from an admin screen.
+6. Set `nextReviewAfterUtc` when the case should be snoozed. Snoozed candidates are hidden from the default queue until that timestamp passes.
+
 ## Exit Criteria
 
 PayFast can be considered sandbox-verified only when:
@@ -108,6 +129,8 @@ PayFast can be considered sandbox-verified only when:
 
 ## Remaining Production Gaps
 
-- Provider status query/reconciliation is still not implemented because exact PayFast status API behavior must be verified.
+- Provider status-query settlement is still not implemented because exact PayFast status API behavior must be verified.
 - Automatic PayFast refunds are still not implemented; manual dashboard confirmation remains the safe flow.
 - PayU South Africa remains deferred until merchant technical docs and sandbox credentials are available.
+
+As of 2026-05-21, sandbox checkout and callback verification remain blocked until real PayFast sandbox credentials and a public callback URL are available.

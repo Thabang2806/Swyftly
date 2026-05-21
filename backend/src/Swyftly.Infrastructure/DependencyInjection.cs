@@ -11,6 +11,7 @@ using Swyftly.Application.Catalog;
 using Swyftly.Application.Disputes;
 using Swyftly.Application.Inventory;
 using Swyftly.Application.Ledger;
+using Swyftly.Application.Media;
 using Swyftly.Application.Notifications;
 using Swyftly.Application.Orders;
 using Swyftly.Application.Payments;
@@ -89,7 +90,126 @@ public static class DependencyInjection
         services.AddScoped<IAuditLogService, EfAuditLogService>();
         services.AddScoped<IProductSearchIndexer, ProductSearchIndexer>();
         services.AddSingleton<ISearchIndexService, LocalSearchIndexService>();
-        services.AddSingleton<IImageStorageProvider, DevelopmentImageStorageProvider>();
+        services.Configure<ImageStorageOptions>(options =>
+        {
+            var section = configuration.GetSection(ImageStorageOptions.SectionName);
+            options.ProviderName = section["ProviderName"] ?? options.ProviderName;
+            options.LocalRootPath = section["LocalRootPath"] ?? options.LocalRootPath;
+            options.PublicBasePath = section["PublicBasePath"] ?? options.PublicBasePath;
+            if (long.TryParse(section["MaxFileBytes"], out var maxFileBytes))
+            {
+                options.MaxFileBytes = maxFileBytes;
+            }
+
+            if (int.TryParse(section["MaxPixelWidth"], out var maxPixelWidth))
+            {
+                options.MaxPixelWidth = maxPixelWidth;
+            }
+
+            if (int.TryParse(section["MaxPixelHeight"], out var maxPixelHeight))
+            {
+                options.MaxPixelHeight = maxPixelHeight;
+            }
+
+            if (int.TryParse(section["VariantWebpQuality"], out var variantWebpQuality))
+            {
+                options.VariantWebpQuality = variantWebpQuality;
+            }
+
+            var allowedTypes = section.GetSection("AllowedContentTypes")
+                .GetChildren()
+                .Select(child => child.Value)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value!.Trim())
+                .ToArray();
+            if (allowedTypes.Length > 0)
+            {
+                options.AllowedContentTypes = allowedTypes;
+            }
+
+            var s3 = section.GetSection("S3");
+            options.S3.BucketName = s3["BucketName"] ?? options.S3.BucketName;
+            options.S3.Region = s3["Region"] ?? options.S3.Region;
+            options.S3.ServiceUrl = s3["ServiceUrl"] ?? options.S3.ServiceUrl;
+            options.S3.PublicBaseUrl = s3["PublicBaseUrl"] ?? options.S3.PublicBaseUrl;
+            options.S3.KeyPrefix = s3["KeyPrefix"] ?? options.S3.KeyPrefix;
+            options.S3.AccessKeyId = s3["AccessKeyId"] ?? options.S3.AccessKeyId;
+            options.S3.SecretAccessKey = s3["SecretAccessKey"] ?? options.S3.SecretAccessKey;
+            options.S3.CacheControl = s3["CacheControl"] ?? options.S3.CacheControl;
+            if (bool.TryParse(s3["ForcePathStyle"], out var forcePathStyle))
+            {
+                options.S3.ForcePathStyle = forcePathStyle;
+            }
+        });
+        services.Configure<MediaScanningOptions>(options =>
+        {
+            var section = configuration.GetSection(MediaScanningOptions.SectionName);
+            options.ProviderName = section["ProviderName"] ?? options.ProviderName;
+            if (bool.TryParse(section["RequireExternalScannerInProduction"], out var requireExternalScanner))
+            {
+                options.RequireExternalScannerInProduction = requireExternalScanner;
+            }
+        });
+        services.Configure<MediaCleanupOptions>(options =>
+        {
+            var section = configuration.GetSection(MediaCleanupOptions.SectionName);
+            if (int.TryParse(section["GracePeriodHours"], out var gracePeriodHours))
+            {
+                options.GracePeriodHours = gracePeriodHours;
+            }
+
+            if (int.TryParse(section["BatchSize"], out var batchSize))
+            {
+                options.BatchSize = batchSize;
+            }
+        });
+        services.Configure<EmailDeliveryOptions>(options =>
+        {
+            var section = configuration.GetSection(EmailDeliveryOptions.SectionName);
+            options.ProviderName = section["ProviderName"] ?? options.ProviderName;
+            options.FromAddress = section["FromAddress"] ?? options.FromAddress;
+            options.FromName = section["FromName"] ?? options.FromName;
+            options.AppBaseUrl = section["AppBaseUrl"] ?? options.AppBaseUrl;
+            if (int.TryParse(section["BatchSize"], out var batchSize))
+            {
+                options.BatchSize = batchSize;
+            }
+
+            if (int.TryParse(section["MaxAttempts"], out var maxAttempts))
+            {
+                options.MaxAttempts = maxAttempts;
+            }
+
+            if (int.TryParse(section["RetryMinutes"], out var retryMinutes))
+            {
+                options.RetryMinutes = retryMinutes;
+            }
+
+            var smtp = section.GetSection("Smtp");
+            options.Smtp.Host = smtp["Host"] ?? options.Smtp.Host;
+            if (int.TryParse(smtp["Port"], out var smtpPort))
+            {
+                options.Smtp.Port = smtpPort;
+            }
+
+            options.Smtp.Username = smtp["Username"] ?? options.Smtp.Username;
+            options.Smtp.Password = smtp["Password"] ?? options.Smtp.Password;
+            if (bool.TryParse(smtp["EnableSsl"], out var enableSsl))
+            {
+                options.Smtp.EnableSsl = enableSsl;
+            }
+        });
+        services.AddSingleton<IImageStorageProvider>(serviceProvider =>
+        {
+            var imageOptions = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<ImageStorageOptions>>();
+            return string.Equals(imageOptions.Value.ProviderName, "S3", StringComparison.OrdinalIgnoreCase)
+                ? new S3ImageStorageProvider(imageOptions)
+                : new LocalImageStorageProvider(imageOptions);
+        });
+        services.AddSingleton<IMediaMalwareScanner, TrustLocalCleanMediaMalwareScanner>();
+        services.AddSingleton<MediaImageProcessor>();
+        services.AddScoped<IProductMediaUploadService, ProductMediaUploadService>();
+        services.AddScoped<IMediaCleanupService, EfMediaCleanupService>();
         services.AddSingleton<ProductModerationService>();
         services.AddSingleton<AiPromptBuilder>();
         services.AddSingleton<AiSuggestionValidator>();
@@ -109,6 +229,16 @@ public static class DependencyInjection
         services.AddScoped<IRefundWorkflowService, EfRefundWorkflowService>();
         services.AddScoped<IDisputeWorkflowService, EfDisputeWorkflowService>();
         services.AddScoped<INotificationService, EfNotificationService>();
+        services.AddScoped<INotificationEmailDeliveryService, EfNotificationEmailDeliveryService>();
+        services.AddScoped<LogOnlyEmailDeliveryProvider>();
+        services.AddScoped<SmtpEmailDeliveryProvider>();
+        services.AddScoped<IEmailDeliveryProvider>(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<EmailDeliveryOptions>>().Value;
+            return string.Equals(options.ProviderName, SmtpEmailDeliveryProvider.Name, StringComparison.OrdinalIgnoreCase)
+                ? serviceProvider.GetRequiredService<SmtpEmailDeliveryProvider>()
+                : serviceProvider.GetRequiredService<LogOnlyEmailDeliveryProvider>();
+        });
         services.AddScoped<IAdCampaignEligibilityService, AdCampaignEligibilityService>();
         services.AddScoped<IAdTrackingService, EfAdTrackingService>();
         services.Configure<PaymentProviderOptions>(options =>

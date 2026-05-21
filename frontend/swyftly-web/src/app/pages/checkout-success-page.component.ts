@@ -14,10 +14,12 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
   imports: [CurrencyPipe, MatButtonModule, RouterLink, StatusBadgeComponent, UiAlertComponent],
   template: `
     <section class="page checkout-result-page">
-      <div class="checkout-result-card">
-        <app-status-badge [label]="order()?.status ?? 'Order created'" [tone]="statusTone(order()?.status ?? 'PendingPayment')" />
-        <h1>Checkout started</h1>
-        <p>Your order has been created. Payment is confirmed only after Swyftly receives a signed provider webhook.</p>
+      <div class="checkout-result-card hf-checkout-result-card">
+        <div class="checkout-result-heading">
+          <app-status-badge [label]="order()?.status ?? 'Order created'" [tone]="statusTone(order()?.status ?? 'PendingPayment')" />
+          <h1>Checkout started</h1>
+          <p>Your order has been created. Payment is confirmed only after Swyftly receives a signed provider webhook.</p>
+        </div>
 
         @if (isLoading()) {
           <div class="route-card">Loading order...</div>
@@ -31,9 +33,15 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
           }
 
           @if (order()) {
-            <div class="checkout-reference">
-              <span>Order reference</span>
-              <strong>{{ order()!.orderId }}</strong>
+            <div class="checkout-result-grid">
+              <div class="checkout-reference">
+                <span>Order reference</span>
+                <strong>{{ order()!.orderId }}</strong>
+              </div>
+              <div class="checkout-reference">
+                <span>Total</span>
+                <strong>{{ order()!.totalAmount | currency:'ZAR':'symbol-narrow' }}</strong>
+              </div>
             </div>
 
             <div class="checkout-result-steps">
@@ -53,9 +61,11 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 
             @if (canRetryPayment()) {
               <app-ui-alert tone="info">Payment is still pending. You can retry the provider checkout for this order.</app-ui-alert>
-              <button mat-flat-button type="button" [disabled]="isRetrying()" (click)="retryPayment()">
-                {{ isRetrying() ? 'Opening payment...' : 'Retry payment' }}
-              </button>
+              <div class="checkout-result-action-row">
+                <button mat-flat-button type="button" [disabled]="isRetrying()" (click)="retryPayment()">
+                  {{ isRetrying() ? 'Opening payment...' : 'Retry payment' }}
+                </button>
+              </div>
             }
           } @else if (orderId) {
             <div class="checkout-reference">
@@ -65,7 +75,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
           }
         }
 
-        <div class="auth-actions">
+        <div class="auth-actions checkout-result-actions">
           <a mat-flat-button [routerLink]="order() ? ['/account/orders', order()!.orderId] : ['/account/orders']">View order</a>
           <a mat-stroked-button routerLink="/shop">Continue shopping</a>
         </div>
@@ -141,4 +151,3 @@ export class CheckoutSuccessPageComponent implements OnInit {
     return 'accent';
   }
 }
-

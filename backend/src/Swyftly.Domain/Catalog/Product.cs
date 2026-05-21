@@ -169,6 +169,39 @@ public sealed class Product : AuditableEntity
         Status = ProductStatus.Published;
     }
 
+    public void ApplyApprovedListingRevision(
+        Guid? categoryId,
+        Guid? brandId,
+        string? title,
+        string? slug,
+        string? shortDescription,
+        string? fullDescription,
+        string tagsJson)
+    {
+        if (Status != ProductStatus.Published)
+        {
+            throw new InvalidOperationException("Only published products can apply approved listing revisions.");
+        }
+
+        if (categoryId == Guid.Empty)
+        {
+            throw new ArgumentException("Category id cannot be empty.", nameof(categoryId));
+        }
+
+        if (brandId == Guid.Empty)
+        {
+            throw new ArgumentException("Brand id cannot be empty.", nameof(brandId));
+        }
+
+        CategoryId = categoryId;
+        BrandId = brandId;
+        Title = TrimOrNull(title);
+        Slug = NormalizeSlugOrNull(slug);
+        ShortDescription = TrimOrNull(shortDescription);
+        FullDescription = TrimOrNull(fullDescription);
+        TagsJson = Required(tagsJson, nameof(tagsJson));
+    }
+
     private void EnsureSellerEditable()
     {
         if (!CanSellerEdit)

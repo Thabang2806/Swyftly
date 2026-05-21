@@ -29,11 +29,13 @@ export class SellerWorkspaceNavComponent {
   protected readonly items: readonly SellerWorkspaceNavItem[] = [
     { label: 'Dashboard', route: '/seller', exact: true },
     { label: 'Products', route: '/seller/products', exact: false },
+    { label: 'Inventory', route: '/seller/inventory', exact: false },
     { label: 'Orders', route: '/seller/orders', exact: false },
     { label: 'Returns', route: '/seller/returns', exact: false },
     { label: 'Payouts', route: '/seller/payouts', exact: false },
     { label: 'Support', route: '/seller/support', exact: false },
     { label: 'Ads', route: '/seller/ads', exact: false },
-    { label: 'Analytics', route: '/seller/analytics', exact: false }
+    { label: 'Analytics', route: '/seller/analytics', exact: false },
+    { label: 'Store settings', route: '/seller/settings/store', exact: false }
   ];
 }

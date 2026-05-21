@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { BuyerEngagementService } from '../buyer/buyer-engagement.service';
+import { BuyerWishlistStateService } from '../buyer/buyer-wishlist-state.service';
 import { CartService } from '../cart/cart.service';
 import { PublicCatalogService } from '../shop/public-catalog.service';
 import { ProductDetailPageComponent } from './product-detail-page.component';
@@ -11,6 +12,7 @@ describe('ProductDetailPageComponent', () => {
   let fixture: ComponentFixture<ProductDetailPageComponent>;
   let authService: jasmine.SpyObj<AuthService>;
   let engagementService: jasmine.SpyObj<BuyerEngagementService>;
+  let wishlistState: jasmine.SpyObj<BuyerWishlistStateService>;
   let cartService: jasmine.SpyObj<CartService>;
   let publicCatalogService: jasmine.SpyObj<PublicCatalogService>;
 
@@ -19,7 +21,22 @@ describe('ProductDetailPageComponent', () => {
     authService.initialize.and.resolveTo();
     authService.hasAnyRole.and.returnValue(true);
     engagementService = jasmine.createSpyObj<BuyerEngagementService>('BuyerEngagementService', ['addWishlistItem', 'getProductReviewSummary', 'listProductReviews']);
-    engagementService.addWishlistItem.and.resolveTo({ wishlistItemId: 'wishlist-id', createdAtUtc: '2026-05-19T10:00:00Z', product: createProduct() });
+    engagementService.addWishlistItem.and.resolveTo({
+      wishlistItemId: 'wishlist-id',
+      createdAtUtc: '2026-05-19T10:00:00Z',
+      product: createProduct(),
+      availableVariants: []
+    });
+    wishlistState = jasmine.createSpyObj<BuyerWishlistStateService>('BuyerWishlistStateService', ['load', 'isSaved', 'save', 'remove']);
+    wishlistState.load.and.resolveTo();
+    wishlistState.isSaved.and.returnValue(false);
+    wishlistState.save.and.resolveTo({
+      wishlistItemId: 'wishlist-id',
+      createdAtUtc: '2026-05-19T10:00:00Z',
+      product: createProduct(),
+      availableVariants: []
+    });
+    wishlistState.remove.and.resolveTo();
     engagementService.getProductReviewSummary.and.resolveTo({
       productId: 'product-id',
       reviewCount: 1,
@@ -92,6 +109,7 @@ describe('ProductDetailPageComponent', () => {
         },
         { provide: AuthService, useValue: authService },
         { provide: BuyerEngagementService, useValue: engagementService },
+        { provide: BuyerWishlistStateService, useValue: wishlistState },
         { provide: CartService, useValue: cartService },
         { provide: PublicCatalogService, useValue: publicCatalogService }
       ]
@@ -106,6 +124,8 @@ describe('ProductDetailPageComponent', () => {
     fixture.detectChanges();
 
     expect(publicCatalogService.getProduct).toHaveBeenCalledWith('summer-dress');
+    expect(wishlistState.load).toHaveBeenCalled();
+    expect(wishlistState.isSaved).toHaveBeenCalledWith('product-id');
     expect(engagementService.getProductReviewSummary).toHaveBeenCalledWith('summer-dress');
     expect(engagementService.listProductReviews).toHaveBeenCalledWith('summer-dress');
     const compiled = fixture.nativeElement as HTMLElement;
@@ -113,6 +133,10 @@ describe('ProductDetailPageComponent', () => {
     expect(compiled.textContent).toContain('A full product description.');
     expect(compiled.textContent).toContain('Cotton');
     expect(compiled.textContent).toContain('Great fit');
+    expect(compiled.querySelector('.product-gallery-shell')).not.toBeNull();
+    expect(compiled.querySelector('.product-purchase-panel')).not.toBeNull();
+    expect(compiled.querySelector('.variant-option.active')?.textContent).toContain('M');
+    expect(compiled.textContent).toContain('Complete the look');
   });
 
   it('adds the selected variant to cart', async () => {
@@ -141,7 +165,7 @@ describe('ProductDetailPageComponent', () => {
     button.click();
     await fixture.whenStable();
 
-    expect(engagementService.addWishlistItem).toHaveBeenCalledWith('product-id');
+    expect(wishlistState.save).toHaveBeenCalledWith('product-id');
   });
 
   it('switches the selected gallery image', async () => {
@@ -186,6 +210,7 @@ describe('ProductDetailPageComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.product-gallery-placeholder')).not.toBeNull();
+    expect(compiled.querySelector('.product-gallery-placeholder .hf-product-visual')).not.toBeNull();
     expect(compiled.textContent).toContain('Summer Dress');
   });
 });

@@ -13,6 +13,9 @@ export interface CartItemResponse {
   productId: string;
   productVariantId: string;
   productTitle: string | null;
+  productSlug: string | null;
+  primaryImageUrl: string | null;
+  primaryImageAltText: string | null;
   sku: string;
   size: string;
   colour: string;
@@ -33,6 +36,22 @@ export interface UpdateCartItemRequest {
 export interface CreateOrderFromCartRequest {
   cartId: string | null;
   reservationMinutes: number | null;
+  deliveryAddressId: string | null;
+  deliveryAddress: OrderDeliveryAddressRequest | null;
+  deliveryMethodId: string | null;
+}
+
+export interface OrderDeliveryAddressRequest {
+  recipientName: string;
+  phoneNumber: string;
+  addressLine1: string;
+  addressLine2: string | null;
+  suburb: string | null;
+  city: string;
+  province: string;
+  postalCode: string;
+  countryCode: string;
+  deliveryInstructions: string | null;
 }
 
 export interface OrderResult {
@@ -47,7 +66,26 @@ export interface OrderResult {
   platformFeeAmount: number;
   discountAmount: number;
   totalAmount: number;
+  deliveryAddress?: OrderDeliveryAddressResult | null;
   statusHistory: OrderStatusHistoryResult[];
+  deliveryMethodId?: string | null;
+  deliveryMethodName?: string | null;
+  deliveryMethodType?: string | null;
+  deliveryEstimatedMinDays?: number | null;
+  deliveryEstimatedMaxDays?: number | null;
+}
+
+export interface OrderDeliveryAddressResult {
+  recipientName: string;
+  phoneNumber: string;
+  addressLine1: string;
+  addressLine2: string | null;
+  suburb: string | null;
+  city: string;
+  province: string;
+  postalCode: string;
+  countryCode: string;
+  deliveryInstructions: string | null;
 }
 
 export interface OrderItemResult {
@@ -69,4 +107,33 @@ export interface OrderStatusHistoryResult {
   newStatus: string;
   changedAtUtc: string;
   reason: string | null;
+}
+
+export interface CartShippingOptionsRequest {
+  cartId: string | null;
+  deliveryAddressId: string | null;
+  deliveryAddress: OrderDeliveryAddressRequest | null;
+}
+
+export interface CartShippingOptionsResponse {
+  cartId: string;
+  sellerId: string;
+  cartSubtotal: number;
+  options: CartShippingOptionResponse[];
+}
+
+export interface CartShippingOptionResponse {
+  deliveryMethodId: string;
+  name: string;
+  description: string | null;
+  methodType: 'Standard' | 'Express' | 'LocalCourier';
+  countryCode: string;
+  province: string | null;
+  basePrice: number;
+  freeShippingThreshold: number | null;
+  shippingAmount: number;
+  freeShippingApplied: boolean;
+  estimatedMinDays: number;
+  estimatedMaxDays: number;
+  displayOrder: number;
 }

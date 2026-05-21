@@ -45,6 +45,9 @@ describe('ShopPageComponent', () => {
     expect(compiled.textContent).toContain('Seller Store');
     expect(compiled.textContent).toContain('1 result');
     expect(compiled.textContent).toContain('Dresses');
+    expect(compiled.querySelector('.hf-shop-hero')).not.toBeNull();
+    expect(compiled.textContent).toContain('Published catalog');
+    expect(compiled.textContent).toContain('Buyer tip');
   });
 
   it('submits filters to product search', async () => {

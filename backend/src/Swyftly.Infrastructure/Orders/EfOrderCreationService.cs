@@ -4,8 +4,10 @@ using Swyftly.Application.Common.Results;
 using Swyftly.Application.Common.Validation;
 using Swyftly.Application.Inventory;
 using Swyftly.Application.Orders;
+using Swyftly.Domain.Buyers;
 using Swyftly.Domain.Carts;
 using Swyftly.Domain.Orders;
+using Swyftly.Domain.Sellers;
 using Swyftly.Infrastructure.Persistence;
 
 namespace Swyftly.Infrastructure.Orders;
@@ -31,6 +33,33 @@ public sealed class EfOrderCreationService(
                 Error.NotFound("Orders.CartNotFound", "Active cart was not found."));
         }
 
+        if (cart.Items.Count == 0)
+        {
+            return Validation("cart", "Cart must contain at least one item before an order can be created.");
+        }
+
+        if (!cart.SellerId.HasValue)
+        {
+            return Validation("cart", "Cart must be associated with a seller before an order can be created.");
+        }
+
+        var deliveryAddressResult = await ResolveDeliveryAddressAsync(request, cancellationToken);
+        if (deliveryAddressResult.IsFailure)
+        {
+            return Result<OrderResult>.Failure(deliveryAddressResult.Error);
+        }
+
+        var deliveryMethodResult = await ResolveDeliveryMethodAsync(
+            cart.SellerId.Value,
+            request.DeliveryMethodId,
+            deliveryAddressResult.Value,
+            cart.Subtotal,
+            cancellationToken);
+        if (deliveryMethodResult.IsFailure)
+        {
+            return Result<OrderResult>.Failure(deliveryMethodResult.Error);
+        }
+
         var existingOrder = await dbContext.Orders
             .Include(order => order.Items)
             .Include(order => order.StatusHistory)
@@ -43,17 +72,27 @@ public sealed class EfOrderCreationService(
                 cancellationToken);
         if (existingOrder is not null)
         {
+            var changed = false;
+            if (existingOrder.DeliveryAddress is null)
+            {
+                existingOrder.SetDeliveryAddress(deliveryAddressResult.Value);
+                changed = true;
+            }
+
+            if (existingOrder.DeliveryMethodId is null)
+            {
+                existingOrder.SetDeliveryMethod(
+                    deliveryMethodResult.Value.DeliveryMethod,
+                    deliveryMethodResult.Value.ShippingAmount);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
+
             return Result<OrderResult>.Success(Map(existingOrder));
-        }
-
-        if (cart.Items.Count == 0)
-        {
-            return Validation("cart", "Cart must contain at least one item before an order can be created.");
-        }
-
-        if (!cart.SellerId.HasValue)
-        {
-            return Validation("cart", "Cart must be associated with a seller before an order can be created.");
         }
 
         var reservationResult = await inventoryReservationService.ReserveCartAsync(
@@ -73,9 +112,13 @@ public sealed class EfOrderCreationService(
             cart.SellerId.Value,
             cart.Id,
             request.StartedAtUtc,
-            request.ShippingAmount,
+            deliveryMethodResult.Value.ShippingAmount,
             request.PlatformFeeAmount,
-            request.DiscountAmount);
+            request.DiscountAmount,
+            deliveryAddressResult.Value);
+        order.SetDeliveryMethod(
+            deliveryMethodResult.Value.DeliveryMethod,
+            deliveryMethodResult.Value.ShippingAmount);
 
         foreach (var item in cart.Items.OrderBy(item => item.CreatedAtUtc))
         {
@@ -142,6 +185,42 @@ public sealed class EfOrderCreationService(
             failures.Add(new ValidationFailure("discountAmount", "Discount amount cannot be negative."));
         }
 
+        if (request.DeliveryAddressId.HasValue && request.DeliveryAddressId.Value == Guid.Empty)
+        {
+            failures.Add(new ValidationFailure("deliveryAddressId", "Delivery address id cannot be empty."));
+        }
+
+        if (request.DeliveryAddressId.HasValue && request.DeliveryAddress is not null)
+        {
+            failures.Add(new ValidationFailure("deliveryAddress", "Provide either a saved delivery address id or an inline delivery address, not both."));
+        }
+
+        if (!request.DeliveryAddressId.HasValue && request.DeliveryAddress is null)
+        {
+            failures.Add(new ValidationFailure("deliveryAddress", "A delivery address is required."));
+        }
+
+        if (request.DeliveryAddress is not null)
+        {
+            try
+            {
+                _ = ToDeliveryAddress(request.BuyerId, request.DeliveryAddress);
+            }
+            catch (ArgumentException exception)
+            {
+                failures.Add(new ValidationFailure(ToCamelCase(exception.ParamName ?? "deliveryAddress"), exception.Message));
+            }
+        }
+
+        if (!request.DeliveryMethodId.HasValue)
+        {
+            failures.Add(new ValidationFailure("deliveryMethodId", "A delivery method is required."));
+        }
+        else if (request.DeliveryMethodId.Value == Guid.Empty)
+        {
+            failures.Add(new ValidationFailure("deliveryMethodId", "Delivery method id cannot be empty."));
+        }
+
         return failures;
     }
 
@@ -176,6 +255,7 @@ public sealed class EfOrderCreationService(
             order.PlatformFeeAmount,
             order.DiscountAmount,
             order.TotalAmount,
+            MapDeliveryAddress(order.DeliveryAddress),
             order.StatusHistory
                 .OrderBy(history => history.ChangedAtUtc)
                 .Select(history => new OrderStatusHistoryResult(
@@ -206,5 +286,136 @@ public sealed class EfOrderCreationService(
                             shipmentEvent.TrackingNumber,
                             shipmentEvent.OccurredAtUtc))
                         .ToArray()))
-                .ToArray());
+                .ToArray(),
+            order.DeliveryMethodId,
+            order.DeliveryMethodName,
+            order.DeliveryMethodType,
+            order.DeliveryEstimatedMinDays,
+            order.DeliveryEstimatedMaxDays);
+
+    private async Task<Result<ResolvedDeliveryMethod>> ResolveDeliveryMethodAsync(
+        Guid sellerId,
+        Guid? deliveryMethodId,
+        OrderDeliveryAddress deliveryAddress,
+        decimal cartSubtotal,
+        CancellationToken cancellationToken)
+    {
+        if (!deliveryMethodId.HasValue)
+        {
+            return Result<ResolvedDeliveryMethod>.Failure(Error.Validation([
+                new ValidationFailure("deliveryMethodId", "A delivery method is required.")
+            ]));
+        }
+
+        var deliveryMethod = await dbContext.SellerDeliveryMethods
+            .SingleOrDefaultAsync(
+                method => method.Id == deliveryMethodId.Value && method.SellerId == sellerId,
+                cancellationToken);
+        if (deliveryMethod is null)
+        {
+            return Result<ResolvedDeliveryMethod>.Failure(
+                Error.NotFound("Orders.DeliveryMethodNotFound", "Delivery method was not found."));
+        }
+
+        if (!deliveryMethod.IsActive)
+        {
+            return Result<ResolvedDeliveryMethod>.Failure(Error.Validation([
+                new ValidationFailure("deliveryMethodId", "Delivery method is not active.")
+            ]));
+        }
+
+        if (!deliveryMethod.MatchesAddress(deliveryAddress.CountryCode, deliveryAddress.Province))
+        {
+            return Result<ResolvedDeliveryMethod>.Failure(Error.Validation([
+                new ValidationFailure("deliveryMethodId", "Delivery method does not serve the selected delivery address.")
+            ]));
+        }
+
+        return Result<ResolvedDeliveryMethod>.Success(new ResolvedDeliveryMethod(
+            deliveryMethod,
+            deliveryMethod.CalculateShippingAmount(cartSubtotal)));
+    }
+
+    private async Task<Result<OrderDeliveryAddress>> ResolveDeliveryAddressAsync(
+        CreateOrderFromCartRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.DeliveryAddressId.HasValue)
+        {
+            var saved = await dbContext.BuyerDeliveryAddresses
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    address => address.Id == request.DeliveryAddressId.Value
+                        && address.BuyerId == request.BuyerId,
+                    cancellationToken);
+
+            return saved is null
+                ? Result<OrderDeliveryAddress>.Failure(
+                    Error.NotFound("Orders.DeliveryAddressNotFound", "Delivery address was not found."))
+                : Result<OrderDeliveryAddress>.Success(ToDeliveryAddress(saved));
+        }
+
+        return request.DeliveryAddress is null
+            ? Result<OrderDeliveryAddress>.Failure(Error.Validation([
+                new ValidationFailure("deliveryAddress", "A delivery address is required.")
+            ]))
+            : Result<OrderDeliveryAddress>.Success(ToDeliveryAddress(request.BuyerId, request.DeliveryAddress));
+    }
+
+    private static OrderDeliveryAddress ToDeliveryAddress(BuyerDeliveryAddress address) =>
+        new(
+            address.RecipientName,
+            address.PhoneNumber,
+            address.AddressLine1,
+            address.AddressLine2,
+            address.Suburb,
+            address.City,
+            address.Province,
+            address.PostalCode,
+            address.CountryCode,
+            address.DeliveryInstructions);
+
+    private static OrderDeliveryAddress ToDeliveryAddress(
+        Guid buyerId,
+        OrderDeliveryAddressRequest request)
+    {
+        var address = new BuyerDeliveryAddress(
+            buyerId,
+            "Checkout",
+            request.RecipientName,
+            request.PhoneNumber,
+            request.AddressLine1,
+            request.AddressLine2,
+            request.Suburb,
+            request.City,
+            request.Province,
+            request.PostalCode,
+            request.CountryCode,
+            isDefault: false,
+            request.DeliveryInstructions);
+
+        return ToDeliveryAddress(address);
+    }
+
+    private static OrderDeliveryAddressResult? MapDeliveryAddress(OrderDeliveryAddress? address) =>
+        address is null
+            ? null
+            : new OrderDeliveryAddressResult(
+                address.RecipientName,
+                address.PhoneNumber,
+                address.AddressLine1,
+                address.AddressLine2,
+                address.Suburb,
+                address.City,
+                address.Province,
+                address.PostalCode,
+                address.CountryCode,
+                address.DeliveryInstructions);
+
+    private static string ToCamelCase(string value) =>
+        string.IsNullOrEmpty(value) ? value : char.ToLowerInvariant(value[0]) + value[1..];
+
+    private sealed record ResolvedDeliveryMethod(
+        SellerDeliveryMethod DeliveryMethod,
+        decimal ShippingAmount);
 }

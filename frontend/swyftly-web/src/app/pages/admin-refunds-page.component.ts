@@ -106,6 +106,23 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                 </mat-form-field>
                 <button mat-flat-button type="submit" [disabled]="!canApprove() || isActing()">Approve refund</button>
               </form>
+
+              @if (selectedRefund()!.status === 'Processing') {
+                <app-ui-alert tone="warning">
+                  PayFast refunds are completed in the provider dashboard for now. Confirm only after the dashboard refund is complete and a provider reference is available.
+                </app-ui-alert>
+                <form [formGroup]="manualConfirmForm" (ngSubmit)="confirmManualProviderRefund()" class="admin-finance-form" novalidate>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Provider refund reference</mat-label>
+                    <input matInput formControlName="providerRefundReference" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Confirmation reason</mat-label>
+                    <textarea matInput rows="3" formControlName="reason"></textarea>
+                  </mat-form-field>
+                  <button mat-flat-button type="submit" [disabled]="!canApprove() || isActing()">Confirm manual provider refund</button>
+                </form>
+              }
             }
             @if (!canOperate() || !canApprove()) {
               <p class="admin-finance-note">Read-only users can review refund records. The backend remains authoritative for finance policy and dual-control decisions.</p>
@@ -182,6 +199,11 @@ export class AdminRefundsPageComponent implements OnInit {
     reason: ['', [Validators.required]]
   });
 
+  protected readonly manualConfirmForm = this.formBuilder.group({
+    providerRefundReference: ['', [Validators.required]],
+    reason: ['', [Validators.required]]
+  });
+
   protected readonly approveForm = this.formBuilder.group({
     reason: ['', [Validators.required]]
   });
@@ -193,6 +215,7 @@ export class AdminRefundsPageComponent implements OnInit {
   protected selectRefund(refund: AdminRefundResponse): void {
     this.selectedRefund.set(refund);
     this.approveForm.reset({ reason: '' });
+    this.manualConfirmForm.reset({ providerRefundReference: '', reason: '' });
   }
 
   protected async createRefund(): Promise<void> {
@@ -262,6 +285,35 @@ export class AdminRefundsPageComponent implements OnInit {
       this.selectedRefund.set(updated);
       this.approveForm.reset({ reason: '' });
       this.successMessage.set('Refund approved.');
+    } catch (error) {
+      this.errorMessage.set(getApiErrorMessage(error));
+    } finally {
+      this.isActing.set(false);
+    }
+  }
+
+  protected async confirmManualProviderRefund(): Promise<void> {
+    if (!this.canApprove()) {
+      this.errorMessage.set('You can review refunds, but you do not have finance approve permission.');
+      return;
+    }
+
+    const refund = this.selectedRefund();
+    if (!refund || this.manualConfirmForm.invalid || this.isActing()) {
+      this.manualConfirmForm.markAllAsTouched();
+      return;
+    }
+
+    this.isActing.set(true);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    try {
+      const updated = await this.refundService.confirmManualProviderRefund(refund.refundId, this.manualConfirmForm.getRawValue());
+      this.refunds.set(this.refunds().map(item => item.refundId === updated.refundId ? updated : item));
+      this.selectedRefund.set(updated);
+      this.manualConfirmForm.reset({ providerRefundReference: '', reason: '' });
+      this.successMessage.set('Manual provider refund confirmed.');
     } catch (error) {
       this.errorMessage.set(getApiErrorMessage(error));
     } finally {

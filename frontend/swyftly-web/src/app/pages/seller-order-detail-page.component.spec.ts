@@ -13,9 +13,10 @@ describe('SellerOrderDetailPageComponent', () => {
   beforeEach(async () => {
     orderService = jasmine.createSpyObj<SellerOrderService>(
       'SellerOrderService',
-      ['getOrder', 'markProcessing', 'addTracking', 'markShipped', 'markDelivered']);
+      ['getOrder', 'markProcessing', 'addTracking', 'markReadyToShip', 'markShipped', 'markDelivered', 'markDeliveryFailed', 'markReturnedToSender']);
     orderService.getOrder.and.resolveTo(createOrder());
     orderService.markProcessing.and.resolveTo(createOrder({ status: 'Processing' }));
+    orderService.markReadyToShip.and.resolveTo(createOrder({ status: 'ReadyToShip' }));
     orderService.addTracking.and.resolveTo(createOrder({
       shipments: [{
         shipmentId: 'shipment-id',
@@ -30,6 +31,26 @@ describe('SellerOrderDetailPageComponent', () => {
     }));
     orderService.markShipped.and.resolveTo(createOrder({ status: 'Shipped' }));
     orderService.markDelivered.and.resolveTo(createOrder({ status: 'Delivered' }));
+    orderService.markDeliveryFailed.and.resolveTo(createOrder({ status: 'Shipped', shipments: [{
+      shipmentId: 'shipment-id',
+      status: 'DeliveryFailed',
+      carrierName: 'Courier',
+      trackingNumber: 'TRACK-1',
+      trackingUrl: null,
+      shippedAtUtc: '2026-05-19T10:00:00Z',
+      deliveredAtUtc: null,
+      events: []
+    }] }));
+    orderService.markReturnedToSender.and.resolveTo(createOrder({ status: 'Shipped', shipments: [{
+      shipmentId: 'shipment-id',
+      status: 'ReturnedToSender',
+      carrierName: 'Courier',
+      trackingNumber: 'TRACK-1',
+      trackingUrl: null,
+      shippedAtUtc: '2026-05-19T10:00:00Z',
+      deliveredAtUtc: null,
+      events: []
+    }] }));
 
     await TestBed.configureTestingModule({
       imports: [SellerOrderDetailPageComponent],
@@ -87,5 +108,40 @@ describe('SellerOrderDetailPageComponent', () => {
     await fixture.whenStable();
 
     expect(orderService.markDelivered).toHaveBeenCalledWith('order-id');
+  });
+
+  it('records delivery exceptions with reason payloads', async () => {
+    orderService.getOrder.and.resolveTo(createOrder({
+      status: 'Shipped',
+      shipments: [{
+        shipmentId: 'shipment-id',
+        status: 'InTransit',
+        carrierName: 'Courier',
+        trackingNumber: 'TRACK-1',
+        trackingUrl: null,
+        shippedAtUtc: '2026-05-19T10:00:00Z',
+        deliveredAtUtc: null,
+        events: []
+      }]
+    }));
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const reason = compiled.querySelector('textarea[formControlName="reason"]') as HTMLTextAreaElement;
+    reason.value = 'Courier could not reach the recipient.';
+    reason.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const failedButton = Array.from(compiled.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('Mark delivery failed'));
+    failedButton?.dispatchEvent(new Event('click'));
+    await fixture.whenStable();
+
+    expect(orderService.markDeliveryFailed).toHaveBeenCalledWith('order-id', {
+      reason: 'Courier could not reach the recipient.'
+    });
   });
 });

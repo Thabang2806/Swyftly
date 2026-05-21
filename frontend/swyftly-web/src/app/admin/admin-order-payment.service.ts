@@ -7,7 +7,9 @@ import {
   AdminOrderSummaryResponse,
   AdminPaymentDetailResponse,
   AdminPaymentReconciliationCandidateResponse,
-  AdminPaymentSummaryResponse
+  AdminPaymentReconciliationReviewResponse,
+  AdminPaymentSummaryResponse,
+  CreatePaymentReconciliationReviewRequest
 } from './admin-order-payment.models';
 
 @Injectable({ providedIn: 'root' })
@@ -38,10 +40,23 @@ export class AdminOrderPaymentService {
     return firstValueFrom(this.http.get<AdminPaymentDetailResponse>(`${this.baseUrl}/payments/${paymentId}`));
   }
 
-  getPaymentReconciliationCandidates(olderThanMinutes = 30): Promise<AdminPaymentReconciliationCandidateResponse[]> {
-    const params = new HttpParams().set('olderThanMinutes', olderThanMinutes.toString());
+  getPaymentReconciliationCandidates(olderThanMinutes = 30, includeSnoozed = false): Promise<AdminPaymentReconciliationCandidateResponse[]> {
+    const params = new HttpParams()
+      .set('olderThanMinutes', olderThanMinutes.toString())
+      .set('includeSnoozed', includeSnoozed.toString());
     return firstValueFrom(
       this.http.get<AdminPaymentReconciliationCandidateResponse[]>(`${this.baseUrl}/payments/reconciliation-candidates`, { params })
+    );
+  }
+
+  createPaymentReconciliationReview(
+    paymentId: string,
+    request: CreatePaymentReconciliationReviewRequest
+  ): Promise<AdminPaymentReconciliationReviewResponse> {
+    return firstValueFrom(
+      this.http.post<AdminPaymentReconciliationReviewResponse>(
+        `${this.baseUrl}/payments/${paymentId}/reconciliation-reviews`,
+        request)
     );
   }
 

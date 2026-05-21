@@ -15,7 +15,8 @@ public sealed class Notification : Entity
         string message,
         string? relatedEntityType,
         Guid? relatedEntityId,
-        DateTimeOffset createdAtUtc)
+        DateTimeOffset createdAtUtc,
+        bool isInAppVisible = true)
     {
         if (recipientUserId == Guid.Empty)
         {
@@ -34,6 +35,7 @@ public sealed class Notification : Entity
         RelatedEntityType = Optional(relatedEntityType, maxLength: 120);
         RelatedEntityId = relatedEntityId;
         CreatedAtUtc = createdAtUtc;
+        IsInAppVisible = isInAppVisible;
     }
 
     public Guid RecipientUserId { get; private set; }
@@ -51,6 +53,8 @@ public sealed class Notification : Entity
     public DateTimeOffset? ReadAtUtc { get; private set; }
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
+
+    public bool IsInAppVisible { get; private set; } = true;
 
     public bool IsRead => ReadAtUtc.HasValue;
 

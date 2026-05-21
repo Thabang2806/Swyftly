@@ -5,15 +5,16 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { getApiErrorMessage } from '../auth/api-error';
 import { AuthService } from '../auth/auth.service';
 import { PublicProductReviewResponse, PublicProductReviewSummaryResponse } from '../buyer/buyer-engagement.models';
 import { BuyerEngagementService } from '../buyer/buyer-engagement.service';
+import { BuyerWishlistStateService } from '../buyer/buyer-wishlist-state.service';
 import { CartService } from '../cart/cart.service';
 import { PublicProductDetailResponse, PublicProductImageResponse } from '../shop/public-catalog.models';
 import { PublicCatalogService } from '../shop/public-catalog.service';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
+import { ProductVisualFallbackComponent, ProductVisualTone } from '../shared/ui/product-visual-fallback.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
 import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 
@@ -27,7 +28,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule,
+    ProductVisualFallbackComponent,
     RouterLink,
     StatusBadgeComponent,
     UiAlertComponent
@@ -39,23 +40,10 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
       @if (isLoading()) {
         <div class="route-card">Loading product...</div>
       } @else if (productDetail()) {
-        <div class="product-detail-layout">
-          <div class="product-gallery-stack">
-            <div class="product-gallery">
-              @if (selectedImage()) {
-                <img [src]="selectedImage()!.url" [alt]="selectedImage()!.altText ?? productDetail()?.product?.title ?? 'Product image'">
-              } @else if (primaryImageUrl()) {
-                <img [src]="primaryImageUrl()!" [alt]="productDetail()?.product?.primaryImageAltText ?? productDetail()?.product?.title ?? 'Product image'">
-              } @else {
-                <div class="product-gallery-placeholder">
-                  <span>{{ productDetail()?.product?.categoryPath ?? 'Swyftly product' }}</span>
-                  <strong>{{ productDetail()?.product?.title ?? 'Product' }}</strong>
-                </div>
-              }
-            </div>
-
+        <div class="product-detail-layout hf-product-detail-layout">
+          <div class="product-gallery-shell">
             @if (galleryImages().length > 1) {
-              <div class="product-thumbnail-row" aria-label="Product images">
+              <div class="product-thumbnail-row product-thumbnail-rail" aria-label="Product images">
                 @for (image of galleryImages(); track image.imageId) {
                   <button
                     type="button"
@@ -67,9 +55,32 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                 }
               </div>
             }
+
+            <div class="product-gallery product-main-gallery">
+              @if (selectedImage()) {
+                <img [src]="selectedImage()!.url" [alt]="selectedImage()!.altText ?? productDetail()?.product?.title ?? 'Product image'">
+              } @else if (primaryImageUrl()) {
+                <img [src]="primaryImageUrl()!" [alt]="productDetail()?.product?.primaryImageAltText ?? productDetail()?.product?.title ?? 'Product image'">
+              } @else {
+                <div class="product-gallery-placeholder">
+                  <app-product-visual-fallback
+                    [label]="productDetail()?.product?.categoryPath ?? 'Swyftly product'"
+                    [title]="productDetail()?.product?.title ?? 'Product'"
+                    [tone]="visualTone()"
+                  />
+                </div>
+              }
+            </div>
           </div>
 
-          <div class="product-detail-info">
+          <div class="product-detail-info product-purchase-panel">
+            <div class="product-detail-topline">
+              <app-status-badge label="Published listing" tone="success" />
+              @if (reviewSummary() && reviewSummary()!.reviewCount > 0) {
+                <span>{{ reviewSummary()!.averageRating }}/5 from {{ reviewSummary()!.reviewCount }} review{{ reviewSummary()!.reviewCount === 1 ? '' : 's' }}</span>
+              }
+            </div>
+
             <app-status-badge [label]="productDetail()?.product?.categoryPath ?? 'Swyftly product'" tone="accent" />
             <h1>{{ productDetail()?.product?.title ?? 'Untitled product' }}</h1>
 
@@ -88,6 +99,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
               <strong>{{ productDetail()?.product?.priceMin | currency:'ZAR':'symbol-narrow' }}</strong>
               @if (productDetail()?.product?.compareAtPriceMin) {
                 <span>{{ productDetail()?.product?.compareAtPriceMin | currency:'ZAR':'symbol-narrow' }}</span>
+                <app-status-badge label="Compare price" tone="warning" />
               }
             </div>
 
@@ -128,30 +140,58 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
               <app-ui-alert tone="error">{{ wishlistError() }}</app-ui-alert>
             }
 
-            <div class="product-detail-actions product-purchase-actions">
-              <mat-form-field appearance="outline">
-                <mat-label>Variant</mat-label>
-                <mat-select [(ngModel)]="selectedVariantId">
-                  @for (variant of productDetail()?.variants; track variant.variantId) {
-                    <mat-option [value]="variant.variantId" [disabled]="!variant.inStock">
-                      {{ variant.size }} / {{ variant.colour }} - {{ variant.price | currency:'ZAR':'symbol-narrow' }} - {{ variant.inStock ? 'Available' : 'Out of stock' }}
-                    </mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
+            <section class="product-purchase-section">
+              <div class="product-section-heading product-section-heading--compact">
+                <span>
+                  <h2>Choose a variant</h2>
+                  <p>{{ selectedVariant() ? 'Selected: ' + selectedVariant()!.size + ' / ' + selectedVariant()!.colour : 'Select an available size and colour.' }}</p>
+                </span>
+              </div>
 
+              <div class="product-variant-picker" aria-label="Product variants">
+                @for (variant of productDetail()?.variants; track variant.variantId) {
+                  <button
+                    type="button"
+                    class="variant-option"
+                    [class.active]="selectedVariantId() === variant.variantId"
+                    [class.out-of-stock]="!variant.inStock"
+                    [disabled]="!variant.inStock"
+                    (click)="selectVariant(variant.variantId)"
+                  >
+                    <strong>{{ variant.size }}</strong>
+                    <span>{{ variant.colour }}</span>
+                    <small>{{ variant.price | currency:'ZAR':'symbol-narrow' }}</small>
+                  </button>
+                }
+              </div>
+            </section>
+
+            <div class="product-detail-actions product-purchase-actions">
               <mat-form-field appearance="outline">
                 <mat-label>Qty</mat-label>
                 <input matInput type="number" min="1" [(ngModel)]="quantity">
               </mat-form-field>
 
-              <button mat-flat-button type="button" [disabled]="isAddingToCart() || !selectedVariantId" (click)="addToCart()">
+              <button mat-flat-button type="button" [disabled]="isAddingToCart() || !selectedVariantId()" (click)="addToCart()">
                 {{ isAddingToCart() ? 'Adding...' : 'Add to cart' }}
               </button>
-              <button mat-stroked-button type="button" [disabled]="isSavingWishlist() || isWishlisted()" (click)="saveProductToWishlist()">
-                {{ isSavingWishlist() ? 'Saving...' : isWishlisted() ? 'Saved to wishlist' : 'Save to wishlist' }}
+              <button mat-stroked-button type="button" [disabled]="isSavingWishlist()" (click)="toggleWishlist()">
+                {{ isSavingWishlist() ? 'Saving...' : isWishlisted() ? 'Remove from wishlist' : 'Save to wishlist' }}
               </button>
             </div>
+
+            <section class="complete-look-panel">
+              <h2>Complete the look</h2>
+              <p>Styling prompts only. Add matching products from their own product pages.</p>
+              <div class="complete-look-grid">
+                @for (item of completeLookItems; track item.title) {
+                  <span>
+                    <strong>{{ item.title }}</strong>
+                    <small>{{ item.detail }}</small>
+                  </span>
+                }
+              </div>
+            </section>
 
             <section>
               <h2>Variant details</h2>
@@ -253,6 +293,7 @@ export class ProductDetailPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
   private readonly engagementService = inject(BuyerEngagementService);
+  private readonly wishlistState = inject(BuyerWishlistStateService);
   private readonly cartService = inject(CartService);
   private readonly publicCatalogService = inject(PublicCatalogService);
   private readonly router = inject(Router);
@@ -271,8 +312,13 @@ export class ProductDetailPageComponent implements OnInit {
   protected readonly reviews = signal<PublicProductReviewResponse[]>([]);
   protected readonly reviewsError = signal<string | null>(null);
   protected readonly selectedImageId = signal<string | null>(null);
-  protected selectedVariantId = '';
+  protected readonly selectedVariantId = signal('');
   protected quantity = 1;
+  protected readonly completeLookItems = [
+    { title: 'Jewellery finish', detail: 'Search hoops, rings, and necklaces' },
+    { title: 'Bag pairing', detail: 'Search clutches and shoulder bags' },
+    { title: 'Shoe styling', detail: 'Search heels, sandals, and sneakers' }
+  ];
   protected readonly galleryImages = computed(() => {
     const images = this.productDetail()?.images ?? [];
     return [...images].sort((left, right) => Number(right.isPrimary) - Number(left.isPrimary));
@@ -287,6 +333,8 @@ export class ProductDetailPageComponent implements OnInit {
     null);
   protected readonly availableVariantCount = computed(() =>
     this.productDetail()?.variants.filter(variant => variant.inStock).length ?? 0);
+  protected readonly selectedVariant = computed(() =>
+    this.productDetail()?.variants.find(variant => variant.variantId === this.selectedVariantId()) ?? null);
   protected readonly ratingCountsDescending = computed(() =>
     [...(this.reviewSummary()?.ratingCounts ?? [])].sort((left, right) => right.rating - left.rating));
   protected readonly attributeEntries = computed(() => {
@@ -313,7 +361,8 @@ export class ProductDetailPageComponent implements OnInit {
       this.productDetail.set(detail);
       const primaryImage = detail.images.find(image => image.isPrimary) ?? detail.images[0] ?? null;
       this.selectedImageId.set(primaryImage?.imageId ?? null);
-      this.selectedVariantId = detail.variants.find(variant => variant.inStock)?.variantId ?? '';
+      this.selectedVariantId.set(detail.variants.find(variant => variant.inStock)?.variantId ?? '');
+      await this.initializeWishlistState(detail.product.productId);
       await this.loadReviews(slug);
     } catch (error) {
       this.errorMessage.set(getApiErrorMessage(error));
@@ -325,6 +374,45 @@ export class ProductDetailPageComponent implements OnInit {
 
   protected selectImage(imageId: string): void {
     this.selectedImageId.set(imageId);
+  }
+
+  protected selectVariant(variantId: string): void {
+    const variant = this.productDetail()?.variants.find(item => item.variantId === variantId);
+    if (variant?.inStock) {
+      this.selectedVariantId.set(variantId);
+    }
+  }
+
+  protected visualTone(): ProductVisualTone {
+    const product = this.productDetail()?.product;
+    const text = [
+      product?.title,
+      product?.categoryPath,
+      product?.shortDescription,
+      ...(product?.tags ?? [])
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    if (/(jewel|ring|earring|necklace|bracelet|gold|silver)/.test(text)) {
+      return 'jewel';
+    }
+
+    if (/(beauty|skin|makeup|lip|hair|fragrance|serum)/.test(text)) {
+      return 'beauty';
+    }
+
+    if (/(bag|tote|clutch|purse|wallet)/.test(text)) {
+      return 'bag';
+    }
+
+    if (/(shoe|heel|sneaker|boot|sandal)/.test(text)) {
+      return 'shoe';
+    }
+
+    if (/(dress|coat|shirt|denim|fashion|clothing|linen|silk)/.test(text)) {
+      return 'dress';
+    }
+
+    return 'neutral';
   }
 
   protected async addToCart(): Promise<void> {
@@ -339,7 +427,7 @@ export class ProductDetailPageComponent implements OnInit {
       return;
     }
 
-    if (!this.selectedVariantId || this.quantity <= 0) {
+    if (!this.selectedVariantId() || this.quantity <= 0) {
       this.addToCartError.set('Choose an available variant and quantity.');
       return;
     }
@@ -347,7 +435,7 @@ export class ProductDetailPageComponent implements OnInit {
     this.isAddingToCart.set(true);
     try {
       await this.cartService.addItem({
-        productVariantId: this.selectedVariantId,
+        productVariantId: this.selectedVariantId(),
         quantity: this.quantity
       });
       this.addToCartMessage.set('Added to cart.');
@@ -358,7 +446,7 @@ export class ProductDetailPageComponent implements OnInit {
     }
   }
 
-  protected async saveProductToWishlist(): Promise<void> {
+  protected async toggleWishlist(): Promise<void> {
     this.wishlistMessage.set(null);
     this.wishlistError.set(null);
 
@@ -371,15 +459,21 @@ export class ProductDetailPageComponent implements OnInit {
     }
 
     const productId = this.productDetail()?.product.productId;
-    if (!productId || this.isSavingWishlist() || this.isWishlisted()) {
+    if (!productId || this.isSavingWishlist()) {
       return;
     }
 
     this.isSavingWishlist.set(true);
     try {
-      await this.engagementService.addWishlistItem(productId);
-      this.isWishlisted.set(true);
-      this.wishlistMessage.set('Saved to wishlist.');
+      if (this.isWishlisted()) {
+        await this.wishlistState.remove(productId);
+        this.isWishlisted.set(false);
+        this.wishlistMessage.set('Removed from wishlist.');
+      } else {
+        await this.wishlistState.save(productId);
+        this.isWishlisted.set(true);
+        this.wishlistMessage.set('Saved to wishlist.');
+      }
     } catch (error) {
       this.wishlistError.set(getApiErrorMessage(error));
     } finally {
@@ -406,6 +500,20 @@ export class ProductDetailPageComponent implements OnInit {
       this.reviewsError.set(getApiErrorMessage(error));
       this.reviewSummary.set(null);
       this.reviews.set([]);
+    }
+  }
+
+  private async initializeWishlistState(productId: string): Promise<void> {
+    try {
+      await this.authService.initialize();
+      if (!this.authService.hasAnyRole(['Buyer'])) {
+        return;
+      }
+
+      await this.wishlistState.load();
+      this.isWishlisted.set(this.wishlistState.isSaved(productId));
+    } catch {
+      this.isWishlisted.set(false);
     }
   }
 

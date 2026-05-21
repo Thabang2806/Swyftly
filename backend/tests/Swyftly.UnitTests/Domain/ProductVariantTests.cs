@@ -81,4 +81,41 @@ public class ProductVariantTests
             100,
             10));
     }
+
+    [Fact]
+    public void ProductVariant_AdjustInventory_UpdatesStockAndStatusWithoutChangingReservations()
+    {
+        var variant = new ProductVariant(
+            Guid.NewGuid(),
+            "SKU-1",
+            "M",
+            "Black",
+            100,
+            null,
+            10);
+
+        variant.Reserve(3);
+        variant.AdjustInventory(5, ProductVariantStatus.OutOfStock);
+
+        Assert.Equal(5, variant.StockQuantity);
+        Assert.Equal(3, variant.ReservedQuantity);
+        Assert.Equal(2, variant.AvailableQuantity);
+        Assert.Equal(ProductVariantStatus.OutOfStock, variant.Status);
+    }
+
+    [Fact]
+    public void ProductVariant_AdjustInventory_RejectsStockBelowReservedQuantity()
+    {
+        var variant = new ProductVariant(
+            Guid.NewGuid(),
+            "SKU-1",
+            "M",
+            "Black",
+            100,
+            null,
+            10,
+            reservedQuantity: 4);
+
+        Assert.Throws<InvalidOperationException>(() => variant.AdjustInventory(3, ProductVariantStatus.Active));
+    }
 }

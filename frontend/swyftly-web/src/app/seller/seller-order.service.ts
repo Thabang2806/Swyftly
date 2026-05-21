@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { AddSellerOrderTrackingRequest, SellerOrderResult } from './seller-order.models';
+import { AddSellerOrderTrackingRequest, SellerFulfillmentExceptionRequest, SellerOrderResult } from './seller-order.models';
 
 @Injectable({ providedIn: 'root' })
 export class SellerOrderService {
@@ -25,11 +25,23 @@ export class SellerOrderService {
     return firstValueFrom(this.http.post<SellerOrderResult>(`${this.baseUrl}/${orderId}/tracking`, request));
   }
 
+  markReadyToShip(orderId: string): Promise<SellerOrderResult> {
+    return firstValueFrom(this.http.post<SellerOrderResult>(`${this.baseUrl}/${orderId}/mark-ready-to-ship`, {}));
+  }
+
   markShipped(orderId: string): Promise<SellerOrderResult> {
     return firstValueFrom(this.http.post<SellerOrderResult>(`${this.baseUrl}/${orderId}/mark-shipped`, {}));
   }
 
   markDelivered(orderId: string): Promise<SellerOrderResult> {
     return firstValueFrom(this.http.post<SellerOrderResult>(`${this.baseUrl}/${orderId}/mark-delivered`, {}));
+  }
+
+  markDeliveryFailed(orderId: string, request: SellerFulfillmentExceptionRequest): Promise<SellerOrderResult> {
+    return firstValueFrom(this.http.post<SellerOrderResult>(`${this.baseUrl}/${orderId}/mark-delivery-failed`, request));
+  }
+
+  markReturnedToSender(orderId: string, request: SellerFulfillmentExceptionRequest): Promise<SellerOrderResult> {
+    return firstValueFrom(this.http.post<SellerOrderResult>(`${this.baseUrl}/${orderId}/mark-returned-to-sender`, request));
   }
 }

@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Swyftly.Api.Authentication;
 using Swyftly.Api.Carts;
+using Swyftly.Api.Sellers;
 using Swyftly.Application.Identity;
 using Swyftly.Domain.Catalog;
 using Swyftly.Domain.Sellers;
@@ -39,6 +40,8 @@ public class CartTests
         Assert.Equal(variantId, item.ProductVariantId);
         Assert.Equal(2, item.Quantity);
         Assert.Equal(499m, item.UnitPrice);
+        Assert.Equal("cotton-dress", item.ProductSlug);
+        Assert.Equal("https://example.test/cotton-dress.jpg", item.PrimaryImageUrl);
         Assert.Equal(998m, cart.Subtotal);
 
         using var getResponse = await client.GetAsync("/api/cart");
@@ -46,6 +49,134 @@ public class CartTests
         var savedCart = await ReadJsonAsync<CartResponse>(getResponse);
         Assert.Equal(cart.CartId, savedCart.CartId);
         Assert.Single(savedCart.Items);
+    }
+
+    [Fact]
+    public async Task Buyer_CanMoveCartItemToWishlist()
+    {
+        await using var factory = new CartTestFactory();
+        using var client = factory.CreateClient();
+        await AuthorizeBuyerAsync(client, "move-cart-buyer@example.test");
+        var variantId = await CreatePublishedProductAsync(factory, await CreateSellerAsync(factory, "Seller One", "seller-one"), "Cotton Dress", 499m);
+        using var addResponse = await client.PostAsJsonAsync("/api/cart/items", new AddCartItemRequest(variantId, 1));
+        addResponse.EnsureSuccessStatusCode();
+        var cart = await ReadJsonAsync<CartResponse>(addResponse);
+        var item = Assert.Single(cart.Items);
+
+        using var moveResponse = await client.PostAsync($"/api/cart/items/{item.CartItemId}/move-to-wishlist", null);
+
+        moveResponse.EnsureSuccessStatusCode();
+        var updatedCart = await ReadJsonAsync<CartResponse>(moveResponse);
+        Assert.Empty(updatedCart.Items);
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SwyftlyDbContext>();
+        Assert.True(await dbContext.BuyerWishlistItems.AnyAsync(wishlist => wishlist.ProductId == item.ProductId));
+    }
+
+    [Fact]
+    public async Task Buyer_CanGetShippingOptionsForCartAddress()
+    {
+        await using var factory = new CartTestFactory();
+        using var client = factory.CreateClient();
+        await AuthorizeBuyerAsync(client, "shipping-buyer@example.test");
+        var sellerId = await CreateSellerAsync(factory, "Seller One", "seller-one");
+        await CreateDeliveryMethodAsync(factory, sellerId, "Standard courier", SellerDeliveryMethodType.Standard, null, 75m, freeShippingThreshold: 1000m);
+        await CreateDeliveryMethodAsync(factory, sellerId, "Gauteng local courier", SellerDeliveryMethodType.LocalCourier, "Gauteng", 45m, freeShippingThreshold: null);
+        await CreateDeliveryMethodAsync(factory, sellerId, "Inactive express", SellerDeliveryMethodType.Express, "Gauteng", 120m, freeShippingThreshold: null, isActive: false);
+        var variantId = await CreatePublishedProductAsync(factory, sellerId, "Shipping Dress", 1200m);
+        using var addResponse = await client.PostAsJsonAsync("/api/cart/items", new AddCartItemRequest(variantId, 1));
+        addResponse.EnsureSuccessStatusCode();
+        var cart = await ReadJsonAsync<CartResponse>(addResponse);
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/cart/shipping-options",
+            new CartShippingOptionsRequest(cart.CartId, DeliveryAddress: TestDeliveryAddress()));
+
+        response.EnsureSuccessStatusCode();
+        var options = await ReadJsonAsync<CartShippingOptionsResponse>(response);
+        Assert.Equal(cart.CartId, options.CartId);
+        Assert.Equal(1200m, options.CartSubtotal);
+        Assert.Equal(2, options.Options.Count);
+        Assert.Contains(options.Options, option => option.Name == "Standard courier" && option.ShippingAmount == 0m && option.FreeShippingApplied);
+        Assert.Contains(options.Options, option => option.Name == "Gauteng local courier" && option.ShippingAmount == 45m);
+    }
+
+    [Fact]
+    public async Task Buyer_ShippingOptionsRejectsNoMatchingSellerMethod()
+    {
+        await using var factory = new CartTestFactory();
+        using var client = factory.CreateClient();
+        await AuthorizeBuyerAsync(client, "shipping-no-match-buyer@example.test");
+        var sellerId = await CreateSellerAsync(factory, "Seller One", "seller-one");
+        await CreateDeliveryMethodAsync(factory, sellerId, "Cape courier", SellerDeliveryMethodType.Standard, "Western Cape", 75m, freeShippingThreshold: null);
+        var variantId = await CreatePublishedProductAsync(factory, sellerId, "Shipping Guard Dress", 499m);
+        using var addResponse = await client.PostAsJsonAsync("/api/cart/items", new AddCartItemRequest(variantId, 1));
+        addResponse.EnsureSuccessStatusCode();
+        var cart = await ReadJsonAsync<CartResponse>(addResponse);
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/cart/shipping-options",
+            new CartShippingOptionsRequest(cart.CartId, DeliveryAddress: TestDeliveryAddress()));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Seller_CanManageDeliveryMethods()
+    {
+        await using var factory = new CartTestFactory();
+        using var client = factory.CreateClient();
+        await AuthorizeSellerAsync(client, "delivery-method-seller@example.test");
+
+        using var createResponse = await client.PostAsJsonAsync(
+            "/api/seller/delivery-methods",
+            new SellerDeliveryMethodRequest(
+                "Standard courier",
+                "Door-to-door delivery within South Africa.",
+                "Standard",
+                "ZA",
+                "Gauteng",
+                75m,
+                1000m,
+                2,
+                5,
+                10,
+                true));
+        createResponse.EnsureSuccessStatusCode();
+        var created = await ReadJsonAsync<SellerDeliveryMethodResponse>(createResponse);
+        Assert.Equal("Standard courier", created.Name);
+        Assert.True(created.IsActive);
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            $"/api/seller/delivery-methods/{created.DeliveryMethodId}",
+            new SellerDeliveryMethodRequest(
+                "Express courier",
+                "Faster door-to-door delivery.",
+                "Express",
+                "ZA",
+                null,
+                120m,
+                null,
+                1,
+                2,
+                5,
+                true));
+        updateResponse.EnsureSuccessStatusCode();
+        var updated = await ReadJsonAsync<SellerDeliveryMethodResponse>(updateResponse);
+        Assert.Equal("Express", updated.MethodType);
+        Assert.Null(updated.Province);
+
+        using var deactivateResponse = await client.PostAsync($"/api/seller/delivery-methods/{created.DeliveryMethodId}/deactivate", null);
+        deactivateResponse.EnsureSuccessStatusCode();
+        Assert.False((await ReadJsonAsync<SellerDeliveryMethodResponse>(deactivateResponse)).IsActive);
+
+        using var activateResponse = await client.PostAsync($"/api/seller/delivery-methods/{created.DeliveryMethodId}/activate", null);
+        activateResponse.EnsureSuccessStatusCode();
+        Assert.True((await ReadJsonAsync<SellerDeliveryMethodResponse>(activateResponse)).IsActive);
+
+        using var listResponse = await client.GetAsync("/api/seller/delivery-methods");
+        listResponse.EnsureSuccessStatusCode();
+        Assert.Single(await ReadJsonAsync<SellerDeliveryMethodResponse[]>(listResponse));
     }
 
     [Fact]
@@ -221,9 +352,60 @@ public class CartTests
 
         dbContext.Products.Add(product);
         dbContext.ProductVariants.Add(variant);
+        dbContext.ProductImages.Add(new ProductImage(
+            product.Id,
+            $"https://example.test/{product.Slug}.jpg",
+            $"products/{product.Id:N}/primary.jpg",
+            title,
+            0,
+            isPrimary: true,
+            DateTimeOffset.UtcNow));
         await dbContext.SaveChangesAsync();
         return variant.Id;
     }
+
+    private static async Task<Guid> CreateDeliveryMethodAsync(
+        CartTestFactory factory,
+        Guid sellerId,
+        string name,
+        SellerDeliveryMethodType methodType,
+        string? province,
+        decimal basePrice,
+        decimal? freeShippingThreshold,
+        bool isActive = true)
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SwyftlyDbContext>();
+        var method = new SellerDeliveryMethod(
+            sellerId,
+            name,
+            null,
+            methodType,
+            "ZA",
+            province,
+            basePrice,
+            freeShippingThreshold,
+            2,
+            5,
+            10,
+            isActive);
+        dbContext.SellerDeliveryMethods.Add(method);
+        await dbContext.SaveChangesAsync();
+        return method.Id;
+    }
+
+    private static CartShippingDeliveryAddressRequest TestDeliveryAddress() =>
+        new(
+            "Thabo Buyer",
+            "+27110000000",
+            "10 Market Street",
+            "Apartment 4",
+            "Rosebank",
+            "Johannesburg",
+            "Gauteng",
+            "2196",
+            "ZA",
+            "Leave with reception if needed.");
 
     private static async Task<T> ReadJsonAsync<T>(HttpResponseMessage response)
     {

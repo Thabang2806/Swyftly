@@ -33,6 +33,7 @@ export class BuyerWorkspaceNavComponent {
     { label: 'Wishlist', route: '/account/wishlist', exact: false },
     { label: 'Reviews', route: '/account/reviews', exact: false },
     { label: 'Notifications', route: '/account/notifications', exact: false },
+    { label: 'Settings', route: '/account/settings', exact: false },
     { label: 'Disputes', route: '/account/disputes', exact: false },
     { label: 'Support', route: '/account/support', exact: false }
   ];

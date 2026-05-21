@@ -1,14 +1,17 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using Swyftly.Api.Results;
 using Swyftly.Api.Security;
 using Swyftly.Application.Abstractions;
 using Swyftly.Application.Ai;
 using Swyftly.Application.Catalog;
 using Swyftly.Application.Identity;
+using Swyftly.Application.Media;
 using Swyftly.Domain.Ai;
 using Swyftly.Domain.Catalog;
+using Swyftly.Domain.Media;
 using Swyftly.Domain.Sellers;
 using Swyftly.Infrastructure.Persistence;
 using HttpResults = Microsoft.AspNetCore.Http.Results;
@@ -17,6 +20,8 @@ namespace Swyftly.Api.Sellers;
 
 public static class SellerProductEndpoints
 {
+    private const int MaxRevisionImages = 12;
+
     private static readonly HashSet<string> SupportedAiApplyFields = new(StringComparer.OrdinalIgnoreCase)
     {
         "title",
@@ -87,6 +92,22 @@ public static class SellerProductEndpoints
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        group.MapPost("/{id:guid}/images/upload", UploadImageAsync)
+            .WithName("UploadSellerProductImage")
+            .WithSummary("Uploads a local product image for a seller-owned editable product.")
+            .DisableAntiforgery()
+            .RequireRateLimiting(SwyftlyRateLimitPolicies.ProductWrite)
+            .Produces<SellerProductDetailResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPut("/{id:guid}/images/{imageId:guid}", UpdateImageAsync)
+            .WithName("UpdateSellerProductImage")
+            .WithSummary("Updates image alt text, sort order, and primary status on a seller-owned editable product.")
+            .Produces<SellerProductDetailResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         group.MapDelete("/{id:guid}/images/{imageId:guid}", DeleteImageAsync)
             .WithName("DeleteSellerProductImage")
             .WithSummary("Removes a product image from a seller-owned product draft.")
@@ -115,6 +136,57 @@ public static class SellerProductEndpoints
             .WithName("ApplySellerProductAiSuggestion")
             .WithSummary("Applies selected AI suggestion fields to a seller-owned product draft.")
             .Produces<SellerProductDetailResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapGet("/{id:guid}/revision", GetRevisionAsync)
+            .WithName("GetSellerProductListingRevision")
+            .WithSummary("Returns or creates the active seller listing revision for a published product.")
+            .Produces<SellerProductRevisionResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPut("/{id:guid}/revision", UpdateRevisionAsync)
+            .WithName("UpdateSellerProductListingRevision")
+            .WithSummary("Stages listing content changes for a published product revision.")
+            .Produces<SellerProductRevisionResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPost("/{id:guid}/revision/images/upload", UploadRevisionImageAsync)
+            .WithName("UploadSellerProductListingRevisionImage")
+            .WithSummary("Uploads an image into a published product listing revision.")
+            .DisableAntiforgery()
+            .RequireRateLimiting(SwyftlyRateLimitPolicies.ProductWrite)
+            .Produces<SellerProductRevisionResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPut("/{id:guid}/revision/images/{revisionImageId:guid}", UpdateRevisionImageAsync)
+            .WithName("UpdateSellerProductListingRevisionImage")
+            .WithSummary("Updates image metadata in a published product listing revision.")
+            .Produces<SellerProductRevisionResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapDelete("/{id:guid}/revision/images/{revisionImageId:guid}", DeleteRevisionImageAsync)
+            .WithName("DeleteSellerProductListingRevisionImage")
+            .WithSummary("Removes an image from a published product listing revision.")
+            .Produces<SellerProductRevisionResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPost("/{id:guid}/revision/submit-review", SubmitRevisionReviewAsync)
+            .WithName("SubmitSellerProductListingRevision")
+            .WithSummary("Submits a published product listing revision for admin review.")
+            .Produces<SellerProductRevisionResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPost("/{id:guid}/revision/cancel", CancelRevisionAsync)
+            .WithName("CancelSellerProductListingRevision")
+            .WithSummary("Cancels the active published product listing revision.")
+            .Produces<SellerProductRevisionResponse>(StatusCodes.Status200OK)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
@@ -410,13 +482,6 @@ public static class SellerProductEndpoints
             return Validation("product", "Seller can attach images only to draft or rejected products.");
         }
 
-        if (request.IsPrimary && await dbContext.ProductImages.AnyAsync(
-            image => image.ProductId == product.Id && image.IsPrimary,
-            cancellationToken))
-        {
-            return Validation("image", "Product cannot have two primary images.");
-        }
-
         ImageStorageReference reference;
         try
         {
@@ -445,6 +510,84 @@ public static class SellerProductEndpoints
             return Validation("image", exception.Message);
         }
 
+        if (request.IsPrimary)
+        {
+            await ClearPrimaryProductImagesAsync(product.Id, null, dbContext, cancellationToken);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return HttpResults.Created(
+            $"/api/seller/products/{product.Id}/images",
+            await CreateProductDetailResponseAsync(product.Id, dbContext, cancellationToken));
+    }
+
+    private static async Task<IResult> UploadImageAsync(
+        Guid id,
+        [FromForm] IFormFile file,
+        [FromForm] string? altText,
+        [FromForm] int sortOrder,
+        [FromForm] bool isPrimary,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        IProductMediaUploadService mediaUploadService,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var product = await GetOwnedProductAsync(id, principal, dbContext, cancellationToken);
+        if (product is null)
+        {
+            return ProductNotFound();
+        }
+
+        if (!product.CanSellerEdit)
+        {
+            return Validation("product", "Seller can upload images only to draft, rejected, or changes-requested products.");
+        }
+
+        if (sortOrder < 0)
+        {
+            return Validation("image", "Sort order cannot be negative.");
+        }
+
+        ProductMediaUploadResult uploadResult;
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            uploadResult = await mediaUploadService.UploadAsync(
+                new ProductMediaUploadRequest(
+                    stream,
+                    file.FileName,
+                    file.ContentType,
+                    file.Length,
+                    $"seller-{product.SellerId}/product-{product.Id}",
+                    product.SellerId,
+                    product.Id,
+                    null),
+                cancellationToken);
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or NotSupportedException)
+        {
+            return Validation("image", exception.Message);
+        }
+
+        if (isPrimary)
+        {
+            await ClearPrimaryProductImagesAsync(product.Id, null, dbContext, cancellationToken);
+        }
+
+        dbContext.MediaAssets.Add(uploadResult.Asset);
+        dbContext.MediaAssetVariants.AddRange(uploadResult.Variants);
+        dbContext.ProductImages.Add(new ProductImage(
+            product.Id,
+            uploadResult.DetailVariant.PublicUrl,
+            uploadResult.DetailVariant.StorageKey,
+            altText,
+            sortOrder,
+            isPrimary,
+            timeProvider.GetUtcNow(),
+            uploadResult.Asset.Id));
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return HttpResults.Created(
@@ -457,6 +600,9 @@ public static class SellerProductEndpoints
         Guid imageId,
         ClaimsPrincipal principal,
         SwyftlyDbContext dbContext,
+        IImageStorageProvider imageStorageProvider,
+        IProductMediaUploadService mediaUploadService,
+        TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
         var product = await GetOwnedProductAsync(id, principal, dbContext, cancellationToken);
@@ -478,10 +624,98 @@ public static class SellerProductEndpoints
             return ImageNotFound();
         }
 
+        MediaAsset? mediaAsset = null;
+        List<MediaAssetVariant> mediaVariants = [];
+        if (image.MediaAssetId.HasValue)
+        {
+            mediaAsset = await dbContext.MediaAssets.SingleOrDefaultAsync(
+                asset => asset.Id == image.MediaAssetId.Value,
+                cancellationToken);
+            mediaVariants = await dbContext.MediaAssetVariants
+                .Where(variant => variant.MediaAssetId == image.MediaAssetId.Value)
+                .ToListAsync(cancellationToken);
+        }
+
         dbContext.ProductImages.Remove(image);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        if (mediaAsset is not null)
+        {
+            await mediaUploadService.DeleteAsync(mediaAsset, mediaVariants, timeProvider.GetUtcNow(), cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        else
+        {
+            await imageStorageProvider.DeleteAsync(image.StorageKey, cancellationToken);
+        }
+
+        return HttpResults.Ok(await CreateProductDetailResponseAsync(product.Id, dbContext, cancellationToken));
+    }
+
+    private static async Task<IResult> UpdateImageAsync(
+        Guid id,
+        Guid imageId,
+        UpdateSellerProductImageRequest request,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var product = await GetOwnedProductAsync(id, principal, dbContext, cancellationToken);
+        if (product is null)
+        {
+            return ProductNotFound();
+        }
+
+        if (!product.CanSellerEdit)
+        {
+            return Validation("product", "Seller can update images only on draft, rejected, or changes-requested products.");
+        }
+
+        var image = await dbContext.ProductImages.SingleOrDefaultAsync(
+            item => item.Id == imageId && item.ProductId == product.Id,
+            cancellationToken);
+        if (image is null)
+        {
+            return ImageNotFound();
+        }
+
+        try
+        {
+            image.UpdateMetadata(request.AltText, request.SortOrder);
+        }
+        catch (ArgumentOutOfRangeException exception)
+        {
+            return Validation("image", exception.Message);
+        }
+
+        if (request.IsPrimary)
+        {
+            await ClearPrimaryProductImagesAsync(product.Id, image.Id, dbContext, cancellationToken);
+            image.MarkPrimary();
+        }
+        else
+        {
+            image.ClearPrimary();
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return HttpResults.Ok(await CreateProductDetailResponseAsync(product.Id, dbContext, cancellationToken));
+    }
+
+    private static async Task ClearPrimaryProductImagesAsync(
+        Guid productId,
+        Guid? exceptImageId,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var images = await dbContext.ProductImages
+            .Where(item => item.ProductId == productId && item.Id != exceptImageId && item.IsPrimary)
+            .ToListAsync(cancellationToken);
+
+        foreach (var image in images)
+        {
+            image.ClearPrimary();
+        }
     }
 
     private static async Task<IResult> SubmitReviewAsync(
@@ -564,6 +798,362 @@ public static class SellerProductEndpoints
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return HttpResults.Ok(await CreateProductDetailResponseAsync(product.Id, dbContext, cancellationToken));
+    }
+
+    private static async Task<IResult> GetRevisionAsync(
+        Guid id,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var product = await GetOwnedProductAsync(id, principal, dbContext, cancellationToken);
+        if (product is null)
+        {
+            return ProductNotFound();
+        }
+
+        if (product.Status != ProductStatus.Published)
+        {
+            return Validation("product", "Published listing revisions are available only for published products.");
+        }
+
+        var revision = await GetOrCreateActiveRevisionAsync(product, dbContext, timeProvider, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return HttpResults.Ok(await CreateRevisionResponseAsync(revision.Id, dbContext, cancellationToken));
+    }
+
+    private static async Task<IResult> UpdateRevisionAsync(
+        Guid id,
+        UpsertSellerProductRevisionRequest request,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var product = await GetOwnedProductAsync(id, principal, dbContext, cancellationToken);
+        if (product is null)
+        {
+            return ProductNotFound();
+        }
+
+        if (product.Status != ProductStatus.Published)
+        {
+            return Validation("product", "Listing revisions can be staged only for published products.");
+        }
+
+        var categoryValidation = await ValidateCategoryAsync(request.CategoryId, dbContext, cancellationToken);
+        if (categoryValidation is not null)
+        {
+            return categoryValidation;
+        }
+
+        var revision = await GetOrCreateActiveRevisionAsync(product, dbContext, timeProvider, cancellationToken);
+        if (!revision.CanSellerEdit)
+        {
+            return Validation("revision", "A revision already submitted for review cannot be edited.");
+        }
+
+        var tagsJson = request.Tags is null
+            ? revision.TagsJson
+            : JsonSerializer.Serialize(NormalizeStringArray(request.Tags));
+        var attributes = request.Attributes ?? ParseAttributesJson(revision.AttributesJson);
+        var attributeValidation = request.CategoryId.HasValue
+            ? await ValidateAttributesAsync(request.CategoryId.Value, attributes, dbContext, cancellationToken)
+            : null;
+        if (attributeValidation is not null)
+        {
+            return attributeValidation;
+        }
+
+        try
+        {
+            revision.UpdateProposal(
+                request.CategoryId,
+                request.BrandId,
+                request.Title,
+                request.Slug,
+                request.ShortDescription,
+                request.FullDescription,
+                tagsJson,
+                SerializeAttributes(attributes));
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or JsonException)
+        {
+            return Validation("revision", exception.Message);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return HttpResults.Ok(await CreateRevisionResponseAsync(revision.Id, dbContext, cancellationToken));
+    }
+
+    private static async Task<IResult> UploadRevisionImageAsync(
+        Guid id,
+        [FromForm] IFormFile file,
+        [FromForm] string? altText,
+        [FromForm] int sortOrder,
+        [FromForm] bool isPrimary,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        IImageStorageProvider imageStorageProvider,
+        IProductMediaUploadService mediaUploadService,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var product = await GetOwnedProductAsync(id, principal, dbContext, cancellationToken);
+        if (product is null)
+        {
+            return ProductNotFound();
+        }
+
+        if (product.Status != ProductStatus.Published)
+        {
+            return Validation("product", "Revision image uploads are available only for published products.");
+        }
+
+        if (sortOrder < 0)
+        {
+            return Validation("image", "Sort order cannot be negative.");
+        }
+
+        var revision = await GetOrCreateActiveRevisionAsync(product, dbContext, timeProvider, cancellationToken);
+        if (!revision.CanSellerEdit)
+        {
+            return Validation("revision", "A revision already submitted for review cannot be edited.");
+        }
+
+        var imageCount = await dbContext.ProductListingRevisionImages.CountAsync(
+            image => image.RevisionId == revision.Id,
+            cancellationToken);
+        if (imageCount >= MaxRevisionImages)
+        {
+            return Validation("image", $"A revision can contain at most {MaxRevisionImages} images.");
+        }
+
+        ProductMediaUploadResult uploadResult;
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            uploadResult = await mediaUploadService.UploadAsync(
+                new ProductMediaUploadRequest(
+                    stream,
+                    file.FileName,
+                    file.ContentType,
+                    file.Length,
+                    $"seller-{product.SellerId}/product-{product.Id}/revision-{revision.Id}",
+                    product.SellerId,
+                    product.Id,
+                    revision.Id),
+                cancellationToken);
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or NotSupportedException)
+        {
+            return Validation("image", exception.Message);
+        }
+
+        if (isPrimary)
+        {
+            await ClearPrimaryRevisionImagesAsync(revision.Id, null, dbContext, cancellationToken);
+        }
+
+        dbContext.MediaAssets.Add(uploadResult.Asset);
+        dbContext.MediaAssetVariants.AddRange(uploadResult.Variants);
+        dbContext.ProductListingRevisionImages.Add(new ProductListingRevisionImage(
+            revision.Id,
+            null,
+            uploadResult.DetailVariant.PublicUrl,
+            uploadResult.DetailVariant.StorageKey,
+            altText,
+            sortOrder,
+            isPrimary,
+            timeProvider.GetUtcNow(),
+            uploadResult.Asset.Id));
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return HttpResults.Created(
+            $"/api/seller/products/{product.Id}/revision/images",
+            await CreateRevisionResponseAsync(revision.Id, dbContext, cancellationToken));
+    }
+
+    private static async Task<IResult> UpdateRevisionImageAsync(
+        Guid id,
+        Guid revisionImageId,
+        UpdateSellerProductImageRequest request,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var revisionResult = await GetEditableRevisionForProductAsync(id, principal, dbContext, timeProvider, cancellationToken);
+        if (revisionResult.Result is not null)
+        {
+            return revisionResult.Result;
+        }
+
+        var revision = revisionResult.Revision!;
+        var image = await dbContext.ProductListingRevisionImages.SingleOrDefaultAsync(
+            item => item.Id == revisionImageId && item.RevisionId == revision.Id,
+            cancellationToken);
+        if (image is null)
+        {
+            return ImageNotFound();
+        }
+
+        try
+        {
+            image.UpdateMetadata(request.AltText, request.SortOrder);
+        }
+        catch (ArgumentOutOfRangeException exception)
+        {
+            return Validation("image", exception.Message);
+        }
+
+        if (request.IsPrimary)
+        {
+            await ClearPrimaryRevisionImagesAsync(revision.Id, image.Id, dbContext, cancellationToken);
+            image.MarkPrimary();
+        }
+        else
+        {
+            image.ClearPrimary();
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return HttpResults.Ok(await CreateRevisionResponseAsync(revision.Id, dbContext, cancellationToken));
+    }
+
+    private static async Task<IResult> DeleteRevisionImageAsync(
+        Guid id,
+        Guid revisionImageId,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        IImageStorageProvider imageStorageProvider,
+        IProductMediaUploadService mediaUploadService,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var revisionResult = await GetEditableRevisionForProductAsync(id, principal, dbContext, timeProvider, cancellationToken);
+        if (revisionResult.Result is not null)
+        {
+            return revisionResult.Result;
+        }
+
+        var revision = revisionResult.Revision!;
+        var image = await dbContext.ProductListingRevisionImages.SingleOrDefaultAsync(
+            item => item.Id == revisionImageId && item.RevisionId == revision.Id,
+            cancellationToken);
+        if (image is null)
+        {
+            return ImageNotFound();
+        }
+
+        MediaAsset? mediaAsset = null;
+        List<MediaAssetVariant> mediaVariants = [];
+        if (image.MediaAssetId.HasValue)
+        {
+            mediaAsset = await dbContext.MediaAssets.SingleOrDefaultAsync(
+                asset => asset.Id == image.MediaAssetId.Value,
+                cancellationToken);
+            mediaVariants = await dbContext.MediaAssetVariants
+                .Where(variant => variant.MediaAssetId == image.MediaAssetId.Value)
+                .ToListAsync(cancellationToken);
+        }
+
+        dbContext.ProductListingRevisionImages.Remove(image);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (mediaAsset is not null)
+        {
+            await mediaUploadService.DeleteAsync(mediaAsset, mediaVariants, timeProvider.GetUtcNow(), cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        else if (!image.SourceProductImageId.HasValue)
+        {
+            await imageStorageProvider.DeleteAsync(image.StorageKey, cancellationToken);
+        }
+
+        return HttpResults.Ok(await CreateRevisionResponseAsync(revision.Id, dbContext, cancellationToken));
+    }
+
+    private static async Task<IResult> SubmitRevisionReviewAsync(
+        Guid id,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var product = await GetOwnedProductAsync(id, principal, dbContext, cancellationToken);
+        if (product is null)
+        {
+            return ProductNotFound();
+        }
+
+        if (product.Status != ProductStatus.Published)
+        {
+            return Validation("product", "Only published products can submit listing revisions.");
+        }
+
+        var revision = await GetActiveRevisionAsync(product.Id, dbContext, cancellationToken);
+        if (revision is null)
+        {
+            return Validation("revision", "Create a listing revision before submitting it for review.");
+        }
+
+        if (revision.CategoryId.HasValue)
+        {
+            var categoryValidation = await ValidateCategoryAsync(revision.CategoryId, dbContext, cancellationToken);
+            if (categoryValidation is not null)
+            {
+                return categoryValidation;
+            }
+
+            var attributes = ParseAttributesJson(revision.AttributesJson);
+            var attributeValidation = await ValidateAttributesAsync(revision.CategoryId.Value, attributes, dbContext, cancellationToken);
+            if (attributeValidation is not null)
+            {
+                return attributeValidation;
+            }
+        }
+
+        var hasImage = await dbContext.ProductListingRevisionImages.AnyAsync(
+            image => image.RevisionId == revision.Id,
+            cancellationToken);
+
+        try
+        {
+            revision.SubmitForReview(hasImage, timeProvider.GetUtcNow());
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Validation("revision", exception.Message);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return HttpResults.Ok(await CreateRevisionResponseAsync(revision.Id, dbContext, cancellationToken));
+    }
+
+    private static async Task<IResult> CancelRevisionAsync(
+        Guid id,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var product = await GetOwnedProductAsync(id, principal, dbContext, cancellationToken);
+        if (product is null)
+        {
+            return ProductNotFound();
+        }
+
+        if (product.Status != ProductStatus.Published)
+        {
+            return Validation("product", "Only published products can cancel listing revisions.");
+        }
+
+        var revision = await GetOrCreateActiveRevisionAsync(product, dbContext, timeProvider, cancellationToken);
+        revision.Cancel();
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return HttpResults.Ok(await CreateRevisionResponseAsync(revision.Id, dbContext, cancellationToken));
     }
 
     private static async Task<IResult> GenerateAiSuggestionAsync(
@@ -862,6 +1452,208 @@ public static class SellerProductEndpoints
 
         return await dbContext.Products
             .SingleOrDefaultAsync(product => product.Id == productId && product.SellerId == seller.Id, cancellationToken);
+    }
+
+    private static async Task<(ProductListingRevision? Revision, IResult? Result)> GetEditableRevisionForProductAsync(
+        Guid productId,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var product = await GetOwnedProductAsync(productId, principal, dbContext, cancellationToken);
+        if (product is null)
+        {
+            return (null, ProductNotFound());
+        }
+
+        if (product.Status != ProductStatus.Published)
+        {
+            return (null, Validation("product", "Listing revisions are available only for published products."));
+        }
+
+        var revision = await GetOrCreateActiveRevisionAsync(product, dbContext, timeProvider, cancellationToken);
+        return revision.CanSellerEdit
+            ? (revision, null)
+            : (null, Validation("revision", "A revision already submitted for review cannot be edited."));
+    }
+
+    private static async Task<ProductListingRevision?> GetActiveRevisionAsync(
+        Guid productId,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken) =>
+        await dbContext.ProductListingRevisions
+            .Where(revision => revision.ProductId == productId
+                && (revision.Status == ProductListingRevisionStatus.Draft
+                    || revision.Status == ProductListingRevisionStatus.PendingReview
+                    || revision.Status == ProductListingRevisionStatus.Rejected))
+            .OrderByDescending(revision => revision.UpdatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    private static async Task<ProductListingRevision> GetOrCreateActiveRevisionAsync(
+        Product product,
+        SwyftlyDbContext dbContext,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var revision = await GetActiveRevisionAsync(product.Id, dbContext, cancellationToken);
+        if (revision is not null)
+        {
+            return revision;
+        }
+
+        revision = new ProductListingRevision(product.Id, product.SellerId);
+        revision.UpdateProposal(
+            product.CategoryId,
+            product.BrandId,
+            product.Title,
+            product.Slug,
+            product.ShortDescription,
+            product.FullDescription,
+            product.TagsJson,
+            await BuildProductAttributesJsonAsync(product.Id, dbContext, cancellationToken));
+        dbContext.ProductListingRevisions.Add(revision);
+
+        var productImages = await dbContext.ProductImages
+            .Where(image => image.ProductId == product.Id)
+            .OrderByDescending(image => image.IsPrimary)
+            .ThenBy(image => image.SortOrder)
+            .ToListAsync(cancellationToken);
+        foreach (var image in productImages)
+        {
+            dbContext.ProductListingRevisionImages.Add(new ProductListingRevisionImage(
+                revision.Id,
+                image.Id,
+                image.Url,
+                image.StorageKey,
+                image.AltText,
+                image.SortOrder,
+                image.IsPrimary,
+                timeProvider.GetUtcNow(),
+                image.MediaAssetId));
+        }
+
+        return revision;
+    }
+
+    private static async Task ClearPrimaryRevisionImagesAsync(
+        Guid revisionId,
+        Guid? exceptImageId,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var images = await dbContext.ProductListingRevisionImages
+            .Where(item => item.RevisionId == revisionId && item.Id != exceptImageId && item.IsPrimary)
+            .ToListAsync(cancellationToken);
+
+        foreach (var image in images)
+        {
+            image.ClearPrimary();
+        }
+    }
+
+    private static async Task<string> BuildProductAttributesJsonAsync(
+        Guid productId,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var attributeRows = await dbContext.ProductAttributeValues
+            .Where(attribute => attribute.ProductId == productId)
+            .OrderBy(attribute => attribute.Key)
+            .Select(attribute => new { attribute.Key, attribute.ValueJson })
+            .ToListAsync(cancellationToken);
+        var attributes = attributeRows.ToDictionary(
+            attribute => attribute.Key,
+            attribute => JsonDocument.Parse(attribute.ValueJson).RootElement.Clone(),
+            StringComparer.OrdinalIgnoreCase);
+
+        return SerializeAttributes(attributes);
+    }
+
+    private static IReadOnlyDictionary<string, JsonElement> ParseAttributesJson(string attributesJson)
+    {
+        using var document = JsonDocument.Parse(attributesJson);
+        return document.RootElement.ValueKind == JsonValueKind.Object
+            ? document.RootElement
+                .EnumerateObject()
+                .Where(property => !string.IsNullOrWhiteSpace(property.Name))
+                .ToDictionary(
+                    property => property.Name.Trim().ToLowerInvariant(),
+                    property => property.Value.Clone(),
+                    StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, JsonElement>();
+    }
+
+    private static string SerializeAttributes(IReadOnlyDictionary<string, JsonElement> attributes) =>
+        JsonSerializer.Serialize(attributes
+            .Where(attribute => !string.IsNullOrWhiteSpace(attribute.Key))
+            .ToDictionary(
+                attribute => attribute.Key.Trim().ToLowerInvariant(),
+                attribute => attribute.Value,
+                StringComparer.OrdinalIgnoreCase));
+
+    private static IReadOnlyCollection<string> NormalizeStringArray(IReadOnlyCollection<string> values) =>
+        values
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+    private static IReadOnlyDictionary<string, string> ReadRevisionAttributes(string attributesJson)
+    {
+        using var document = JsonDocument.Parse(attributesJson);
+        return document.RootElement.ValueKind == JsonValueKind.Object
+            ? document.RootElement
+                .EnumerateObject()
+                .Where(property => !string.IsNullOrWhiteSpace(property.Name))
+                .ToDictionary(
+                    property => property.Name.Trim().ToLowerInvariant(),
+                    property => property.Value.GetRawText(),
+                    StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, string>();
+    }
+
+    private static async Task<SellerProductRevisionResponse> CreateRevisionResponseAsync(
+        Guid revisionId,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var revision = await dbContext.ProductListingRevisions.SingleAsync(
+            item => item.Id == revisionId,
+            cancellationToken);
+        var images = await dbContext.ProductListingRevisionImages
+            .Where(image => image.RevisionId == revision.Id)
+            .OrderByDescending(image => image.IsPrimary)
+            .ThenBy(image => image.SortOrder)
+            .Select(image => new SellerProductRevisionImageResponse(
+                image.Id,
+                image.SourceProductImageId,
+                image.Url,
+                image.StorageKey,
+                image.AltText,
+                image.SortOrder,
+                image.IsPrimary,
+                image.CreatedAtUtc))
+            .ToListAsync(cancellationToken);
+
+        return new SellerProductRevisionResponse(
+            revision.Id,
+            revision.ProductId,
+            revision.SellerId,
+            revision.Status.ToString(),
+            revision.CanSellerEdit,
+            revision.RejectionReason,
+            revision.SubmittedAtUtc,
+            revision.ReviewedAtUtc,
+            revision.CategoryId,
+            revision.BrandId,
+            revision.Title,
+            revision.Slug,
+            revision.ShortDescription,
+            revision.FullDescription,
+            ReadStringArray(revision.TagsJson),
+            ReadRevisionAttributes(revision.AttributesJson),
+            images);
     }
 
     private static async Task<IResult?> ValidateCategoryAsync(
@@ -1602,6 +2394,21 @@ public sealed record AttachSellerProductImageRequest(
     int SortOrder,
     bool IsPrimary);
 
+public sealed record UpdateSellerProductImageRequest(
+    string? AltText,
+    int SortOrder,
+    bool IsPrimary);
+
+public sealed record UpsertSellerProductRevisionRequest(
+    Guid? CategoryId,
+    Guid? BrandId,
+    string? Title,
+    string? Slug,
+    string? ShortDescription,
+    string? FullDescription,
+    IReadOnlyCollection<string>? Tags,
+    IReadOnlyDictionary<string, JsonElement>? Attributes);
+
 public sealed record GenerateSellerAiSuggestionRequest(
     string? SellerNotes,
     string? ProductTypeHint,
@@ -1656,6 +2463,35 @@ public sealed record SellerProductVariantResponse(
 
 public sealed record SellerProductImageResponse(
     Guid ImageId,
+    string Url,
+    string StorageKey,
+    string? AltText,
+    int SortOrder,
+    bool IsPrimary,
+    DateTimeOffset CreatedAtUtc);
+
+public sealed record SellerProductRevisionResponse(
+    Guid RevisionId,
+    Guid ProductId,
+    Guid SellerId,
+    string Status,
+    bool CanEdit,
+    string? RejectionReason,
+    DateTimeOffset? SubmittedAtUtc,
+    DateTimeOffset? ReviewedAtUtc,
+    Guid? CategoryId,
+    Guid? BrandId,
+    string? Title,
+    string? Slug,
+    string? ShortDescription,
+    string? FullDescription,
+    IReadOnlyCollection<string> Tags,
+    IReadOnlyDictionary<string, string> Attributes,
+    IReadOnlyCollection<SellerProductRevisionImageResponse> Images);
+
+public sealed record SellerProductRevisionImageResponse(
+    Guid RevisionImageId,
+    Guid? SourceProductImageId,
     string Url,
     string StorageKey,
     string? AltText,

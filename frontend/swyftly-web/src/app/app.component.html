@@ -1,6 +1,16 @@
 <div class="app-shell">
   <header class="topbar">
-    <a class="brand" routerLink="/" aria-label="Swyftly home">Swyftly</a>
+    <a class="brand" routerLink="/" aria-label="Swyftly home">
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <span class="brand-copy">
+        <strong>Swyftly</strong>
+        <small>Fashion marketplace</small>
+      </span>
+    </a>
+
+    <a class="header-search" routerLink="/shop" aria-label="Search Swyftly marketplace">
+      <span>Search fashion, jewellery, beauty, and sellers</span>
+    </a>
 
     <nav class="primary-nav" aria-label="Primary navigation">
       <div class="nav-group" aria-label="Marketplace">
@@ -15,6 +25,17 @@
             {{ item.label }}
           </a>
         }
+      </div>
+
+      <div class="nav-group nav-group--feature" aria-label="Discovery">
+        <a
+          class="nav-link nav-link--featured"
+          [routerLink]="authService.hasAnyRole(['Buyer']) ? '/assistant' : '/login'"
+          routerLinkActive="active-link"
+          ariaCurrentWhenActive="page"
+        >
+          AI Style Finder
+        </a>
       </div>
 
       @if (hasWorkspaceNavigation()) {
@@ -89,4 +110,6 @@
     <span>Swyftly marketplace</span>
     <span>Fashion, beauty, jewellery, and accessories</span>
   </footer>
+
+  <app-mobile-bottom-nav [items]="mobileNavigationItems()" />
 </div>

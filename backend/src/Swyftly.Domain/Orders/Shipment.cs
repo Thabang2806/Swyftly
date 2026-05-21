@@ -4,6 +4,8 @@ namespace Swyftly.Domain.Orders;
 
 public sealed class Shipment : AuditableEntity
 {
+    public const int ExceptionReasonMaxLength = 500;
+
     private readonly List<ShipmentEvent> _events = [];
 
     private Shipment()
@@ -70,11 +72,28 @@ public sealed class Shipment : AuditableEntity
         AddEvent("TrackingUpdated", note ?? "Tracking details were updated.", occurredAtUtc);
     }
 
+    public void MarkReadyForCourier(DateTimeOffset readyAtUtc, string? note = null)
+    {
+        if (Status is ShipmentStatus.InTransit or ShipmentStatus.Delivered or ShipmentStatus.DeliveryFailed or ShipmentStatus.ReturnedToSender)
+        {
+            throw new InvalidOperationException("In-transit, delivered, failed, or returned shipments cannot be marked ready for courier.");
+        }
+
+        if (Status == ShipmentStatus.ReadyForCourier)
+        {
+            return;
+        }
+
+        Status = ShipmentStatus.ReadyForCourier;
+        UpdatedAtUtc = readyAtUtc;
+        AddEvent("ShipmentReadyForCourier", note ?? "Shipment was marked ready for courier.", readyAtUtc);
+    }
+
     public void MarkInTransit(DateTimeOffset shippedAtUtc, string? note = null)
     {
-        if (Status is ShipmentStatus.Delivered or ShipmentStatus.ReturnedToSender)
+        if (Status is ShipmentStatus.Delivered or ShipmentStatus.DeliveryFailed or ShipmentStatus.ReturnedToSender)
         {
-            throw new InvalidOperationException("Delivered or returned shipments cannot be marked as in transit.");
+            throw new InvalidOperationException("Delivered, failed, or returned shipments cannot be marked as in transit.");
         }
 
         Status = ShipmentStatus.InTransit;
@@ -94,6 +113,40 @@ public sealed class Shipment : AuditableEntity
         DeliveredAtUtc = deliveredAtUtc;
         UpdatedAtUtc = deliveredAtUtc;
         AddEvent("ShipmentDelivered", note ?? "Shipment was marked as delivered.", deliveredAtUtc);
+    }
+
+    public void MarkDeliveryFailed(string reason, DateTimeOffset failedAtUtc)
+    {
+        if (Status == ShipmentStatus.DeliveryFailed)
+        {
+            return;
+        }
+
+        if (Status != ShipmentStatus.InTransit)
+        {
+            throw new InvalidOperationException("Only in-transit shipments can be marked delivery failed.");
+        }
+
+        Status = ShipmentStatus.DeliveryFailed;
+        UpdatedAtUtc = failedAtUtc;
+        AddEvent("DeliveryFailed", RequiredText(reason, nameof(reason), ExceptionReasonMaxLength), failedAtUtc);
+    }
+
+    public void MarkReturnedToSender(string reason, DateTimeOffset returnedAtUtc)
+    {
+        if (Status == ShipmentStatus.ReturnedToSender)
+        {
+            return;
+        }
+
+        if (Status is not (ShipmentStatus.InTransit or ShipmentStatus.DeliveryFailed))
+        {
+            throw new InvalidOperationException("Only in-transit or failed shipments can be marked returned to sender.");
+        }
+
+        Status = ShipmentStatus.ReturnedToSender;
+        UpdatedAtUtc = returnedAtUtc;
+        AddEvent("ReturnedToSender", RequiredText(reason, nameof(reason), ExceptionReasonMaxLength), returnedAtUtc);
     }
 
     private void AddEvent(string eventType, string? message, DateTimeOffset occurredAtUtc)

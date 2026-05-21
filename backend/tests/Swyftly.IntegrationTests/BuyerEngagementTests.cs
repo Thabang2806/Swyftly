@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Swyftly.Api.Authentication;
 using Swyftly.Api.Admin;
 using Swyftly.Api.Buyers;
+using Swyftly.Api.Carts;
 using Swyftly.Application.Identity;
 using Swyftly.Application.Notifications;
 using Swyftly.Domain.Buyers;
@@ -52,6 +53,12 @@ public sealed class BuyerEngagementTests
         var wishlist = await listResponse.Content.ReadFromJsonAsync<BuyerWishlistItemResponse[]>();
         var item = Assert.Single(wishlist!);
         Assert.Equal(productId, item.Product.ProductId);
+        Assert.NotEmpty(item.AvailableVariants);
+
+        using var productIdsResponse = await client.GetAsync("/api/buyer/wishlist/product-ids");
+        productIdsResponse.EnsureSuccessStatusCode();
+        var productIds = await productIdsResponse.Content.ReadFromJsonAsync<BuyerWishlistProductIdsResponse>();
+        Assert.Contains(productId, productIds!.ProductIds);
 
         using var removeResponse = await client.DeleteAsync($"/api/buyer/wishlist/{productId}");
         Assert.Equal(HttpStatusCode.NoContent, removeResponse.StatusCode);
@@ -60,6 +67,92 @@ public sealed class BuyerEngagementTests
         emptyResponse.EnsureSuccessStatusCode();
         var emptyWishlist = await emptyResponse.Content.ReadFromJsonAsync<BuyerWishlistItemResponse[]>();
         Assert.Empty(emptyWishlist!);
+    }
+
+    [Fact]
+    public async Task Buyer_CanMoveWishlistItemToCart()
+    {
+        using var factory = new BuyerEngagementTestFactory();
+        using var client = factory.CreateClient();
+        var buyerToken = await RegisterAndLoginAsync(client, "wishlist-cart-buyer@example.test", SwyftlyRoles.Buyer);
+        var sellerId = await CreateSellerAsync(factory, "Wishlist Cart Seller", "wishlist-cart-seller");
+        var productId = await CreateProductAsync(factory, sellerId, "Wishlist Cart Dress", "wishlist-cart-dress", ProductSeedStatus.Published);
+        var variantId = await GetVariantIdAsync(factory, productId);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
+        using var addWishlistResponse = await client.PostAsync($"/api/buyer/wishlist/{productId}", null);
+        addWishlistResponse.EnsureSuccessStatusCode();
+
+        using var moveResponse = await client.PostAsJsonAsync(
+            $"/api/buyer/wishlist/{productId}/move-to-cart",
+            new MoveWishlistItemToCartRequest(variantId, 2));
+
+        moveResponse.EnsureSuccessStatusCode();
+        var cart = await moveResponse.Content.ReadFromJsonAsync<CartResponse>();
+        var cartItem = Assert.Single(cart!.Items);
+        Assert.Equal(productId, cartItem.ProductId);
+        Assert.Equal(variantId, cartItem.ProductVariantId);
+        Assert.Equal(2, cartItem.Quantity);
+
+        using var listResponse = await client.GetAsync("/api/buyer/wishlist");
+        listResponse.EnsureSuccessStatusCode();
+        var wishlist = await listResponse.Content.ReadFromJsonAsync<BuyerWishlistItemResponse[]>();
+        Assert.Empty(wishlist!);
+    }
+
+    [Fact]
+    public async Task MoveWishlistItemToCart_KeepsWishlistItemWhenCartRejectsMove()
+    {
+        using var factory = new BuyerEngagementTestFactory();
+        using var client = factory.CreateClient();
+        var buyerToken = await RegisterAndLoginAsync(client, "wishlist-cart-conflict-buyer@example.test", SwyftlyRoles.Buyer);
+        var firstSellerId = await CreateSellerAsync(factory, "First Cart Seller", "first-cart-seller");
+        var secondSellerId = await CreateSellerAsync(factory, "Second Cart Seller", "second-cart-seller");
+        var cartProductId = await CreateProductAsync(factory, firstSellerId, "Cart Dress", "cart-dress", ProductSeedStatus.Published);
+        var wishlistProductId = await CreateProductAsync(factory, secondSellerId, "Saved Dress", "saved-dress", ProductSeedStatus.Published);
+        var cartVariantId = await GetVariantIdAsync(factory, cartProductId);
+        var wishlistVariantId = await GetVariantIdAsync(factory, wishlistProductId);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
+        using var cartResponse = await client.PostAsJsonAsync("/api/cart/items", new AddCartItemRequest(cartVariantId, 1));
+        cartResponse.EnsureSuccessStatusCode();
+        using var addWishlistResponse = await client.PostAsync($"/api/buyer/wishlist/{wishlistProductId}", null);
+        addWishlistResponse.EnsureSuccessStatusCode();
+
+        using var moveResponse = await client.PostAsJsonAsync(
+            $"/api/buyer/wishlist/{wishlistProductId}/move-to-cart",
+            new MoveWishlistItemToCartRequest(wishlistVariantId, 1));
+
+        Assert.Equal(HttpStatusCode.BadRequest, moveResponse.StatusCode);
+        using var listResponse = await client.GetAsync("/api/buyer/wishlist");
+        listResponse.EnsureSuccessStatusCode();
+        var wishlist = await listResponse.Content.ReadFromJsonAsync<BuyerWishlistItemResponse[]>();
+        Assert.Contains(wishlist!, item => item.Product.ProductId == wishlistProductId);
+    }
+
+    [Fact]
+    public async Task MoveWishlistItemToCart_RejectsInvalidVariantAndQuantity()
+    {
+        using var factory = new BuyerEngagementTestFactory();
+        using var client = factory.CreateClient();
+        var buyerToken = await RegisterAndLoginAsync(client, "wishlist-cart-invalid-buyer@example.test", SwyftlyRoles.Buyer);
+        var sellerId = await CreateSellerAsync(factory, "Invalid Move Seller", "invalid-move-seller");
+        var productId = await CreateProductAsync(factory, sellerId, "Invalid Move Dress", "invalid-move-dress", ProductSeedStatus.Published);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
+        using var addWishlistResponse = await client.PostAsync($"/api/buyer/wishlist/{productId}", null);
+        addWishlistResponse.EnsureSuccessStatusCode();
+
+        using var invalidQuantityResponse = await client.PostAsJsonAsync(
+            $"/api/buyer/wishlist/{productId}/move-to-cart",
+            new MoveWishlistItemToCartRequest(Guid.NewGuid(), 0));
+        using var invalidVariantResponse = await client.PostAsJsonAsync(
+            $"/api/buyer/wishlist/{productId}/move-to-cart",
+            new MoveWishlistItemToCartRequest(Guid.NewGuid(), 1));
+
+        Assert.Equal(HttpStatusCode.BadRequest, invalidQuantityResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, invalidVariantResponse.StatusCode);
+        using var listResponse = await client.GetAsync("/api/buyer/wishlist");
+        listResponse.EnsureSuccessStatusCode();
+        var wishlist = await listResponse.Content.ReadFromJsonAsync<BuyerWishlistItemResponse[]>();
+        Assert.Single(wishlist!);
     }
 
     [Fact]
@@ -295,6 +388,243 @@ public sealed class BuyerEngagementTests
     }
 
     [Fact]
+    public async Task Buyer_CanReadAndUpdateProfileSettings()
+    {
+        using var factory = new BuyerEngagementTestFactory();
+        using var client = factory.CreateClient();
+        const string buyerEmail = "settings-buyer@example.test";
+        var buyerToken = await RegisterAndLoginAsync(client, buyerEmail, SwyftlyRoles.Buyer);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
+
+        using var getResponse = await client.GetAsync("/api/buyer/profile");
+        getResponse.EnsureSuccessStatusCode();
+        var initial = await getResponse.Content.ReadFromJsonAsync<BuyerProfileSettingsResponse>();
+        Assert.Equal(buyerEmail, initial!.Email);
+        Assert.Null(initial.DisplayName);
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            "/api/buyer/profile",
+            new BuyerProfileSettingsRequest("Thabo", "+27110000000"));
+
+        updateResponse.EnsureSuccessStatusCode();
+        var updated = await updateResponse.Content.ReadFromJsonAsync<BuyerProfileSettingsResponse>();
+        Assert.Equal("Thabo", updated!.DisplayName);
+        Assert.Equal("+27110000000", updated.PhoneNumber);
+    }
+
+    [Fact]
+    public async Task BuyerProfileSettings_RejectsOverlongFields()
+    {
+        using var factory = new BuyerEngagementTestFactory();
+        using var client = factory.CreateClient();
+        var buyerToken = await RegisterAndLoginAsync(client, "settings-invalid-buyer@example.test", SwyftlyRoles.Buyer);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
+
+        using var response = await client.PutAsJsonAsync(
+            "/api/buyer/profile",
+            new BuyerProfileSettingsRequest(new string('A', BuyerProfile.DisplayNameMaxLength + 1), null));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Buyer_CanReadAndUpdateNotificationPreferences()
+    {
+        using var factory = new BuyerEngagementTestFactory();
+        using var client = factory.CreateClient();
+        var buyerToken = await RegisterAndLoginAsync(client, "preference-buyer@example.test", SwyftlyRoles.Buyer);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
+
+        using var getResponse = await client.GetAsync("/api/buyer/notification-preferences");
+        getResponse.EnsureSuccessStatusCode();
+        var initial = await getResponse.Content.ReadFromJsonAsync<BuyerNotificationPreferencesResponse>();
+        Assert.Equal(BuyerNotificationCategory.All.Count, initial!.Preferences.Count);
+        Assert.All(initial.Preferences, preference => Assert.True(preference.IsEnabled));
+        Assert.All(initial.Preferences, preference => Assert.True(preference.EmailEnabled));
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            "/api/buyer/notification-preferences",
+            new BuyerNotificationPreferencesRequest([
+                new BuyerNotificationPreferenceRequest(BuyerNotificationCategory.Orders, true),
+                new BuyerNotificationPreferenceRequest(BuyerNotificationCategory.Returns, true),
+                new BuyerNotificationPreferenceRequest(BuyerNotificationCategory.Reviews, false, false),
+                new BuyerNotificationPreferenceRequest(BuyerNotificationCategory.Support, true)
+            ]));
+
+        updateResponse.EnsureSuccessStatusCode();
+        var updated = await updateResponse.Content.ReadFromJsonAsync<BuyerNotificationPreferencesResponse>();
+        var reviewPreference = updated!.Preferences.Single(preference => preference.Category == BuyerNotificationCategory.Reviews);
+        Assert.False(reviewPreference.IsEnabled);
+        Assert.False(reviewPreference.EmailEnabled);
+        Assert.True(updated.Preferences.Single(preference => preference.Category == BuyerNotificationCategory.Orders).IsEnabled);
+    }
+
+    [Fact]
+    public async Task Buyer_CanManageDeliveryAddressesWithDefaultBehavior()
+    {
+        using var factory = new BuyerEngagementTestFactory();
+        using var client = factory.CreateClient();
+        var buyerToken = await RegisterAndLoginAsync(client, "delivery-address-buyer@example.test", SwyftlyRoles.Buyer);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
+
+        using var firstResponse = await client.PostAsJsonAsync(
+            "/api/buyer/delivery-addresses",
+            DeliveryAddressRequest("Home", "Home Recipient", isDefault: false));
+        firstResponse.EnsureSuccessStatusCode();
+        var first = await firstResponse.Content.ReadFromJsonAsync<BuyerDeliveryAddressResponse>();
+        Assert.True(first!.IsDefault);
+        Assert.Equal("Leave at reception.", first.DeliveryInstructions);
+
+        using var secondResponse = await client.PostAsJsonAsync(
+            "/api/buyer/delivery-addresses",
+            DeliveryAddressRequest("Work", "Work Recipient", isDefault: true));
+        secondResponse.EnsureSuccessStatusCode();
+        var second = await secondResponse.Content.ReadFromJsonAsync<BuyerDeliveryAddressResponse>();
+        Assert.True(second!.IsDefault);
+
+        using var listResponse = await client.GetAsync("/api/buyer/delivery-addresses");
+        listResponse.EnsureSuccessStatusCode();
+        var addresses = await listResponse.Content.ReadFromJsonAsync<BuyerDeliveryAddressResponse[]>();
+        Assert.Equal(2, addresses!.Length);
+        Assert.Single(addresses, address => address.IsDefault);
+        Assert.Equal(second.DeliveryAddressId, addresses.Single(address => address.IsDefault).DeliveryAddressId);
+
+        using var makeDefaultResponse = await client.PostAsync(
+            $"/api/buyer/delivery-addresses/{first.DeliveryAddressId}/make-default",
+            null);
+        makeDefaultResponse.EnsureSuccessStatusCode();
+        var afterDefault = await makeDefaultResponse.Content.ReadFromJsonAsync<BuyerDeliveryAddressResponse[]>();
+        Assert.Equal(first.DeliveryAddressId, afterDefault!.Single(address => address.IsDefault).DeliveryAddressId);
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            $"/api/buyer/delivery-addresses/{first.DeliveryAddressId}",
+            DeliveryAddressRequest("Updated home", "Updated Recipient", isDefault: false));
+        updateResponse.EnsureSuccessStatusCode();
+        var updated = await updateResponse.Content.ReadFromJsonAsync<BuyerDeliveryAddressResponse>();
+        Assert.Equal("Updated home", updated!.Label);
+        Assert.True(updated.IsDefault);
+
+        using var deleteResponse = await client.DeleteAsync($"/api/buyer/delivery-addresses/{first.DeliveryAddressId}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        using var finalListResponse = await client.GetAsync("/api/buyer/delivery-addresses");
+        finalListResponse.EnsureSuccessStatusCode();
+        var remaining = await finalListResponse.Content.ReadFromJsonAsync<BuyerDeliveryAddressResponse[]>();
+        var remainingAddress = Assert.Single(remaining!);
+        Assert.Equal(second.DeliveryAddressId, remainingAddress.DeliveryAddressId);
+        Assert.True(remainingAddress.IsDefault);
+    }
+
+    [Fact]
+    public async Task DeliveryAddressValidation_RejectsInvalidAndTooManyAddresses()
+    {
+        using var factory = new BuyerEngagementTestFactory();
+        using var client = factory.CreateClient();
+        var buyerToken = await RegisterAndLoginAsync(client, "delivery-address-invalid-buyer@example.test", SwyftlyRoles.Buyer);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
+
+        using var invalidCountryResponse = await client.PostAsJsonAsync(
+            "/api/buyer/delivery-addresses",
+            DeliveryAddressRequest("Invalid", "Invalid Recipient", countryCode: "South Africa"));
+        Assert.Equal(HttpStatusCode.BadRequest, invalidCountryResponse.StatusCode);
+
+        for (var index = 0; index < BuyerDeliveryAddress.MaxAddressesPerBuyer; index++)
+        {
+            using var createResponse = await client.PostAsJsonAsync(
+                "/api/buyer/delivery-addresses",
+                DeliveryAddressRequest($"Address {index}", $"Recipient {index}", isDefault: index == 0));
+            createResponse.EnsureSuccessStatusCode();
+        }
+
+        using var tooManyResponse = await client.PostAsJsonAsync(
+            "/api/buyer/delivery-addresses",
+            DeliveryAddressRequest("Too many", "Too many recipient"));
+        Assert.Equal(HttpStatusCode.BadRequest, tooManyResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task NotificationPreferences_ControlInAppAndEmailDeliveryChannels()
+    {
+        using var factory = new BuyerEngagementTestFactory();
+        using var client = factory.CreateClient();
+        const string buyerEmail = "suppressed-notification-buyer@example.test";
+        var buyerToken = await RegisterAndLoginAsync(client, buyerEmail, SwyftlyRoles.Buyer);
+        var buyer = await GetBuyerAsync(factory, buyerEmail);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            "/api/buyer/notification-preferences",
+            new BuyerNotificationPreferencesRequest([
+                new BuyerNotificationPreferenceRequest(BuyerNotificationCategory.Reviews, false, true),
+                new BuyerNotificationPreferenceRequest(BuyerNotificationCategory.Returns, true, false),
+                new BuyerNotificationPreferenceRequest(BuyerNotificationCategory.Support, false, false)
+            ]));
+        updateResponse.EnsureSuccessStatusCode();
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            var emailOnly = await notificationService.CreateAsync(
+                new CreateNotificationRequest(
+                    buyer.UserId,
+                    "ReviewApproved",
+                    "Your review was published",
+                    "Your review is visible.",
+                    "ProductReview",
+                    Guid.NewGuid(),
+                    DateTimeOffset.UtcNow));
+            var inAppOnly = await notificationService.CreateAsync(
+                new CreateNotificationRequest(
+                    buyer.UserId,
+                    "ReturnApproved",
+                    "Your return was approved",
+                    "Your return was approved.",
+                    "ReturnRequest",
+                    Guid.NewGuid(),
+                    DateTimeOffset.UtcNow.AddMinutes(1)));
+            var fullySuppressed = await notificationService.CreateAsync(
+                new CreateNotificationRequest(
+                    buyer.UserId,
+                    "SupportReply",
+                    "Support replied",
+                    "Support replied to your ticket.",
+                    "SupportTicket",
+                    Guid.NewGuid(),
+                    DateTimeOffset.UtcNow.AddMinutes(2)));
+            var unknown = await notificationService.CreateAsync(
+                new CreateNotificationRequest(
+                    buyer.UserId,
+                    "CustomNotice",
+                    "Custom notice",
+                    "This unknown category should still be created.",
+                    null,
+                    null,
+                    DateTimeOffset.UtcNow.AddMinutes(3)));
+
+            Assert.NotNull(emailOnly);
+            Assert.False(emailOnly!.ReadAtUtc.HasValue);
+            Assert.NotNull(inAppOnly);
+            Assert.Null(fullySuppressed);
+            Assert.NotNull(unknown);
+
+            var dbContext = scope.ServiceProvider.GetRequiredService<SwyftlyDbContext>();
+            var emailDeliveries = await dbContext.NotificationEmailDeliveries
+                .AsNoTracking()
+                .ToListAsync();
+            Assert.Single(emailDeliveries);
+            Assert.Equal(emailOnly.NotificationId, emailDeliveries.Single().NotificationId);
+        }
+
+        using var notificationResponse = await client.GetAsync("/api/buyer/notifications");
+        notificationResponse.EnsureSuccessStatusCode();
+        var notifications = await notificationResponse.Content.ReadFromJsonAsync<NotificationResult[]>();
+        Assert.DoesNotContain(notifications!, notification => notification.Type == "ReviewApproved");
+        Assert.Contains(notifications!, notification => notification.Type == "ReturnApproved");
+        Assert.DoesNotContain(notifications!, notification => notification.Type == "SupportReply");
+        Assert.Contains(notifications!, notification => notification.Type == "CustomNotice");
+    }
+
+    [Fact]
     public async Task BuyerEndpoints_RejectAnonymousAndNonBuyerUsers()
     {
         using var factory = new BuyerEngagementTestFactory();
@@ -302,12 +632,20 @@ public sealed class BuyerEngagementTests
 
         using var anonymousResponse = await client.GetAsync("/api/buyer/wishlist");
         Assert.Equal(HttpStatusCode.Unauthorized, anonymousResponse.StatusCode);
+        using var anonymousSettingsResponse = await client.GetAsync("/api/buyer/profile");
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymousSettingsResponse.StatusCode);
+        using var anonymousAddressResponse = await client.GetAsync("/api/buyer/delivery-addresses");
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymousAddressResponse.StatusCode);
 
         var sellerToken = await RegisterAndLoginAsync(client, "engagement-seller@example.test", SwyftlyRoles.Seller);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sellerToken);
 
         using var sellerResponse = await client.GetAsync("/api/buyer/wishlist");
         Assert.Equal(HttpStatusCode.Forbidden, sellerResponse.StatusCode);
+        using var sellerSettingsResponse = await client.GetAsync("/api/buyer/profile");
+        Assert.Equal(HttpStatusCode.Forbidden, sellerSettingsResponse.StatusCode);
+        using var sellerAddressResponse = await client.GetAsync("/api/buyer/delivery-addresses");
+        Assert.Equal(HttpStatusCode.Forbidden, sellerAddressResponse.StatusCode);
     }
 
     private static async Task<string> RegisterAndLoginAsync(HttpClient client, string email, string role)
@@ -444,6 +782,16 @@ public sealed class BuyerEngagementTests
         return product.Id;
     }
 
+    private static async Task<Guid> GetVariantIdAsync(BuyerEngagementTestFactory factory, Guid productId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SwyftlyDbContext>();
+        return await dbContext.ProductVariants
+            .Where(variant => variant.ProductId == productId)
+            .Select(variant => variant.Id)
+            .SingleAsync();
+    }
+
     private static async Task<OrderSeed> CreateDeliveredOrderAsync(
         BuyerEngagementTestFactory factory,
         Guid buyerId,
@@ -544,6 +892,25 @@ public sealed class BuyerEngagementTests
         await dbContext.SaveChangesAsync();
         return [first.Id, second.Id];
     }
+
+    private static BuyerDeliveryAddressRequest DeliveryAddressRequest(
+        string label,
+        string recipientName,
+        bool isDefault = false,
+        string countryCode = "ZA") =>
+        new(
+            label,
+            recipientName,
+            "+27110000000",
+            "10 Market Street",
+            "Apartment 4",
+            "Rosebank",
+            "Johannesburg",
+            "Gauteng",
+            "2196",
+            countryCode,
+            isDefault,
+            "Leave at reception.");
 
     private enum ProductSeedStatus
     {

@@ -26,7 +26,7 @@ describe('AccountPageComponent', () => {
     returnService.listReturns.and.resolveTo([createReturn()]);
     disputeService.listDisputes.and.resolveTo([createDispute()]);
     supportService.listTickets.and.resolveTo([createTicket()]);
-    engagementService.listWishlist.and.resolveTo([{ wishlistItemId: 'wishlist-id', createdAtUtc: '2026-05-18T12:00:00Z', product: createProduct() }]);
+    engagementService.listWishlist.and.resolveTo([{ wishlistItemId: 'wishlist-id', createdAtUtc: '2026-05-18T12:00:00Z', product: createProduct(), availableVariants: [] }]);
     engagementService.listBuyerReviews.and.resolveTo([createReview()]);
     engagementService.listNotifications.and.resolveTo([createNotification()]);
 

@@ -10,7 +10,6 @@ import { ProductCardComponent } from '../shop/product-card.component';
 import { ProductSearchItemResponse, PublicCategoryResponse } from '../shop/public-catalog.models';
 import { PublicCatalogService } from '../shop/public-catalog.service';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
-import { PageHeaderComponent } from '../shared/ui/page-header.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
 import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 
@@ -22,7 +21,6 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    PageHeaderComponent,
     ProductCardComponent,
     ReactiveFormsModule,
     RouterLink,
@@ -30,15 +28,19 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     UiAlertComponent
   ],
   template: `
-    <section class="page shop-surface">
-      <div class="shop-hero">
-        <app-page-header
-          eyebrow="Shop"
-          heading="Find your next fashion, beauty, or accessory piece"
-          description="Search verified marketplace listings, compare seller and stock details, and keep filters visible as you browse."
-        >
-          <a pageHeaderActions mat-stroked-button routerLink="/">Marketplace home</a>
-        </app-page-header>
+    <section class="page shop-surface hf-shop-surface">
+      <div class="shop-hero hf-shop-hero">
+        <div class="shop-search-title">
+          <span class="eyebrow">Search results</span>
+          <h1>{{ searchHeading() }}</h1>
+          <p>{{ resultSummary() }}</p>
+        </div>
+
+        <div class="shop-hero-actions">
+          <app-status-badge label="Published catalog" tone="accent" />
+          <app-status-badge [label]="sortLabel()" />
+          <a mat-stroked-button routerLink="/">Marketplace home</a>
+        </div>
 
         <div class="shop-quick-links" aria-label="Category quick filters">
           <button mat-stroked-button type="button" [disabled]="isLoading()" (click)="applyCategory(null)">All products</button>
@@ -131,6 +133,11 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
           <div class="shop-filter-actions">
             <button mat-flat-button type="submit" [disabled]="isLoading()">Apply</button>
             <button mat-stroked-button type="button" [disabled]="isLoading()" (click)="clearFilters()">Clear</button>
+          </div>
+
+          <div class="shop-filter-note">
+            <strong>Buyer tip</strong>
+            <span>Published products from visible sellers are shown here. Broaden filters if a category has limited inventory.</span>
           </div>
         </form>
 
@@ -332,6 +339,29 @@ export class ShopPageComponent implements OnInit {
     }
 
     return 'Newest';
+  }
+
+  protected searchHeading(): string {
+    const filters = this.filtersForm.getRawValue();
+    if (filters.query.trim()) {
+      return filters.query.trim();
+    }
+
+    if (filters.categorySlug) {
+      const category = this.categories().find(item => item.slug === filters.categorySlug);
+      return category ? this.categoryLabel(category) : filters.categorySlug;
+    }
+
+    return 'Find your next fashion, beauty, or accessory piece';
+  }
+
+  protected resultSummary(): string {
+    if (this.isLoading()) {
+      return 'Loading published marketplace products.';
+    }
+
+    const count = this.totalCount();
+    return `${count} published product${count === 1 ? '' : 's'} from Swyftly sellers. Use filters to narrow by category, stock, price, size, colour, and material.`;
   }
 
   private async loadCategories(): Promise<void> {

@@ -5,6 +5,8 @@ import { environment } from '../../environments/environment';
 import {
   AddCartItemRequest,
   CartResponse,
+  CartShippingOptionsRequest,
+  CartShippingOptionsResponse,
   CreateOrderFromCartRequest,
   OrderResult,
   UpdateCartItemRequest
@@ -29,6 +31,14 @@ export class CartService {
 
   removeItem(cartItemId: string): Promise<CartResponse> {
     return firstValueFrom(this.http.delete<CartResponse>(`${this.baseUrl}/api/cart/items/${cartItemId}`));
+  }
+
+  moveItemToWishlist(cartItemId: string): Promise<CartResponse> {
+    return firstValueFrom(this.http.post<CartResponse>(`${this.baseUrl}/api/cart/items/${cartItemId}/move-to-wishlist`, null));
+  }
+
+  getShippingOptions(request: CartShippingOptionsRequest): Promise<CartShippingOptionsResponse> {
+    return firstValueFrom(this.http.post<CartShippingOptionsResponse>(`${this.baseUrl}/api/cart/shipping-options`, request));
   }
 
   clearCart(): Promise<void> {

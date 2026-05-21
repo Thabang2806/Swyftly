@@ -4,6 +4,26 @@ export interface BuyerWishlistItemResponse {
   wishlistItemId: string;
   createdAtUtc: string;
   product: ProductSearchItemResponse;
+  availableVariants: BuyerWishlistVariantOptionResponse[];
+}
+
+export interface BuyerWishlistProductIdsResponse {
+  productIds: string[];
+}
+
+export interface BuyerWishlistVariantOptionResponse {
+  productVariantId: string;
+  size: string;
+  colour: string;
+  price: number;
+  compareAtPrice: number | null;
+  inStock: boolean;
+  availableQuantity: number;
+}
+
+export interface MoveWishlistItemToCartRequest {
+  productVariantId: string;
+  quantity: number;
 }
 
 export interface ProductReviewRequest {

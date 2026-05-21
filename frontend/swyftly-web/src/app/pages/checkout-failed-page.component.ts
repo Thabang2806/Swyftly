@@ -14,10 +14,12 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
   imports: [CurrencyPipe, MatButtonModule, RouterLink, StatusBadgeComponent, UiAlertComponent],
   template: `
     <section class="page checkout-result-page">
-      <div class="checkout-result-card">
-        <app-status-badge [label]="order()?.status ?? 'Checkout issue'" [tone]="statusTone(order()?.status ?? 'Failed')" />
-        <h1>Checkout needs attention</h1>
-        <p>Payment may not have started or the provider may still be waiting for completion.</p>
+      <div class="checkout-result-card hf-checkout-result-card hf-checkout-result-card--warning">
+        <div class="checkout-result-heading">
+          <app-status-badge [label]="order()?.status ?? 'Checkout issue'" [tone]="statusTone(order()?.status ?? 'Failed')" />
+          <h1>Checkout needs attention</h1>
+          <p>Payment may not have started or the provider may still be waiting for completion.</p>
+        </div>
 
         @if (isLoading()) {
           <div class="route-card">Loading order...</div>
@@ -31,9 +33,15 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
           }
 
           @if (order()) {
-            <div class="checkout-reference">
-              <span>Order reference</span>
-              <strong>{{ order()!.orderId }}</strong>
+            <div class="checkout-result-grid">
+              <div class="checkout-reference">
+                <span>Order reference</span>
+                <strong>{{ order()!.orderId }}</strong>
+              </div>
+              <div class="checkout-reference">
+                <span>Total</span>
+                <strong>{{ order()!.totalAmount | currency:'ZAR':'symbol-narrow' }}</strong>
+              </div>
             </div>
 
             <div class="checkout-result-steps">
@@ -52,16 +60,18 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
             </div>
 
             @if (canRetryPayment()) {
-              <button mat-flat-button type="button" [disabled]="isRetrying()" (click)="retryPayment()">
-                {{ isRetrying() ? 'Opening payment...' : 'Retry payment' }}
-              </button>
+              <div class="checkout-result-action-row">
+                <button mat-flat-button type="button" [disabled]="isRetrying()" (click)="retryPayment()">
+                  {{ isRetrying() ? 'Opening payment...' : 'Retry payment' }}
+                </button>
+              </div>
             } @else if (order()!.status === 'Cancelled') {
               <app-ui-alert tone="warning">This order was cancelled after payment failure. Start checkout again from your cart instead of reopening this order.</app-ui-alert>
             }
           }
         }
 
-        <div class="auth-actions">
+        <div class="auth-actions checkout-result-actions">
           <a mat-flat-button routerLink="/cart">Review cart</a>
           <a mat-stroked-button routerLink="/shop">Continue shopping</a>
         </div>
@@ -137,4 +147,3 @@ export class CheckoutFailedPageComponent implements OnInit {
     return 'accent';
   }
 }
-

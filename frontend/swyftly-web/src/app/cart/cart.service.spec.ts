@@ -46,13 +46,26 @@ describe('CartService', () => {
     expect(removeRequest.request.method).toBe('DELETE');
     removeRequest.flush({ ...createCart(), items: [], totalQuantity: 0, subtotal: 0 });
     await expectAsync(removePromise).toBeResolved();
+
+    const movePromise = service.moveItemToWishlist('cart-item-id');
+    const moveRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/cart/items/cart-item-id/move-to-wishlist`);
+    expect(moveRequest.request.method).toBe('POST');
+    moveRequest.flush({ ...createCart(), items: [], totalQuantity: 0, subtotal: 0 });
+    await expectAsync(movePromise).toBeResolved();
   });
 
   it('creates an order from the cart', async () => {
-    const promise = service.createOrderFromCart({ cartId: 'cart-id', reservationMinutes: null });
+    const body = {
+      cartId: 'cart-id',
+      reservationMinutes: null,
+      deliveryAddressId: 'address-id',
+      deliveryAddress: null,
+      deliveryMethodId: 'delivery-method-id'
+    };
+    const promise = service.createOrderFromCart(body);
     const request = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/orders/from-cart`);
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ cartId: 'cart-id', reservationMinutes: null });
+    expect(request.request.body).toEqual(body);
     request.flush({
       orderId: 'order-id',
       buyerId: 'buyer-id',
@@ -70,6 +83,41 @@ describe('CartService', () => {
 
     await expectAsync(promise).toBeResolved();
   });
+
+  it('loads cart shipping options', async () => {
+    const body = {
+      cartId: 'cart-id',
+      deliveryAddressId: 'address-id',
+      deliveryAddress: null
+    };
+    const promise = service.getShippingOptions(body);
+    const request = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/cart/shipping-options`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(body);
+    request.flush({
+      cartId: 'cart-id',
+      sellerId: 'seller-id',
+      cartSubtotal: 998,
+      options: [{
+        deliveryMethodId: 'delivery-method-id',
+        name: 'Standard courier',
+        description: null,
+        methodType: 'Standard',
+        countryCode: 'ZA',
+        province: 'Gauteng',
+        basePrice: 75,
+        freeShippingThreshold: 1000,
+        shippingAmount: 75,
+        freeShippingApplied: false,
+        estimatedMinDays: 2,
+        estimatedMaxDays: 5,
+        displayOrder: 10
+      }]
+    });
+
+    const response = await promise;
+    expect(response.options[0].deliveryMethodId).toBe('delivery-method-id');
+  });
 });
 
 export function createCart() {
@@ -83,6 +131,9 @@ export function createCart() {
       productId: 'product-id',
       productVariantId: 'variant-id',
       productTitle: 'Summer Dress',
+      productSlug: 'summer-dress',
+      primaryImageUrl: 'https://example.test/summer-dress.jpg',
+      primaryImageAltText: 'Summer dress',
       sku: 'SKU-1',
       size: 'M',
       colour: 'Black',

@@ -33,6 +33,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
         description="Read marketplace updates about your account activity."
       >
         <div pageHeaderActions>
+          <a mat-stroked-button routerLink="/account/settings">Notification settings</a>
           <button mat-stroked-button type="button" [disabled]="unreadCount() === 0 || isSaving()" (click)="markAllRead()">
             Mark all read
           </button>

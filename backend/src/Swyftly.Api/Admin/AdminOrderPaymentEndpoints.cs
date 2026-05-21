@@ -1,4 +1,7 @@
+using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Swyftly.Application.Admin;
 using Swyftly.Application.Identity;
 using Swyftly.Application.Orders;
 using Swyftly.Domain.Orders;
@@ -44,6 +47,15 @@ public static class AdminOrderPaymentEndpoints
             .WithName("GetAdminPaymentReconciliationCandidates")
             .WithSummary("Returns read-only payment records that need manual provider reconciliation.")
             .Produces<IReadOnlyCollection<AdminPaymentReconciliationCandidateResponse>>(StatusCodes.Status200OK);
+
+        payments.MapPost("/{paymentId:guid}/reconciliation-reviews", CreatePaymentReconciliationReviewAsync)
+            .WithName("CreateAdminPaymentReconciliationReview")
+            .WithSummary("Records finance reconciliation evidence without mutating payment settlement state.")
+            .RequireAuthorization(SwyftlyPolicies.FinanceApprove)
+            .Produces<AdminPaymentReconciliationReviewResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         payments.MapGet("/{paymentId:guid}", GetPaymentAsync)
             .WithName("GetAdminPayment")
@@ -136,6 +148,7 @@ public static class AdminOrderPaymentEndpoints
 
     private static async Task<IResult> GetPaymentReconciliationCandidatesAsync(
         int? olderThanMinutes,
+        bool? includeSnoozed,
         int? take,
         SwyftlyDbContext dbContext,
         TimeProvider timeProvider,
@@ -173,12 +186,115 @@ public static class AdminOrderPaymentEndpoints
             .Select(paymentEvent => paymentEvent.PaymentId!.Value)
             .ToHashSet();
 
+        var latestReviews = await dbContext.PaymentReconciliationReviews
+            .Where(review => paymentIds.Contains(review.PaymentId))
+            .AsNoTracking()
+            .OrderByDescending(review => review.ReviewedAtUtc)
+            .ToListAsync(cancellationToken);
+        var latestReviewByPaymentId = latestReviews
+            .GroupBy(review => review.PaymentId)
+            .ToDictionary(group => group.Key, group => group.First());
+
+        var now = timeProvider.GetUtcNow();
         return HttpResults.Ok(payments
+            .Where(payment => includeSnoozed == true
+                || latestReviewByPaymentId.GetValueOrDefault(payment.Id)?.NextReviewAfterUtc is not DateTimeOffset nextReviewAfterUtc
+                || nextReviewAfterUtc <= now)
             .Select(payment => MapReconciliationCandidate(
                 payment,
                 latestEventByPaymentId.GetValueOrDefault(payment.Id),
-                failedEventPaymentIdSet.Contains(payment.Id)))
+                failedEventPaymentIdSet.Contains(payment.Id),
+                latestReviewByPaymentId.GetValueOrDefault(payment.Id)))
             .ToArray());
+    }
+
+    private static async Task<IResult> CreatePaymentReconciliationReviewAsync(
+        Guid paymentId,
+        CreatePaymentReconciliationReviewRequest request,
+        ClaimsPrincipal principal,
+        HttpContext httpContext,
+        SwyftlyDbContext dbContext,
+        IAuditLogService auditLogService,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId(principal);
+        if (!actorUserId.HasValue)
+        {
+            return HttpResults.Problem(
+                title: "AdminPayments.ActorNotFound",
+                detail: "The authenticated finance approver user id could not be read.",
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        var observedProviderStatus = request.ObservedProviderStatus?.Trim();
+        if (string.IsNullOrWhiteSpace(observedProviderStatus))
+        {
+            return Validation("observedProviderStatus", "Observed provider status is required.");
+        }
+
+        if (!Enum.TryParse<PaymentReconciliationOutcome>(request.Outcome, ignoreCase: true, out var outcome)
+            || !Enum.IsDefined(outcome))
+        {
+            return Validation("outcome", "Outcome must be ProviderPending, MatchedNoAction, ProviderPaidMissingWebhook, ProviderFailedMissingWebhook, or ManualRecoveryRequired.");
+        }
+
+        var reason = request.Reason?.Trim();
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return Validation("reason", "Reconciliation review reason is required.");
+        }
+
+        if (request.ObservedAmount.HasValue && request.ObservedAmount.Value <= 0)
+        {
+            return Validation("observedAmount", "Observed amount must be positive when supplied.");
+        }
+
+        var payment = await dbContext.Payments
+            .SingleOrDefaultAsync(payment => payment.Id == paymentId, cancellationToken);
+        if (payment is null)
+        {
+            return NotFound("AdminPayments.NotFound", "Payment was not found.");
+        }
+
+        var review = new PaymentReconciliationReview(
+            payment.Id,
+            payment.Provider,
+            payment.ProviderReference,
+            observedProviderStatus,
+            request.ObservedAmount,
+            request.ObservedCurrency,
+            outcome,
+            reason,
+            actorUserId.Value,
+            timeProvider.GetUtcNow(),
+            request.NextReviewAfterUtc);
+
+        dbContext.PaymentReconciliationReviews.Add(review);
+
+        await auditLogService.RecordAsync(
+            new CreateAuditLogEntry(
+                actorUserId.Value.ToString(),
+                GetActorRole(principal),
+                "PaymentReconciliationReviewed",
+                "Payment",
+                payment.Id.ToString(),
+                null,
+                JsonSerializer.Serialize(new
+                {
+                    review.ObservedProviderStatus,
+                    review.ObservedAmount,
+                    review.ObservedCurrency,
+                    Outcome = review.Outcome.ToString(),
+                    review.NextReviewAfterUtc
+                }),
+                review.Reason,
+                httpContext.Connection.RemoteIpAddress?.ToString()),
+            cancellationToken);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return HttpResults.Ok(MapReconciliationReview(review));
     }
 
     private static async Task<IResult> GetPaymentAsync(
@@ -307,7 +423,12 @@ public static class AdminOrderPaymentEndpoints
                 .Select(shipment => shipment.Status.ToString())
                 .FirstOrDefault(),
             order.CreatedAtUtc,
-            order.UpdatedAtUtc);
+            order.UpdatedAtUtc,
+            order.DeliveryMethodId,
+            order.DeliveryMethodName,
+            order.DeliveryMethodType,
+            order.DeliveryEstimatedMinDays,
+            order.DeliveryEstimatedMaxDays);
 
     private static AdminOrderDetailResponse MapOrderDetail(
         Order order,
@@ -339,6 +460,19 @@ public static class AdminOrderPaymentEndpoints
             order.PlatformFeeAmount,
             order.DiscountAmount,
             order.TotalAmount,
+            order.DeliveryAddress is null
+                ? null
+                : new OrderDeliveryAddressResult(
+                    order.DeliveryAddress.RecipientName,
+                    order.DeliveryAddress.PhoneNumber,
+                    order.DeliveryAddress.AddressLine1,
+                    order.DeliveryAddress.AddressLine2,
+                    order.DeliveryAddress.Suburb,
+                    order.DeliveryAddress.City,
+                    order.DeliveryAddress.Province,
+                    order.DeliveryAddress.PostalCode,
+                    order.DeliveryAddress.CountryCode,
+                    order.DeliveryAddress.DeliveryInstructions),
             order.StatusHistory
                 .OrderBy(history => history.ChangedAtUtc)
                 .Select(history => new OrderStatusHistoryResult(
@@ -372,7 +506,12 @@ public static class AdminOrderPaymentEndpoints
                 .ToArray(),
             payments,
             order.CreatedAtUtc,
-            order.UpdatedAtUtc);
+            order.UpdatedAtUtc,
+            order.DeliveryMethodId,
+            order.DeliveryMethodName,
+            order.DeliveryMethodType,
+            order.DeliveryEstimatedMinDays,
+            order.DeliveryEstimatedMaxDays);
 
     private static AdminPaymentSummaryResponse MapPaymentSummary(Payment payment) =>
         new(
@@ -392,7 +531,8 @@ public static class AdminOrderPaymentEndpoints
     private static AdminPaymentReconciliationCandidateResponse MapReconciliationCandidate(
         Payment payment,
         PaymentEvent? latestEvent,
-        bool hasFailedEvent)
+        bool hasFailedEvent,
+        PaymentReconciliationReview? latestReview)
     {
         var reasonCode = hasFailedEvent
             ? "FailedWebhookEvent"
@@ -426,8 +566,24 @@ public static class AdminOrderPaymentEndpoints
                     latestEvent.ProcessingStatus.ToString(),
                     latestEvent.ReceivedAtUtc,
                     latestEvent.ProcessedAtUtc,
-                    latestEvent.ErrorMessage));
+                    latestEvent.ErrorMessage),
+            latestReview is null ? null : MapReconciliationReview(latestReview));
     }
+
+    private static AdminPaymentReconciliationReviewResponse MapReconciliationReview(PaymentReconciliationReview review) =>
+        new(
+            review.Id,
+            review.PaymentId,
+            review.Provider,
+            review.ProviderReference,
+            review.ObservedProviderStatus,
+            review.ObservedAmount,
+            review.ObservedCurrency,
+            review.Outcome.ToString(),
+            review.Reason,
+            review.ReviewedByUserId,
+            review.ReviewedAtUtc,
+            review.NextReviewAfterUtc);
 
     private static int ClampTake(int? take) =>
         Math.Clamp(take.GetValueOrDefault(DefaultTake), 1, MaxTake);
@@ -437,6 +593,26 @@ public static class AdminOrderPaymentEndpoints
 
     private static IResult NotFound(string title, string detail) =>
         HttpResults.Problem(title: title, detail: detail, statusCode: StatusCodes.Status404NotFound);
+
+    private static IResult Validation(string key, string message) =>
+        HttpResults.ValidationProblem(new Dictionary<string, string[]>
+        {
+            [key] = [message]
+        });
+
+    private static Guid? GetActorUserId(ClaimsPrincipal principal) =>
+        Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)
+            ? userId
+            : null;
+
+    private static string GetActorRole(ClaimsPrincipal principal) =>
+        principal.IsInRole(SwyftlyRoles.SuperAdmin)
+            ? SwyftlyRoles.SuperAdmin
+            : principal.IsInRole(SwyftlyRoles.FinanceApprover)
+                ? SwyftlyRoles.FinanceApprover
+                : principal.IsInRole(SwyftlyRoles.FinanceOperator)
+                    ? SwyftlyRoles.FinanceOperator
+                    : SwyftlyRoles.Admin;
 }
 
 public sealed record AdminOrderSummaryResponse(
@@ -454,7 +630,12 @@ public sealed record AdminOrderSummaryResponse(
     string? PaymentStatus,
     string? ShipmentStatus,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    Guid? DeliveryMethodId = null,
+    string? DeliveryMethodName = null,
+    string? DeliveryMethodType = null,
+    int? DeliveryEstimatedMinDays = null,
+    int? DeliveryEstimatedMaxDays = null);
 
 public sealed record AdminOrderDetailResponse(
     Guid OrderId,
@@ -469,11 +650,17 @@ public sealed record AdminOrderDetailResponse(
     decimal PlatformFeeAmount,
     decimal DiscountAmount,
     decimal TotalAmount,
+    OrderDeliveryAddressResult? DeliveryAddress,
     IReadOnlyCollection<OrderStatusHistoryResult> StatusHistory,
     IReadOnlyCollection<ShipmentResult> Shipments,
     IReadOnlyCollection<AdminPaymentSummaryResponse> Payments,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    Guid? DeliveryMethodId = null,
+    string? DeliveryMethodName = null,
+    string? DeliveryMethodType = null,
+    int? DeliveryEstimatedMinDays = null,
+    int? DeliveryEstimatedMaxDays = null);
 
 public sealed record AdminPaymentSummaryResponse(
     Guid PaymentId,
@@ -518,7 +705,30 @@ public sealed record AdminPaymentReconciliationCandidateResponse(
     DateTimeOffset UpdatedAtUtc,
     string ReasonCode,
     string RecommendedAction,
-    AdminPaymentEventResponse? LatestEvent);
+    AdminPaymentEventResponse? LatestEvent,
+    AdminPaymentReconciliationReviewResponse? LatestReview);
+
+public sealed record CreatePaymentReconciliationReviewRequest(
+    string? ObservedProviderStatus,
+    decimal? ObservedAmount,
+    string? ObservedCurrency,
+    string? Outcome,
+    string? Reason,
+    DateTimeOffset? NextReviewAfterUtc);
+
+public sealed record AdminPaymentReconciliationReviewResponse(
+    Guid ReviewId,
+    Guid PaymentId,
+    string Provider,
+    string? ProviderReference,
+    string ObservedProviderStatus,
+    decimal? ObservedAmount,
+    string? ObservedCurrency,
+    string Outcome,
+    string Reason,
+    Guid ReviewedByUserId,
+    DateTimeOffset ReviewedAtUtc,
+    DateTimeOffset? NextReviewAfterUtc);
 
 public sealed record AdminPaymentOrderResponse(
     Guid OrderId,

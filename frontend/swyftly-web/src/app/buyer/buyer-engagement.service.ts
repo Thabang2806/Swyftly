@@ -5,12 +5,15 @@ import { environment } from '../../environments/environment';
 import {
   BuyerNotificationResponse,
   BuyerProductReviewResponse,
+  BuyerWishlistProductIdsResponse,
   BuyerWishlistItemResponse,
+  MoveWishlistItemToCartRequest,
   NotificationsReadAllResponse,
   ProductReviewRequest,
   PublicProductReviewResponse,
   PublicProductReviewSummaryResponse
 } from './buyer-engagement.models';
+import { CartResponse } from '../cart/cart.models';
 
 @Injectable({ providedIn: 'root' })
 export class BuyerEngagementService {
@@ -21,8 +24,16 @@ export class BuyerEngagementService {
     return firstValueFrom(this.http.get<BuyerWishlistItemResponse[]>(`${this.baseUrl}/api/buyer/wishlist`));
   }
 
+  listWishlistProductIds(): Promise<BuyerWishlistProductIdsResponse> {
+    return firstValueFrom(this.http.get<BuyerWishlistProductIdsResponse>(`${this.baseUrl}/api/buyer/wishlist/product-ids`));
+  }
+
   addWishlistItem(productId: string): Promise<BuyerWishlistItemResponse> {
     return firstValueFrom(this.http.post<BuyerWishlistItemResponse>(`${this.baseUrl}/api/buyer/wishlist/${productId}`, null));
+  }
+
+  moveWishlistItemToCart(productId: string, request: MoveWishlistItemToCartRequest): Promise<CartResponse> {
+    return firstValueFrom(this.http.post<CartResponse>(`${this.baseUrl}/api/buyer/wishlist/${productId}/move-to-cart`, request));
   }
 
   removeWishlistItem(productId: string): Promise<void> {

@@ -29,6 +29,7 @@ describe('BuyerWorkspaceNavComponent', () => {
     expect(links).toContain(jasmine.objectContaining({ label: 'Wishlist', href: '/account/wishlist' }));
     expect(links).toContain(jasmine.objectContaining({ label: 'Reviews', href: '/account/reviews' }));
     expect(links).toContain(jasmine.objectContaining({ label: 'Notifications', href: '/account/notifications' }));
+    expect(links).toContain(jasmine.objectContaining({ label: 'Settings', href: '/account/settings' }));
     expect(links).toContain(jasmine.objectContaining({ label: 'Disputes', href: '/account/disputes' }));
     expect(links).toContain(jasmine.objectContaining({ label: 'Support', href: '/account/support' }));
   });

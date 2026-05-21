@@ -16,6 +16,24 @@ public sealed class DevelopmentImageStorageProvider : IImageStorageProvider
         return Task.FromResult(new ImageStorageReference(storageKey, url));
     }
 
+    public Task<ImageStorageReference> UploadAsync(
+        UploadImageStorageRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("Development image references do not support binary uploads.");
+    }
+
+    public Task DeleteAsync(
+        string storageKey,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task<ImageStorageReadinessResult> CheckReadinessAsync(
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(ImageStorageReadinessResult.Ready("Development image reference provider is available."));
+
     private static string Required(string? value, string parameterName)
     {
         var trimmed = value?.Trim();

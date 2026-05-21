@@ -81,6 +81,14 @@ public static class OrderEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
+        sellerGroup.MapPost("/{orderId:guid}/mark-ready-to-ship", MarkReadyToShipAsync)
+            .WithName("MarkSellerOrderReadyToShip")
+            .WithSummary("Marks a paid or processing seller order as ready to ship.")
+            .Produces<OrderResult>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
         sellerGroup.MapPost("/{orderId:guid}/tracking", AddTrackingAsync)
             .WithName("AddSellerOrderTracking")
             .WithSummary("Adds or replaces manual tracking details for a seller order.")
@@ -100,6 +108,22 @@ public static class OrderEndpoints
         sellerGroup.MapPost("/{orderId:guid}/mark-delivered", MarkDeliveredAsync)
             .WithName("MarkSellerOrderDelivered")
             .WithSummary("Marks a seller order as delivered and records delivery on the current shipment.")
+            .Produces<OrderResult>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        sellerGroup.MapPost("/{orderId:guid}/mark-delivery-failed", MarkDeliveryFailedAsync)
+            .WithName("MarkSellerOrderDeliveryFailed")
+            .WithSummary("Records a manual delivery failure on the current in-transit shipment.")
+            .Produces<OrderResult>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        sellerGroup.MapPost("/{orderId:guid}/mark-returned-to-sender", MarkReturnedToSenderAsync)
+            .WithName("MarkSellerOrderReturnedToSender")
+            .WithSummary("Records that the current shipment was returned to sender.")
             .Produces<OrderResult>(StatusCodes.Status200OK)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound)
@@ -129,7 +153,22 @@ public static class OrderEndpoints
                 timeProvider.GetUtcNow(),
                 request.ReservationMinutes is > 0
                     ? TimeSpan.FromMinutes(request.ReservationMinutes.Value)
-                    : DefaultReservationDuration),
+                    : DefaultReservationDuration,
+                DeliveryAddressId: request.DeliveryAddressId,
+                DeliveryAddress: request.DeliveryAddress is null
+                    ? null
+                    : new OrderDeliveryAddressRequest(
+                        request.DeliveryAddress.RecipientName,
+                        request.DeliveryAddress.PhoneNumber,
+                        request.DeliveryAddress.AddressLine1,
+                        request.DeliveryAddress.AddressLine2,
+                        request.DeliveryAddress.Suburb,
+                        request.DeliveryAddress.City,
+                        request.DeliveryAddress.Province,
+                        request.DeliveryAddress.PostalCode,
+                        request.DeliveryAddress.CountryCode,
+                        request.DeliveryAddress.DeliveryInstructions),
+                DeliveryMethodId: request.DeliveryMethodId),
             cancellationToken);
 
         return result.ToHttpResult(HttpResults.Ok);
@@ -234,6 +273,46 @@ public static class OrderEndpoints
         var result = await fulfillmentService.MarkProcessingAsync(
             new OrderFulfillmentRequest(seller.Id, orderId, timeProvider.GetUtcNow()),
             cancellationToken);
+
+        return result.ToHttpResult(HttpResults.Ok);
+    }
+
+    private static async Task<IResult> MarkReadyToShipAsync(
+        Guid orderId,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        IOrderFulfillmentService fulfillmentService,
+        INotificationService notificationService,
+        TimeProvider timeProvider,
+        ILoggerFactory loggerFactory,
+        CancellationToken cancellationToken)
+    {
+        var seller = await GetCurrentSellerAsync(principal, dbContext, cancellationToken);
+        if (seller is null)
+        {
+            return SellerNotFound();
+        }
+
+        var occurredAtUtc = timeProvider.GetUtcNow();
+        var result = await fulfillmentService.MarkReadyToShipAsync(
+            new OrderFulfillmentRequest(seller.Id, orderId, occurredAtUtc),
+            cancellationToken);
+
+        if (result.IsSuccess && HasLatestShipmentEvent(result.Value, "ShipmentReadyForCourier", occurredAtUtc))
+        {
+            await BuyerNotificationDispatcher.NotifyBuyerAsync(
+                result.Value.BuyerId,
+                "OrderReadyToShip",
+                "Your order is ready to ship",
+                "The seller prepared your order for courier collection.",
+                "Order",
+                result.Value.OrderId,
+                timeProvider.GetUtcNow(),
+                dbContext,
+                notificationService,
+                loggerFactory.CreateLogger(nameof(OrderEndpoints)),
+                cancellationToken);
+        }
 
         return result.ToHttpResult(HttpResults.Ok);
     }
@@ -367,6 +446,88 @@ public static class OrderEndpoints
         return result.ToHttpResult(HttpResults.Ok);
     }
 
+    private static async Task<IResult> MarkDeliveryFailedAsync(
+        Guid orderId,
+        FulfillmentExceptionApiRequest request,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        IOrderFulfillmentService fulfillmentService,
+        INotificationService notificationService,
+        TimeProvider timeProvider,
+        ILoggerFactory loggerFactory,
+        CancellationToken cancellationToken)
+    {
+        var seller = await GetCurrentSellerAsync(principal, dbContext, cancellationToken);
+        if (seller is null)
+        {
+            return SellerNotFound();
+        }
+
+        var occurredAtUtc = timeProvider.GetUtcNow();
+        var result = await fulfillmentService.MarkDeliveryFailedAsync(
+            new OrderFulfillmentExceptionRequest(seller.Id, orderId, request.Reason, occurredAtUtc),
+            cancellationToken);
+
+        if (result.IsSuccess && HasLatestShipmentEvent(result.Value, "DeliveryFailed", occurredAtUtc))
+        {
+            await BuyerNotificationDispatcher.NotifyBuyerAsync(
+                result.Value.BuyerId,
+                "OrderDeliveryFailed",
+                "Delivery needs attention",
+                "The seller recorded a delivery issue. Contact support if you need help with this order.",
+                "Order",
+                result.Value.OrderId,
+                timeProvider.GetUtcNow(),
+                dbContext,
+                notificationService,
+                loggerFactory.CreateLogger(nameof(OrderEndpoints)),
+                cancellationToken);
+        }
+
+        return result.ToHttpResult(HttpResults.Ok);
+    }
+
+    private static async Task<IResult> MarkReturnedToSenderAsync(
+        Guid orderId,
+        FulfillmentExceptionApiRequest request,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        IOrderFulfillmentService fulfillmentService,
+        INotificationService notificationService,
+        TimeProvider timeProvider,
+        ILoggerFactory loggerFactory,
+        CancellationToken cancellationToken)
+    {
+        var seller = await GetCurrentSellerAsync(principal, dbContext, cancellationToken);
+        if (seller is null)
+        {
+            return SellerNotFound();
+        }
+
+        var occurredAtUtc = timeProvider.GetUtcNow();
+        var result = await fulfillmentService.MarkReturnedToSenderAsync(
+            new OrderFulfillmentExceptionRequest(seller.Id, orderId, request.Reason, occurredAtUtc),
+            cancellationToken);
+
+        if (result.IsSuccess && HasLatestShipmentEvent(result.Value, "ReturnedToSender", occurredAtUtc))
+        {
+            await BuyerNotificationDispatcher.NotifyBuyerAsync(
+                result.Value.BuyerId,
+                "OrderReturnedToSender",
+                "Shipment returned to sender",
+                "The seller recorded that the shipment was returned to sender. Contact support if you need help with next steps.",
+                "Order",
+                result.Value.OrderId,
+                timeProvider.GetUtcNow(),
+                dbContext,
+                notificationService,
+                loggerFactory.CreateLogger(nameof(OrderEndpoints)),
+                cancellationToken);
+        }
+
+        return result.ToHttpResult(HttpResults.Ok);
+    }
+
     private static IQueryable<Order> OrderQuery(SwyftlyDbContext dbContext) =>
         dbContext.Orders
             .Include(order => order.Items)
@@ -423,6 +584,19 @@ public static class OrderEndpoints
             order.PlatformFeeAmount,
             order.DiscountAmount,
             order.TotalAmount,
+            order.DeliveryAddress is null
+                ? null
+                : new OrderDeliveryAddressResult(
+                    order.DeliveryAddress.RecipientName,
+                    order.DeliveryAddress.PhoneNumber,
+                    order.DeliveryAddress.AddressLine1,
+                    order.DeliveryAddress.AddressLine2,
+                    order.DeliveryAddress.Suburb,
+                    order.DeliveryAddress.City,
+                    order.DeliveryAddress.Province,
+                    order.DeliveryAddress.PostalCode,
+                    order.DeliveryAddress.CountryCode,
+                    order.DeliveryAddress.DeliveryInstructions),
             order.StatusHistory
                 .OrderBy(history => history.ChangedAtUtc)
                 .Select(history => new OrderStatusHistoryResult(
@@ -453,7 +627,20 @@ public static class OrderEndpoints
                             shipmentEvent.TrackingNumber,
                             shipmentEvent.OccurredAtUtc))
                         .ToArray()))
-                .ToArray());
+                .ToArray(),
+            order.DeliveryMethodId,
+            order.DeliveryMethodName,
+            order.DeliveryMethodType,
+            order.DeliveryEstimatedMinDays,
+            order.DeliveryEstimatedMaxDays);
+
+    private static bool HasLatestShipmentEvent(OrderResult order, string eventType, DateTimeOffset occurredAtUtc) =>
+        order.Shipments
+            .SelectMany(shipment => shipment.Events)
+            .OrderByDescending(shipmentEvent => shipmentEvent.OccurredAtUtc)
+            .FirstOrDefault() is { } latest
+            && latest.EventType == eventType
+            && latest.OccurredAtUtc == occurredAtUtc;
 
     private static IResult BuyerNotFound() =>
         HttpResults.Problem(
@@ -476,10 +663,28 @@ public static class OrderEndpoints
 
 public sealed record CreateOrderFromCartApiRequest(
     Guid? CartId,
-    int? ReservationMinutes);
+    int? ReservationMinutes,
+    Guid? DeliveryAddressId = null,
+    CreateOrderDeliveryAddressApiRequest? DeliveryAddress = null,
+    Guid? DeliveryMethodId = null);
+
+public sealed record CreateOrderDeliveryAddressApiRequest(
+    string RecipientName,
+    string PhoneNumber,
+    string AddressLine1,
+    string? AddressLine2,
+    string? Suburb,
+    string City,
+    string Province,
+    string PostalCode,
+    string CountryCode,
+    string? DeliveryInstructions = null);
 
 public sealed record AddOrderTrackingApiRequest(
     string CarrierName,
     string TrackingNumber,
     string? TrackingUrl,
     string? Note);
+
+public sealed record FulfillmentExceptionApiRequest(
+    string Reason);

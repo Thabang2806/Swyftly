@@ -1,6 +1,6 @@
 # Payment Provider Implementation Notes
 
-Last updated: 2026-05-19
+Last updated: 2026-05-21
 
 Phase 8C implements PayFast as the first real provider adapter foundation. `PaymentProvider:ProviderName` still defaults to `Fake` outside explicit configuration, and PayU South Africa remains deferred until merchant technical docs and sandbox credentials are available.
 
@@ -29,14 +29,17 @@ Implemented in Phase 8C:
 - Refunds remain manual: PayFast refund approval records provider action required, and finance finalizes accounting through `POST /api/admin/refunds/{refundId}/confirm-manual-provider-refund` after the dashboard refund exists.
 - `GET /health/ready` includes a `payment-provider` check that validates selected-provider configuration.
 - `GET /api/admin/payments/reconciliation-candidates` gives finance a read-only queue for stale pending/authorized payments and failed webhook events. This is operational triage only; it does not query PayFast or mutate local settlement state.
+- Phase 9B added `payment_reconciliation_reviews` and `POST /api/admin/payments/{paymentId}/reconciliation-reviews` for `FinanceApprove` users to record provider-dashboard evidence, outcome, reason, and optional snooze timestamps. These reviews are evidence only and never settle payments or change orders/ledger/cart/reservation/refund/payout state.
+- `/admin/payments` now shows latest reconciliation review state and warns that `ProviderPaidMissingWebhook` requires provider investigation or valid ITN replay, not manual settlement.
+- `/admin/refunds` now makes PayFast `Processing` refunds explicit: complete the dashboard refund first, then confirm the manual provider refund reference in Swyftly.
 - Sandbox verification steps live in `docs/payfast-sandbox-runbook.md`.
 
 Remaining PayFast hardening:
 
 - End-to-end sandbox testing with real PayFast sandbox credentials and callback URLs.
-- Provider status query/reconciliation once exact API behavior is confirmed.
+- Provider status query and settlement automation once exact API behavior is confirmed.
 - Automatic PayFast refunds if/when a safe API contract is available.
-- Operational playbook for manual refund reference capture and reconciliation.
+- End-to-end sandbox evidence for the manual refund and reconciliation review runbooks.
 
 ## PayU South Africa Notes
 

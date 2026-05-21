@@ -6,10 +6,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { getApiErrorMessage } from '../auth/api-error';
-import { CartResponse } from '../cart/cart.models';
+import { BuyerWishlistStateService } from '../buyer/buyer-wishlist-state.service';
+import { CartItemResponse, CartResponse } from '../cart/cart.models';
 import { CartService } from '../cart/cart.service';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
 import { PageHeaderComponent } from '../shared/ui/page-header.component';
+import { ProductVisualFallbackComponent, ProductVisualTone } from '../shared/ui/product-visual-fallback.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
 import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 
@@ -23,6 +25,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     MatFormFieldModule,
     MatInputModule,
     PageHeaderComponent,
+    ProductVisualFallbackComponent,
     RouterLink,
     StatusBadgeComponent,
     UiAlertComponent
@@ -74,11 +77,23 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
               @for (item of cart()?.items; track item.cartItemId) {
                 <article class="cart-item">
                   <div class="cart-item-media" aria-hidden="true">
-                    {{ productInitial(item.productTitle) }}
+                    @if (item.primaryImageUrl) {
+                      <img [src]="item.primaryImageUrl" [alt]="item.primaryImageAltText ?? item.productTitle ?? 'Cart product image'">
+                    } @else {
+                      <app-product-visual-fallback
+                        [label]="item.size + ' / ' + item.colour"
+                        [title]="item.productTitle ?? 'Cart item'"
+                        [tone]="visualTone(item)"
+                      />
+                    }
                   </div>
 
                   <div class="cart-item-copy">
-                    <strong>{{ item.productTitle ?? 'Product' }}</strong>
+                    @if (item.productSlug) {
+                      <a [routerLink]="['/product', item.productSlug]"><strong>{{ item.productTitle ?? 'Product' }}</strong></a>
+                    } @else {
+                      <strong>{{ item.productTitle ?? 'Product' }}</strong>
+                    }
                     <span>{{ item.size }} / {{ item.colour }}</span>
                     <small>SKU {{ item.sku }} - {{ item.unitPrice | currency:'ZAR':'symbol-narrow' }} each</small>
                   </div>
@@ -116,6 +131,14 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                       (click)="removeItem(item.cartItemId)"
                     >
                       Remove
+                    </button>
+                    <button
+                      mat-button
+                      type="button"
+                      [disabled]="savingItemId() === item.cartItemId || updatingItemId() === item.cartItemId"
+                      (click)="saveForLater(item)"
+                    >
+                      {{ savingItemId() === item.cartItemId ? 'Saving...' : 'Save for later' }}
                     </button>
                   </div>
                 </article>
@@ -156,11 +179,13 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 })
 export class CartPageComponent implements OnInit {
   private readonly cartService = inject(CartService);
+  private readonly wishlistState = inject(BuyerWishlistStateService);
 
   protected readonly cart = signal<CartResponse | null>(null);
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly updatingItemId = signal<string | null>(null);
+  protected readonly savingItemId = signal<string | null>(null);
   private readonly localQuantities = new Map<string, number>();
 
   async ngOnInit(): Promise<void> {
@@ -169,6 +194,31 @@ export class CartPageComponent implements OnInit {
 
   protected productInitial(title: string | null): string {
     return title?.trim().charAt(0).toUpperCase() || 'S';
+  }
+
+  protected visualTone(item: CartItemResponse): ProductVisualTone {
+    const text = `${item.productTitle ?? ''} ${item.colour} ${item.size}`.toLowerCase();
+    if (/(jewel|ring|earring|necklace|bracelet|gold|silver)/.test(text)) {
+      return 'jewel';
+    }
+
+    if (/(beauty|skin|makeup|lip|hair|fragrance|serum)/.test(text)) {
+      return 'beauty';
+    }
+
+    if (/(bag|tote|clutch|purse|wallet)/.test(text)) {
+      return 'bag';
+    }
+
+    if (/(shoe|heel|sneaker|boot|sandal)/.test(text)) {
+      return 'shoe';
+    }
+
+    if (/(dress|coat|shirt|denim|fashion|clothing|linen|silk)/.test(text)) {
+      return 'dress';
+    }
+
+    return 'neutral';
   }
 
   protected setLocalQuantity(cartItemId: string, rawValue: string | number): void {
@@ -208,6 +258,20 @@ export class CartPageComponent implements OnInit {
       this.errorMessage.set(getApiErrorMessage(error));
     } finally {
       this.updatingItemId.set(null);
+    }
+  }
+
+  protected async saveForLater(item: CartItemResponse): Promise<void> {
+    this.savingItemId.set(item.cartItemId);
+    this.errorMessage.set(null);
+    try {
+      this.cart.set(await this.cartService.moveItemToWishlist(item.cartItemId));
+      this.wishlistState.markSaved(item.productId);
+      this.localQuantities.delete(item.cartItemId);
+    } catch (error) {
+      this.errorMessage.set(getApiErrorMessage(error));
+    } finally {
+      this.savingItemId.set(null);
     }
   }
 

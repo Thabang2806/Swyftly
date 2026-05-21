@@ -10,8 +10,27 @@ export interface BuyerOrderResult {
   platformFeeAmount: number;
   discountAmount: number;
   totalAmount: number;
+  deliveryAddress?: BuyerOrderDeliveryAddressResult | null;
+  deliveryMethodId?: string | null;
+  deliveryMethodName?: string | null;
+  deliveryMethodType?: string | null;
+  deliveryEstimatedMinDays?: number | null;
+  deliveryEstimatedMaxDays?: number | null;
   statusHistory: BuyerOrderStatusHistoryResult[];
   shipments: BuyerShipmentResult[];
+}
+
+export interface BuyerOrderDeliveryAddressResult {
+  recipientName: string;
+  phoneNumber: string;
+  addressLine1: string;
+  addressLine2: string | null;
+  suburb: string | null;
+  city: string;
+  province: string;
+  postalCode: string;
+  countryCode: string;
+  deliveryInstructions: string | null;
 }
 
 export interface BuyerOrderItemResult {

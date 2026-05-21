@@ -411,6 +411,10 @@ FodyWeavers.xsd
 
 .containers/
 
+# Local API-managed media uploads
+/storage/
+/backend/src/Swyftly.Api/storage/
+
 # Local environment files
 .env
 .env.*

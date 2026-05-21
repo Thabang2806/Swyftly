@@ -43,11 +43,13 @@ describe('SellerPageComponent', () => {
     expect(compiled.textContent).toContain('PendingVerification');
     expect(compiled.textContent).toContain('0 of 4 setup sections complete');
     expect(compiled.querySelector('a[href="/seller/orders"]')).not.toBeNull();
+    expect(compiled.querySelector('a[href="/seller/inventory"]')).not.toBeNull();
     expect(compiled.querySelector('a[href="/seller/returns"]')).not.toBeNull();
     expect(compiled.querySelector('a[href="/seller/payouts"]')).not.toBeNull();
     expect(compiled.querySelector('a[href="/seller/support"]')).not.toBeNull();
     expect(compiled.querySelector('a[href="/seller/ads"]')).not.toBeNull();
     expect(compiled.querySelector('a[href="/seller/analytics"]')).not.toBeNull();
+    expect(compiled.querySelector('a[href="/seller/settings/store"]')).not.toBeNull();
   });
 
   it('shows the verified seller dashboard instead of onboarding steps', async () => {
@@ -74,6 +76,8 @@ describe('SellerPageComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Seller dashboard');
     expect(compiled.textContent).toContain('Verified Store');
+    expect(compiled.querySelector('.hf-seller-dashboard-hero')).not.toBeNull();
+    expect(compiled.querySelector('.hf-seller-opportunity-card')).not.toBeNull();
     expect(compiled.textContent).toContain('Orders');
     expect(compiled.textContent).not.toContain('Basic seller details');
   });

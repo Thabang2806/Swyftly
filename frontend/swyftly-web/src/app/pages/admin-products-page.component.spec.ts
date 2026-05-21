@@ -10,8 +10,9 @@ describe('AdminProductsPageComponent', () => {
   let adminProductService: jasmine.SpyObj<AdminProductService>;
 
   beforeEach(async () => {
-    adminProductService = jasmine.createSpyObj<AdminProductService>('AdminProductService', ['getPendingReviewProducts']);
+    adminProductService = jasmine.createSpyObj<AdminProductService>('AdminProductService', ['getPendingReviewProducts', 'getPendingRevisions']);
     adminProductService.getPendingReviewProducts.and.resolveTo([createProductSummary()]);
+    adminProductService.getPendingRevisions.and.resolveTo([]);
 
     await TestBed.configureTestingModule({
       imports: [AdminProductsPageComponent],
@@ -34,6 +35,8 @@ describe('AdminProductsPageComponent', () => {
     expect(compiled.textContent).toContain('Summer Dress');
     expect(compiled.textContent).toContain('PendingReview');
     expect(compiled.textContent).toContain('1 high-risk flag');
+    expect(compiled.querySelector('.hf-admin-review-layout')).toBeTruthy();
+    expect(compiled.textContent).toContain('Selected review');
     const reviewLink = Array.from(compiled.querySelectorAll('a'))
       .find(link => link.getAttribute('href') === '/admin/products/product-id');
     expect(reviewLink).toBeTruthy();

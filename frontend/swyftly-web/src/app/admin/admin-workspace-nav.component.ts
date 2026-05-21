@@ -6,6 +6,12 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   imports: [RouterLink, RouterLinkActive],
   template: `
     <nav class="admin-workspace-nav" aria-label="Admin workspace">
+      <div class="admin-workspace-nav-brand">
+        <span>S</span>
+        <strong>Swyftly</strong>
+        <small>Admin console</small>
+      </div>
+
       @for (item of items; track item.route) {
         <a
           [routerLink]="item.route"

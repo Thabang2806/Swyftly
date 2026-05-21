@@ -2,7 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { AdminRefundResponse, ApproveAdminRefundRequest, CreateAdminRefundRequest } from './admin-refund.models';
+import {
+  AdminRefundResponse,
+  ApproveAdminRefundRequest,
+  ConfirmManualProviderRefundRequest,
+  CreateAdminRefundRequest
+} from './admin-refund.models';
 
 @Injectable({ providedIn: 'root' })
 export class AdminRefundService {
@@ -23,5 +28,13 @@ export class AdminRefundService {
 
   approveRefund(refundId: string, request: ApproveAdminRefundRequest): Promise<AdminRefundResponse> {
     return firstValueFrom(this.http.post<AdminRefundResponse>(`${this.baseUrl}/refunds/${refundId}/approve`, request));
+  }
+
+  confirmManualProviderRefund(refundId: string, request: ConfirmManualProviderRefundRequest): Promise<AdminRefundResponse> {
+    return firstValueFrom(
+      this.http.post<AdminRefundResponse>(
+        `${this.baseUrl}/refunds/${refundId}/confirm-manual-provider-refund`,
+        request)
+    );
   }
 }

@@ -1,4 +1,4 @@
-import { BuyerOrderItemResult, BuyerOrderStatusHistoryResult, BuyerShipmentResult } from '../buyer/buyer-order.models';
+import { BuyerOrderDeliveryAddressResult, BuyerOrderItemResult, BuyerOrderStatusHistoryResult, BuyerShipmentResult } from '../buyer/buyer-order.models';
 
 export interface AdminOrderSummaryResponse {
   orderId: string;
@@ -12,6 +12,11 @@ export interface AdminOrderSummaryResponse {
   platformFeeAmount: number;
   discountAmount: number;
   totalAmount: number;
+  deliveryMethodId?: string | null;
+  deliveryMethodName?: string | null;
+  deliveryMethodType?: string | null;
+  deliveryEstimatedMinDays?: number | null;
+  deliveryEstimatedMaxDays?: number | null;
   paymentStatus: string | null;
   shipmentStatus: string | null;
   createdAtUtc: string;
@@ -20,6 +25,7 @@ export interface AdminOrderSummaryResponse {
 
 export interface AdminOrderDetailResponse extends AdminOrderSummaryResponse {
   cartId: string;
+  deliveryAddress: BuyerOrderDeliveryAddressResult | null;
   items: BuyerOrderItemResult[];
   statusHistory: BuyerOrderStatusHistoryResult[];
   shipments: BuyerShipmentResult[];
@@ -50,6 +56,38 @@ export interface AdminPaymentReconciliationCandidateResponse extends AdminPaymen
   reasonCode: string;
   recommendedAction: string;
   latestEvent: AdminPaymentEventResponse | null;
+  latestReview: AdminPaymentReconciliationReviewResponse | null;
+}
+
+export type PaymentReconciliationOutcome =
+  | 'ProviderPending'
+  | 'MatchedNoAction'
+  | 'ProviderPaidMissingWebhook'
+  | 'ProviderFailedMissingWebhook'
+  | 'ManualRecoveryRequired';
+
+export interface CreatePaymentReconciliationReviewRequest {
+  observedProviderStatus: string;
+  observedAmount: number | null;
+  observedCurrency: string | null;
+  outcome: PaymentReconciliationOutcome;
+  reason: string;
+  nextReviewAfterUtc: string | null;
+}
+
+export interface AdminPaymentReconciliationReviewResponse {
+  reviewId: string;
+  paymentId: string;
+  provider: string;
+  providerReference: string | null;
+  observedProviderStatus: string;
+  observedAmount: number | null;
+  observedCurrency: string | null;
+  outcome: PaymentReconciliationOutcome;
+  reason: string;
+  reviewedByUserId: string;
+  reviewedAtUtc: string;
+  nextReviewAfterUtc: string | null;
 }
 
 export interface AdminPaymentOrderResponse {

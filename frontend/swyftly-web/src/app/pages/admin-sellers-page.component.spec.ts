@@ -33,6 +33,8 @@ describe('AdminSellersPageComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Seller Store');
     expect(compiled.textContent).toContain('UnderReview');
+    expect(compiled.querySelector('.hf-admin-review-layout')).toBeTruthy();
+    expect(compiled.textContent).toContain('Evidence snapshot');
     const reviewLink = Array.from(compiled.querySelectorAll('a'))
       .find(link => link.getAttribute('href') === '/admin/sellers/seller-id');
     expect(reviewLink).toBeTruthy();

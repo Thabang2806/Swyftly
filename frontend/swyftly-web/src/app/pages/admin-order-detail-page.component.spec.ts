@@ -39,6 +39,7 @@ describe('AdminOrderDetailPageComponent', () => {
     expect(compiled.textContent).toContain('Summer Dress');
     expect(compiled.textContent).toContain('PaymentCaptured');
     expect(compiled.textContent).toContain('ShipmentInTransit');
+    expect(compiled.textContent).toContain('Leave at reception.');
     expect(compiled.querySelector('a[href="/admin/payments/payment-id"]')).not.toBeNull();
   });
 });
@@ -47,6 +48,18 @@ export function createAdminOrderDetail(overrides: Partial<AdminOrderDetailRespon
   return {
     ...createAdminOrder(),
     cartId: 'cart-id',
+    deliveryAddress: {
+      recipientName: 'Buyer One',
+      phoneNumber: '+27110000000',
+      addressLine1: '10 Market Street',
+      addressLine2: null,
+      suburb: 'Rosebank',
+      city: 'Johannesburg',
+      province: 'Gauteng',
+      postalCode: '2196',
+      countryCode: 'ZA',
+      deliveryInstructions: 'Leave at reception.'
+    },
     items: [{
       orderItemId: 'item-id',
       productId: 'product-id',

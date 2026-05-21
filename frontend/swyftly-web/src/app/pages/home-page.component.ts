@@ -3,38 +3,68 @@ import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { DashboardCardComponent } from '../shared/ui/dashboard-card.component';
 import { PageHeaderComponent } from '../shared/ui/page-header.component';
+import { ProductVisualFallbackComponent, ProductVisualTone } from '../shared/ui/product-visual-fallback.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
 
 @Component({
   selector: 'app-home-page',
-  imports: [DashboardCardComponent, MatButtonModule, PageHeaderComponent, RouterLink, StatusBadgeComponent],
+  imports: [DashboardCardComponent, MatButtonModule, PageHeaderComponent, ProductVisualFallbackComponent, RouterLink, StatusBadgeComponent],
   template: `
     <section class="market-home">
       <section class="market-home-hero" aria-labelledby="home-title">
         <div class="market-home-hero-copy">
-          <app-status-badge label="Fashion marketplace" tone="accent" />
-          <h1 id="home-title">Shop fashion, beauty, jewellery, and accessories from trusted sellers.</h1>
+          <span class="eyebrow">AI-powered fashion marketplace</span>
+          <h1 id="home-title">Shop local style, beauty, and jewellery. Swyftly.</h1>
           <p>
-            Discover curated products, compare details quickly, and move from product discovery to checkout with clear seller and stock information.
+            Discover curated products from South African boutiques, independent sellers, beauty creators, and jewellery makers with secure checkout and buyer support paths.
           </p>
 
           <div class="market-home-actions">
-            <a mat-flat-button routerLink="/shop">Shop products</a>
+            <a mat-flat-button routerLink="/shop">Shop new arrivals</a>
             <a mat-stroked-button routerLink="/register/seller">Start selling</a>
           </div>
 
           <a class="market-search-entry" routerLink="/shop" aria-label="Open product search">
             Search dresses, jewellery, skincare, accessories, and more
           </a>
+
+          <div class="market-home-trust-strip" aria-label="Marketplace trust signals">
+            <app-status-badge label="Verified sellers" tone="success" />
+            <app-status-badge label="Reviewed listings" tone="accent" />
+            <app-status-badge label="Buyer support paths" />
+          </div>
         </div>
 
         <div class="market-home-showcase" aria-label="Featured marketplace categories">
           @for (item of showcaseItems; track item.title) {
-            <article class="market-showcase-card" [class.market-showcase-card--large]="item.large">
+            <article class="market-showcase-card" [class.market-showcase-card--large]="item.large" [class]="item.toneClass">
               <span>{{ item.kicker }}</span>
               <strong>{{ item.title }}</strong>
               <small>{{ item.detail }}</small>
             </article>
+          }
+        </div>
+      </section>
+
+      <section class="page market-home-section">
+        <app-page-header
+          eyebrow="Featured today"
+          heading="Curated style cues from the marketplace"
+          description="These are presentation cues from the high-fidelity direction. Live inventory still comes from the shop APIs."
+        />
+
+        <div class="market-featured-grid">
+          @for (item of featuredEdits; track item.title) {
+            <a class="market-feature-card" routerLink="/shop">
+              <div class="market-feature-card-media">
+                <app-product-visual-fallback [label]="item.kicker" [title]="item.title" [tone]="item.tone" />
+              </div>
+              <div class="market-feature-card-copy">
+                <span>{{ item.sellerCue }}</span>
+                <h2>{{ item.title }}</h2>
+                <p>{{ item.description }}</p>
+              </div>
+            </a>
           }
         </div>
       </section>
@@ -58,22 +88,6 @@ import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
       </section>
 
       <section class="page market-home-section">
-        <app-page-header
-          eyebrow="Marketplace trust"
-          heading="Built for careful buying and selling"
-          description="The product experience should make quality, seller status, stock, checkout, and support paths easy to understand."
-        />
-
-        <div class="route-grid">
-          @for (item of trustCards; track item.heading) {
-            <app-dashboard-card [eyebrow]="item.eyebrow" [heading]="item.heading" [description]="item.description">
-              <a mat-button [routerLink]="item.route">{{ item.action }}</a>
-            </app-dashboard-card>
-          }
-        </div>
-      </section>
-
-      <section class="page market-home-section">
         <div class="market-home-seller-band">
           <div>
             <app-status-badge label="Sellers" tone="accent" />
@@ -88,14 +102,67 @@ import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
           </div>
         </div>
       </section>
+
+      <section class="page market-home-section">
+        <app-page-header
+          eyebrow="Marketplace trust"
+          heading="Built for careful buying and selling"
+          description="The product experience should make quality, seller status, stock, checkout, and support paths easy to understand."
+        />
+
+        <div class="route-grid">
+          @for (item of trustCards; track item.heading) {
+            <app-dashboard-card [eyebrow]="item.eyebrow" [heading]="item.heading" [description]="item.description">
+              <a mat-button [routerLink]="item.route">{{ item.action }}</a>
+            </app-dashboard-card>
+          }
+        </div>
+      </section>
     </section>
   `
 })
 export class HomePageComponent {
   protected readonly showcaseItems = [
-    { kicker: 'New edit', title: 'Occasionwear', detail: 'Dresses, sets, and finishing pieces', large: true },
-    { kicker: 'Daily', title: 'Accessories', detail: 'Bags, belts, and jewellery', large: false },
-    { kicker: 'Beauty', title: 'Skincare', detail: 'Care routines and essentials', large: false }
+    { kicker: 'New edit', title: 'Occasionwear', detail: 'Dresses, sets, and finishing pieces', large: true, toneClass: 'market-showcase-card--dress' },
+    { kicker: 'Daily', title: 'Accessories', detail: 'Bags, belts, and jewellery', large: false, toneClass: 'market-showcase-card--bag' },
+    { kicker: 'Beauty', title: 'Skincare', detail: 'Care routines and essentials', large: false, toneClass: 'market-showcase-card--beauty' }
+  ];
+
+  protected readonly featuredEdits: Array<{
+    kicker: string;
+    title: string;
+    tone: ProductVisualTone;
+    sellerCue: string;
+    description: string;
+  }> = [
+    {
+      kicker: 'Occasion',
+      title: 'Eveningwear edit',
+      tone: 'dress',
+      sellerCue: 'Boutique-led fashion',
+      description: 'Look for formal pieces with clear variant, seller, and stock context.'
+    },
+    {
+      kicker: 'Trending',
+      title: 'Jewellery finish',
+      tone: 'jewel',
+      sellerCue: 'Independent makers',
+      description: 'Use product detail pages to compare materials, seller storefronts, and reviews.'
+    },
+    {
+      kicker: 'Beauty',
+      title: 'Glow routine',
+      tone: 'beauty',
+      sellerCue: 'Beauty creators',
+      description: 'Beauty products surface seller context and listing review signals before checkout.'
+    },
+    {
+      kicker: 'Featured',
+      title: 'Accessory pairing',
+      tone: 'bag',
+      sellerCue: 'Marketplace curation',
+      description: 'Browse bags, shoes, and accessories alongside outfit-led search terms.'
+    }
   ];
 
   protected readonly categoryCards = [

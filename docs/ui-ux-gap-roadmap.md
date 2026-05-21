@@ -6,6 +6,8 @@ This document maps the UI/UX blueprint to the current Angular app and turns it i
 
 The main UI issue is not route absence. The app has many useful screens, but they still feel like implementation surfaces rather than a cohesive fashion marketplace. The next UI work should start with navigation, shared visual primitives, marketplace trust, and buyer journey polish before broad feature expansion.
 
+Active high-fidelity implementation progress is tracked in `docs/ui-high-fidelity-progress.md`. That tracker maps the mockup pack in `Documentation/UI UX` to the current Angular routes and should be updated after every high-fidelity UI phase.
+
 ## Status Legend
 
 | Status | Meaning |
@@ -26,8 +28,8 @@ High-level coverage:
 |---|---|
 | Public buyer | Home, shop, category, product detail, seller storefront, cart, checkout start, checkout success/failure. |
 | Auth | Login, buyer registration, seller registration, access denied. |
-| Buyer account | Buyer dashboard, order history/detail, payment retry, returns, disputes, support tickets, wishlist, reviews, and notifications exist at useful MVP depth. Profile settings and notification delivery channels remain missing. |
-| Seller | Onboarding, verified seller dashboard, products, product editor, AI listing assistant, orders, fulfilment, returns, payouts, support, ads, and analytics. Storefront settings and deeper product-editor polish remain incomplete UI areas. |
+| Buyer account | Buyer dashboard, order history/detail, payment retry, returns, disputes, support tickets, wishlist, reviews, notifications, saved delivery addresses, and settings exist at useful MVP depth. Buyer transactional email delivery exists; SMS, push, and real-time channels remain missing. |
+| Seller | Onboarding, verified seller dashboard, products, dedicated inventory, store settings, polished MVP product editor with production-hardened media uploads, moderation-aware published listing revisions, AI listing assistant, orders, fulfilment, returns, payouts, support, ads, and analytics. Variant/pricing revision flows, bulk inventory tooling, and payout-bank re-verification remain incomplete. |
 | Admin | Dashboard, seller queue/detail, product queue/detail, audit logs, reports, AI usage, ad campaign queue/detail, finance refunds, finance payouts, dispute resolution, and read-only order/payment investigation screens. |
 | Shared UI | Product card exists. Most layout and component styling lives in one global stylesheet. |
 
@@ -40,19 +42,19 @@ High-level coverage:
 | B-03 | Product Listing/Search Results | `/shop`, `ShopPageComponent` | Partial | Search, filters, sort, pagination, and product grid exist. Needs mobile filter drawer, category facets, availability, rating, brand/material treatment, and stronger empty/loading states. |
 | B-04 | Product Detail Page | `/product/:slug`, `ProductDetailPageComponent` | Partial | Product detail, variant selection, attributes, price, seller link, and add-to-cart exist. Needs true image gallery, trust blocks, return/shipping info, reviews, similar products, and real wishlist behavior. |
 | B-05 | Seller Storefront | `/seller/:storeSlug`, `SellerStorefrontPageComponent` | Partial | Basic hero and product grid exist. Needs seller logo/profile, rating, policies, review summary, and stronger visual hierarchy. |
-| B-06 | Wishlist | `/account/wishlist`, product cards/detail | Partial | Buyer wishlist route exists, product cards/detail can save products, and wishlist removal is available. Dedicated saved-for-later/cart bridge and wishlist-aware initial card state remain later polish. |
-| B-07 | Cart | `/cart`, `CartPageComponent` | Partial | Cart item update/remove, single-seller checkout, variant/SKU detail, price clarity, trust messaging, and professional visual fallback are present. Real product images still need cart API image data. Saved-for-later/wishlist bridge remains deferred. |
-| B-08 | Checkout Address | `/checkout`, `CheckoutPageComponent` | Partial | Address form and a visible checkout step layout exist. Persisted address selection and full checkout state remain future work. |
+| B-06 | Wishlist | `/account/wishlist`, product cards/detail | Partial | Buyer wishlist route exists, product cards/detail hydrate saved state, save/remove products, and redirect unauthenticated buyers with return URL. Wishlist items show variant/quantity controls and can move to cart. Wishlist sharing, folders, and recommendation loops remain future work. |
+| B-07 | Cart | `/cart`, `CartPageComponent` | Partial | Cart item update/remove, single-seller checkout, variant/SKU detail, product image metadata/fallback visuals, price clarity, trust messaging, product detail links, and save-for-later are present. Delivery-rate selection and richer checkout state remain future work. |
+| B-08 | Checkout Address & Delivery | `/checkout`, `CheckoutPageComponent`; `/account/settings`, `BuyerSettingsPageComponent` | Partial | Checkout can use saved delivery addresses or an inline one-off address with optional delivery instructions, loads seller-managed delivery methods/rates, requires a selected delivery option, and orders persist delivery-address/instruction plus delivery-method/rate snapshots. Address verification, pickup points, and carrier rates remain future work. |
 | B-09 | Checkout Delivery | `/checkout`, `CheckoutPageComponent` | Shell | Delivery is represented as an honest support panel inside checkout. Shipping option selection awaits backend support. |
 | B-10 | Checkout Payment | `/checkout`, `CheckoutPageComponent` | Partial | Checkout now creates a pending order, initiates backend payment, and redirects to the provider checkout URL. Real provider SDK/UI and saved payment methods remain future work. |
 | B-11 | Payment Failed | `/checkout/failed`, `CheckoutFailedPageComponent` | Partial | Route loads order context when available, supports pending-payment retry, and tells buyers to restart checkout for cancelled orders. Change-payment details await real payment provider UI. |
 | B-12 | Order Confirmation | `/checkout/success`, `CheckoutSuccessPageComponent` | Partial | Route loads order context, shows webhook-confirmed order status, and supports pending-payment retry. Rich paid-order confirmation and delivery ETA remain future polish. |
-| B-13 | Buyer Account Dashboard | `/account`, `AccountPageComponent` | Partial | Dashboard now summarizes orders, active returns, open disputes, and support tickets using existing buyer APIs. Profile editing, wishlist, reviews, and notifications remain future work. |
-| B-14 | Buyer Orders List | `/account/orders`, `BuyerOrdersPageComponent` | Partial | API-backed buyer order history exists with client-side search/status filtering. List-level bulk actions and richer tracking remain future work. |
-| B-15 | Buyer Order Detail | `/account/orders/:orderId`, `BuyerOrderDetailPageComponent` | Partial | API-backed detail shows items, totals, status history, shipments, delivered-order return/review actions, and pending-payment retry. Full carrier tracking remains future work. |
+| B-13 | Buyer Account Dashboard | `/account`, `AccountPageComponent` | Partial | Dashboard now summarizes orders, active returns, open disputes, support tickets, wishlist, reviews, and notifications using existing buyer APIs. `/account/settings` manages lightweight profile details, saved delivery addresses, and separate in-app/email notification preferences. SMS, push, and real-time channels remain future work. |
+| B-14 | Buyer Orders List | `/account/orders`, `BuyerOrdersPageComponent` | Partial | API-backed buyer order history exists with client-side search/status filtering and shipment summaries. List-level bulk actions and real carrier tracking remain future work. |
+| B-15 | Buyer Order Detail | `/account/orders/:orderId`, `BuyerOrderDetailPageComponent` | Partial | API-backed detail shows items, totals, delivery-address/instruction and selected delivery-method snapshots, status history, shipment event timelines, delivery exception support CTAs, delivered-order return/review actions, and pending-payment retry. Full carrier tracking remains future work. |
 | B-16 | Return/Refund Request | `/account/returns`, `/account/returns/:returnRequestId` | Partial | API-backed buyer return list/detail and rejected-return dispute escalation exist. Refund status is still handled through existing backend/admin flows. |
 | B-17 | Leave Review | `/account/reviews`, `/account/orders/:orderId`, `/product/:slug`, `/admin/reviews` | Partial | Delivered order detail can create verified-purchase reviews, product detail shows public review summary/list data, `/account/reviews` can edit/delete buyer reviews with moderation state, and `/admin/reviews` can approve/reject/remove reviews. Review reporting and richer public review sorting remain future work. |
-| B-18 | Notifications | `/account/notifications` | Partial | Buyer notification list/read/read-all UI exists for in-app notifications, with workflow notifications for review decisions, returns, support replies, tracking, and shipped orders. Email, SMS, push, and real-time updates remain future work. |
+| B-18 | Notifications | `/account/notifications`, `/account/settings` | Partial | Buyer notification list/read/read-all UI exists for in-app notifications, with workflow notifications for review decisions, returns, support replies, tracking, ready-to-ship, shipped, delivered, delivery-failed, and returned-to-sender orders. `/account/settings` can separately mute future in-app and email notifications by Orders, Returns, Reviews, and Support. Buyer transactional email delivery uses a worker outbox with local log-only and SMTP provider options. SMS, push, seller/admin email workflows, and real-time updates remain future work. |
 | B-19 | AI Shopping Assistant | `/assistant`, `BuyerAiAssistantPageComponent` | Later/Beta | Route exists and calls buyer AI services, but it should remain behind buyer auth and should not block MVP shopping polish. |
 | B-20 | Visual Search Upload | `/visual-search`, `BuyerVisualSearchPageComponent` | Later/Beta | Route exists. Useful, but should stay secondary until core catalog UX is stronger. |
 
@@ -66,20 +68,20 @@ High-level coverage:
 | S-04 | Seller Verification Status | `/seller`, `SellerPageComponent` | Partial | Status is displayed, but dedicated pending/rejected/approved state screens are missing. |
 | S-05 | Seller Dashboard | `/seller`, `SellerPageComponent` | Partial | Verified sellers now see a workspace dashboard with operations links and setup status. Future work should add live metrics once backend summary endpoints exist. |
 | S-06 | Products List | `/seller/products`, `SellerProductsPageComponent` | Partial | Product table, edit action, search, status filtering, and status badges exist. Thumbnails, inventory grouping, and public preview affordances remain future polish. |
-| S-07 | Product Images | `/seller/products/new`, `/seller/products/:id/edit` | Partial | Product editor includes image handling. Needs a stronger visual upload/gallery experience. |
-| S-08 | Product Basic Details | Product editor | Partial | Form exists as part of editor flow. Needs clearer stepper layout and save-state visibility. |
-| S-09 | AI Product Listing Assistant | Product editor | Partial | AI suggestion panel exists and is review-first. Needs better side-by-side suggestion review and field-level confidence/risk treatment. |
-| S-10 | Product Attributes | Product editor | Partial | Dynamic attributes exist. Needs category-specific UX polish and better validation guidance. |
-| S-11 | Product Variants & Stock | Product editor | Partial | Variant/stock input exists. Needs dense table-style editing and stock warnings. |
-| S-12 | Pricing & Shipping | Product editor | Partial | Pricing exists through variants; shipping is not fully represented as a seller workflow. |
-| S-13 | Product Review & Submit | Product editor | Partial | Submit/review behavior exists, but final review UI needs a stronger buyer-facing preview. |
-| S-14 | Product Detail/Edit Screen | `/seller/products/:id/edit` | Partial | Edit route exists. Needs clearer status banners and rejection feedback. |
-| S-15 | Inventory Management | None | Missing | No dedicated inventory management page. |
+| S-07 | Product Images | `/seller/products/new`, `/seller/products/:id/edit` | Partial | Product editor now has a visual gallery, primary/fallback previews, image metadata editing, make-primary/remove actions, and immutable URL/storage-key messaging. Real file upload/storage-provider UI remains future work. |
+| S-08 | Product Basic Details | Product editor | Partial | Basic details now sit in a clearer stepper with slug guidance, editability messaging, and save feedback. Rich SEO fields remain future work. |
+| S-09 | AI Product Listing Assistant | Product editor | Partial | AI suggestion panel exists and is review-first with Luxe Blush visual treatment. Field-level confidence and deeper AI risk scoring remain future work. |
+| S-10 | Product Attributes | Product editor | Partial | Dynamic attributes now show selected-category context, required/optional indicators, type hints, and no-category guidance. Seller-form preview remains future work. |
+| S-11 | Product Variants & Stock | Product editor | Partial | Variant editing now supports add/edit modes, dense variant cards, stock/reserved/available indicators, and low/out-of-stock badges. Published stock operations remain correctly separated into Inventory. |
+| S-12 | Pricing & Shipping | `/seller/settings/store`, checkout | Partial | Pricing exists through variants. Sellers can now manage provider-free delivery methods/rates for checkout, including country/province coverage, estimates, active state, and free-shipping thresholds. Product-level shipping policies, carrier labels/rates, pickup points, and return-policy configuration remain future work. |
+| S-13 | Product Review & Submit | Product editor | Partial | Review step now includes a buyer-facing preview, readiness checklist, public preview link when published, and submit gating. Rich moderation handoff history remains future work. |
+| S-14 | Product Detail/Edit Screen | `/seller/products/:id/edit` | Partial | Edit route now has seller workspace navigation, status header, rejection/change-request banner, and read-only messaging for locked statuses. Published content-edit workflow remains future work. |
+| S-15 | Inventory Management | `/seller/inventory`, `SellerInventoryPageComponent` | Partial | Dedicated inventory route exists with searchable/filterable variant rows, stock-state summaries, single-row adjustment, CSV export/template download, import preview, bulk stock/status apply, backend audit logging, and all-or-nothing validation. Barcode workflows and inventory history remain future work. |
 | S-16 | Seller Orders List | `/seller/orders`, `SellerOrdersPageComponent` | Partial | API-backed order list exists with status, totals, item count, shipment summary, and detail navigation. |
-| S-17 | Seller Order Detail/Fulfilment | `/seller/orders/:orderId`, `SellerOrderDetailPageComponent` | Partial | API-backed detail and manual fulfilment actions exist, including seller delivery confirmation. Carrier integration and delivery exception handling remain future work. |
+| S-17 | Seller Order Detail/Fulfilment | `/seller/orders/:orderId`, `SellerOrderDetailPageComponent` | Partial | API-backed detail and manual fulfilment actions exist, including selected delivery-method/address snapshots, ready-to-ship, tracking, shipped, delivered, delivery-failed, and returned-to-sender transitions plus full event timelines. Carrier integration and courier automation remain future work. |
 | S-18 | Seller Returns | `/seller/returns`, `/seller/returns/:returnRequestId` | Partial | API-backed return list/detail and seller approve/reject actions exist. More policy context and dispute handoff polish remain future work. |
 | S-19 | Seller Payouts/Balance | `/seller/payouts`, `SellerPayoutsPageComponent` | Partial | Seller balance and payout history are visible as read-only finance views. Admin payout lifecycle actions remain separate. |
-| S-20 | Seller Storefront Settings | `/seller` onboarding fields only | Partial | Storefront fields exist in onboarding, but no dedicated settings workflow. |
+| S-20 | Seller Storefront Settings | `/seller/settings/store`, `SellerStoreSettingsPageComponent` | Partial | Dedicated settings route exists for profile, storefront, and fulfilment address updates using existing onboarding APIs. Payout/bank changes stay read-only until secure re-verification is designed. |
 | S-21 | Seller Analytics | `/seller/analytics`, `SellerAnalyticsPageComponent` | Later/Beta | Route exists despite blueprint marking it later. Keep, but avoid prioritizing over orders/payouts. |
 | S-22 | Seller Ads Dashboard | `/seller/ads`, `SellerAdCampaignsPageComponent` | Later/Beta | Route exists and should remain secondary to core seller operations. |
 | S-23 | Create Ad Campaign | `/seller/ads/new`, `SellerAdCampaignFormPageComponent` | Later/Beta | Route exists. Should not drive design-system decisions yet. |
@@ -101,8 +103,8 @@ High-level coverage:
 | A-10 | Seller Payout Queue | `/admin/payouts`, `AdminPayoutsPageComponent` | Partial | API-backed pending/on-hold payout queue exists with hold, release, make-available, process, and reconcile actions plus visible finance role eligibility. |
 | A-11 | Refunds Queue | `/admin/refunds`, `AdminRefundsPageComponent` | Partial | API-backed refund list, order/return refund creation, and approval actions exist with visible operate/approve role eligibility. |
 | A-12 | Dispute Case Detail | `/admin/disputes`, `AdminDisputesPageComponent` | Partial | API-backed dispute list, inline messages/evidence, and buyer/seller-favoured resolution exist. A dedicated single-case route and richer evidence review remain future work. |
-| A-13 | Category Manager | `/admin/categories`, `AdminCategoriesPageComponent` | Partial | Read-only category hierarchy exists using `GET /api/admin/categories`. Create/edit/reorder/deactivate workflows are blocked on missing write APIs. |
-| A-14 | Attribute Manager | `/admin/categories`, `AdminCategoriesPageComponent` | Partial | Category attributes are visible read-only with required/active indicators. Attribute write workflows are blocked on missing write APIs. |
+| A-13 | Category Manager | `/admin/categories`, `AdminCategoriesPageComponent` | Partial | API-backed category create/edit/activate/deactivate exists with product, child, and attribute counts. Hard delete, bulk import, drag-and-drop reordering, SEO fields, and taxonomy versioning remain future work. |
+| A-14 | Attribute Manager | `/admin/categories`, `AdminCategoriesPageComponent` | Partial | API-backed attribute create/edit/activate/deactivate exists with type, required, allowed-values, display-order, and safety-warning UX. Bulk editing and deeper seller-form preview remain future work. |
 | A-15 | AI Moderation Dashboard | `/admin/ai-usage`, `AdminAiUsageAnalyticsPageComponent` | Partial | AI usage analytics exist. Needs moderation/risk review workflows if it is to match blueprint A-15. |
 | A-16 | Support Ticket Queue | `/admin/support`, `/admin/support/:ticketId` | Partial | API-backed support queue/detail exists with public replies, internal notes, resolve, and close actions for support/admin roles. Assignment, SLA filters, and advanced triage remain future work. |
 | A-17 | Ad Campaign Approval Queue | `/admin/ads`, `AdminAdCampaignsPageComponent` | Later/Beta | Exists despite blueprint marking ads later. Keep lower priority than core admin operations. |
@@ -161,7 +163,7 @@ High-level coverage:
 - Add delivery and payment placeholders only where backend support is still pending, but avoid copy that exposes internal prompt history.
 - Strengthen success and failure pages with clear next actions.
 
-Status: Implemented as frontend trust polish. The cart now uses professional fallback visuals because the current cart response does not expose product image URLs. Real delivery selection, payment provider UI, saved-for-later, and full order tracking remain separate feature work.
+Status: Implemented as frontend trust polish and later deepened in Phase 9E. The cart now uses product image metadata from the cart API when available, falls back to professional visuals, and supports save-for-later moves into the buyer wishlist. Real delivery selection, payment provider UI, and full order tracking remain separate feature work.
 
 ### Phase 4: Seller Operations
 
@@ -169,7 +171,7 @@ Status: Implemented as frontend trust polish. The cart now uses professional fal
 - Improve product list and editor with thumbnails, filters, stronger stepper UX, save/submission state, and rejection feedback.
 - Build seller order, fulfilment, returns, payout/balance, storefront settings, and support ticket UI before further ads/analytics polish.
 
-Status: Ops-first implementation completed. Verified sellers now get a dashboard and shared seller workspace navigation. API-backed seller orders, order detail/fulfilment actions, returns, payout/balance history, and support ticket screens exist. Product list search/status filtering was added. Product editor redesign, thumbnails, storefront settings, seller inventory page, carrier integration, and live dashboard metrics remain later work.
+Status: Ops-first implementation completed and extended through Phase 9L. Verified sellers now get a dashboard and shared seller workspace navigation. API-backed seller orders, order detail/fulfilment actions, selected delivery-method snapshots, ready-to-ship, tracking, delivery confirmation, delivery exception recording, returns, payout/balance history, support ticket screens, dedicated inventory management with bulk CSV stocktake tooling, seller-managed delivery methods/rates, and store settings exist. Product list search/status filtering was added. The product editor now has clearer status/read-only messaging, step completion, production-hardened media uploads, image metadata/gallery controls, variant edit mode, honest shipping guidance, a buyer-facing review preview, and published-product revision mode. Carrier integration, variant/pricing revision flows, barcode workflows, inventory history, payout-bank re-verification, and live dashboard metrics remain later work.
 
 ### Phase 5: Admin Operations And Finance
 
@@ -180,11 +182,13 @@ Status: Ops-first implementation completed. Verified sellers now get a dashboard
 
 Status: Phase 5A implemented for admin finance operations. `/admin/refunds`, `/admin/payouts`, and `/admin/disputes` now use existing backend APIs. Finance navigation is visible to `Admin`, `SuperAdmin`, `FinanceOperator`, and `FinanceApprover` where appropriate, while dispute routes remain admin-only.
 
-Status: Phase 5B implemented for support and catalog-reference operations. `/admin/support` and `/admin/support/:ticketId` now use the support-ticket APIs for list/detail, public replies, internal notes, resolve, and close. `/admin/categories` exposes category and attribute metadata as a read-only reference because category/attribute write APIs do not exist yet.
+Status: Phase 5B implemented for support and catalog-reference operations. `/admin/support` and `/admin/support/:ticketId` now use the support-ticket APIs for list/detail, public replies, internal notes, resolve, and close.
 
 Status: Phase 5C implemented for moderation review polish. Admin sections now share a lightweight workspace navigation component. Seller and product moderation queues use client-side filters, denser review rows, shared page headers/status badges/alerts/empty states, and clearer action links. Seller detail review has completeness indicators and reorganized profile/storefront/address/payout/audit panels. Product detail review has larger image review, thumbnail selection, fallbacks, variant stock summaries, seller context, AI risk display, and unchanged approve/reject/change-request payloads. Audit logs use the shared admin navigation and improved filter/empty/error presentation.
 
 Status: Phase 5D implemented for admin order/payment investigation. `/admin/orders`, `/admin/orders/:orderId`, `/admin/payments`, and `/admin/payments/:paymentId` now use FinanceRead-protected backend APIs and replace the previous API-gap pages. The screens are intentionally read-only and do not add manual order mutation, payment capture, or raw webhook-payload exposure.
+
+Status: Phase 9C implemented for admin catalog operations. `/admin/categories` now uses admin category and attribute write APIs for create/edit/activate/deactivate flows, shows product/child/attribute counts, selected-category attribute management, safety messaging, and backend validation errors. The backend prevents parent cycles, duplicate slugs/keys, and breaking attribute edits where existing product data would be invalidated. Hard delete, bulk import, drag-and-drop reordering, SEO fields, and taxonomy versioning remain future work.
 
 ### Phase 6: Growth Features
 
@@ -205,9 +209,15 @@ Status: Phase 6C implemented as frontend bundle hygiene. The root app shell no l
 
 Status: Phase 7A implemented as backend foundation. Wishlist, verified-buyer product reviews, public review reads, notification persistence, notification read-state APIs, EF migration, and backend tests exist.
 
-Status: Phase 7B implemented as buyer engagement UI. `/account/wishlist`, `/account/reviews`, and `/account/notifications` are buyer-guarded routes. Product cards and product detail can save products to the wishlist. Product detail shows public review summary/list data, and delivered order detail can create verified-purchase reviews. Notification delivery channels, wishlist-aware initial card state, and saved-for-later/cart bridging remain future work.
+Status: Phase 7B implemented as buyer engagement UI. `/account/wishlist`, `/account/reviews`, and `/account/notifications` are buyer-guarded routes. Product cards and product detail can save products to the wishlist. Product detail shows public review summary/list data, and delivered order detail can create verified-purchase reviews. Phase 9E later added wishlist-aware initial card/detail state and saved-for-later/cart bridging. Phase 9M added buyer transactional email delivery through a backend outbox; SMS, push, seller/admin email workflows, and real-time channels remain future work.
 
 Status: Phase 7C implemented as review moderation and in-app engagement notifications. New buyer reviews and edited published/rejected reviews now move through `PendingReview`. `/admin/reviews` provides an admin moderation queue with evidence context and approve/reject/remove actions. `/account/reviews` shows pending/rejected/published state and rejection reasons. In-app notifications are created for review decisions, seller return responses, support public replies, order tracking updates, and shipped orders.
+
+Status: Phase 9M implemented buyer email notification delivery. Existing buyer lifecycle notifications now respect separate in-app/email category preferences, can queue hidden email-only notification rows, and are delivered by the worker through local `LogOnly` or configured SMTP providers. `/account/settings` exposes both channel toggles.
+
+Status: Phase 9E implemented as buyer saved-state polish. Wishlist product ids hydrate product-card/detail saved state, `/account/wishlist` supports variant/quantity controlled move-to-cart, `/cart` shows product image metadata and save-for-later actions, and backend bridge endpoints keep cart/wishlist moves atomic.
+
+Status: Phase 9H implemented saved delivery-address/order snapshots, Phase 9J added delivery instructions, and Phase 9L added seller-managed checkout delivery rates. `/account/settings` manages saved delivery addresses with default selection, `/checkout` can use a saved address or inline one-off address, load matching seller delivery methods, and include the selected rate in the order total. Buyer/seller/admin order detail screens show persisted delivery-address and delivery-method snapshots. Address verification, pickup points, and provider/carrier rates remain future work.
 
 ### Phase 8: Checkout Closure
 
@@ -217,11 +227,11 @@ Status: Phase 8A implemented as checkout lifecycle closure. `/checkout` now crea
 
 The highest-value next implementation candidates are:
 
-1. Add real payment provider integration and provider reconciliation before production payments.
+1. Run PayFast sandbox verification before production payments.
 2. Split global route-specific styles into lazy component styles if a stricter initial bundle target is required.
-3. Add category/attribute write APIs before replacing the read-only admin category reference with editing workflows.
-4. Add richer wishlist state and saved-for-later/cart bridging if buyer engagement remains the next product goal.
-5. Keep seller ads, seller analytics, and admin ad review as lower-priority growth polish unless campaign operations become an MVP priority.
+3. Design secure payout-bank change/re-verification before exposing payout detail edits to sellers.
+4. Choose a real production media scanner adapter before enabling strict production scanner readiness.
+5. Design carrier integration, address verification, pickup points, provider/carrier rate calculation, SMS/push notifications, or real-time notification UX when operations depth becomes the next priority.
 
 This keeps UI work tied to real contracts instead of creating fake surfaces that would need to be unwound later.
 

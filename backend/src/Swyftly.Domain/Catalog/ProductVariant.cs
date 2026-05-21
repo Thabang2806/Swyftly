@@ -104,6 +104,14 @@ public sealed class ProductVariant : AuditableEntity
         ReservedQuantity -= quantity;
     }
 
+    public void AdjustInventory(int stockQuantity, ProductVariantStatus status)
+    {
+        ValidateStock(stockQuantity, ReservedQuantity);
+
+        StockQuantity = stockQuantity;
+        Status = status;
+    }
+
     public void Activate() => Status = ProductVariantStatus.Active;
 
     public void Deactivate() => Status = ProductVariantStatus.Inactive;

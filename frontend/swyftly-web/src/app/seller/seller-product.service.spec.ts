@@ -70,6 +70,22 @@ describe('SellerProductService', () => {
     variantRequest.flush(createProductDetail());
     await expectAsync(variantPromise).toBeResolved();
 
+    const updateVariantPromise = service.updateVariant('product-id', 'variant-id', {
+      sku: 'SKU-1',
+      size: 'L',
+      colour: 'Black',
+      price: 120,
+      compareAtPrice: null,
+      stockQuantity: 8,
+      reservedQuantity: 0,
+      status: 'Active',
+      barcode: null
+    });
+    const updateVariantRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/seller/products/product-id/variants/variant-id`);
+    expect(updateVariantRequest.request.method).toBe('PUT');
+    updateVariantRequest.flush(createProductDetail());
+    await expectAsync(updateVariantPromise).toBeResolved();
+
     const deleteVariantPromise = service.deleteVariant('product-id', 'variant-id');
     const deleteVariantRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/seller/products/product-id/variants/variant-id`);
     expect(deleteVariantRequest.request.method).toBe('DELETE');
@@ -87,6 +103,21 @@ describe('SellerProductService', () => {
     expect(imageRequest.request.method).toBe('POST');
     imageRequest.flush(createProductDetail());
     await expectAsync(imagePromise).toBeResolved();
+
+    const updateImagePromise = service.updateImage('product-id', 'image-id', {
+      altText: 'Updated image',
+      sortOrder: 2,
+      isPrimary: true
+    });
+    const updateImageRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/seller/products/product-id/images/image-id`);
+    expect(updateImageRequest.request.method).toBe('PUT');
+    expect(updateImageRequest.request.body).toEqual({
+      altText: 'Updated image',
+      sortOrder: 2,
+      isPrimary: true
+    });
+    updateImageRequest.flush(createProductDetail());
+    await expectAsync(updateImagePromise).toBeResolved();
 
     const deleteImagePromise = service.deleteImage('product-id', 'image-id');
     const deleteImageRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/seller/products/product-id/images/image-id`);

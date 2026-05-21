@@ -7,6 +7,7 @@ using Swyftly.Domain.Carts;
 using Swyftly.Domain.Catalog;
 using Swyftly.Domain.Inventory;
 using Swyftly.Domain.Orders;
+using Swyftly.Domain.Sellers;
 using Swyftly.Infrastructure.Inventory;
 using Swyftly.Infrastructure.Orders;
 using Swyftly.Infrastructure.Persistence;
@@ -19,7 +20,7 @@ public class OrderCreationServiceTests
     public async Task CreateFromCartAsync_CreatesPendingPaymentOrderAndSnapshotsCartItems()
     {
         await using var dbContext = CreateDbContext();
-        var (buyer, product, variant, cart) = await SeedCartAsync(dbContext, price: 499m, quantity: 2);
+        var (buyer, product, variant, cart, deliveryMethod) = await SeedCartAsync(dbContext, price: 499m, quantity: 2);
         var service = CreateService(dbContext);
         var startedAt = DateTimeOffset.Parse("2026-05-18T12:00:00Z");
 
@@ -27,13 +28,20 @@ public class OrderCreationServiceTests
             buyer.Id,
             cart.Id,
             startedAt,
-            TimeSpan.FromMinutes(15)));
+            TimeSpan.FromMinutes(15),
+            DeliveryAddress: TestDeliveryAddress(),
+            DeliveryMethodId: deliveryMethod.Id));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("PendingPayment", result.Value.Status);
         Assert.Equal(cart.Id, result.Value.CartId);
         Assert.Equal(product.SellerId, result.Value.SellerId);
-        Assert.Equal(998m, result.Value.TotalAmount);
+        Assert.Equal(75m, result.Value.ShippingAmount);
+        Assert.Equal(1073m, result.Value.TotalAmount);
+        Assert.Equal(deliveryMethod.Id, result.Value.DeliveryMethodId);
+        Assert.Equal("Standard courier", result.Value.DeliveryMethodName);
+        Assert.Equal("Standard", result.Value.DeliveryMethodType);
+        Assert.Equal("Leave with reception if needed.", result.Value.DeliveryAddress!.DeliveryInstructions);
         var item = Assert.Single(result.Value.Items);
         Assert.Equal(product.Id, item.ProductId);
         Assert.Equal(variant.Id, item.ProductVariantId);
@@ -52,20 +60,24 @@ public class OrderCreationServiceTests
     public async Task CreateFromCartAsync_ReturnsExistingPendingPaymentOrderForSameCart()
     {
         await using var dbContext = CreateDbContext();
-        var (buyer, _, _, cart) = await SeedCartAsync(dbContext, price: 499m, quantity: 1);
+        var (buyer, _, _, cart, deliveryMethod) = await SeedCartAsync(dbContext, price: 499m, quantity: 1);
         var service = CreateService(dbContext);
         var startedAt = DateTimeOffset.Parse("2026-05-18T12:00:00Z");
         var first = await service.CreateFromCartAsync(new CreateOrderFromCartRequest(
             buyer.Id,
             cart.Id,
             startedAt,
-            TimeSpan.FromMinutes(15)));
+            TimeSpan.FromMinutes(15),
+            DeliveryAddress: TestDeliveryAddress(),
+            DeliveryMethodId: deliveryMethod.Id));
 
         var second = await service.CreateFromCartAsync(new CreateOrderFromCartRequest(
             buyer.Id,
             cart.Id,
             startedAt.AddMinutes(1),
-            TimeSpan.FromMinutes(15)));
+            TimeSpan.FromMinutes(15),
+            DeliveryAddress: TestDeliveryAddress("Second recipient"),
+            DeliveryMethodId: deliveryMethod.Id));
 
         Assert.True(first.IsSuccess);
         Assert.True(second.IsSuccess);
@@ -89,7 +101,9 @@ public class OrderCreationServiceTests
             buyer.Id,
             cart.Id,
             DateTimeOffset.Parse("2026-05-18T12:00:00Z"),
-            TimeSpan.FromMinutes(15)));
+            TimeSpan.FromMinutes(15),
+            DeliveryAddress: TestDeliveryAddress(),
+            DeliveryMethodId: Guid.NewGuid()));
 
         Assert.True(result.IsFailure);
         Assert.Contains("at least one item", result.Error.Details!["cart"].Single());
@@ -98,13 +112,39 @@ public class OrderCreationServiceTests
     private static EfOrderCreationService CreateService(SwyftlyDbContext dbContext) =>
         new(dbContext, new EfInventoryReservationService(dbContext));
 
-    private static async Task<(BuyerProfile Buyer, Product Product, ProductVariant Variant, Cart Cart)> SeedCartAsync(
+    private static OrderDeliveryAddressRequest TestDeliveryAddress(string recipientName = "Thabo Buyer") =>
+        new(
+            recipientName,
+            "+27110000000",
+            "10 Market Street",
+            "Apartment 4",
+            "Rosebank",
+            "Johannesburg",
+            "Gauteng",
+            "2196",
+            "ZA",
+            "Leave with reception if needed.");
+
+    private static async Task<(BuyerProfile Buyer, Product Product, ProductVariant Variant, Cart Cart, SellerDeliveryMethod DeliveryMethod)> SeedCartAsync(
         SwyftlyDbContext dbContext,
         decimal price,
         int quantity)
     {
         var buyer = new BuyerProfile(Guid.NewGuid());
         var product = new Product(Guid.NewGuid());
+        var deliveryMethod = new SellerDeliveryMethod(
+            product.SellerId,
+            "Standard courier",
+            "Door-to-door delivery within South Africa.",
+            SellerDeliveryMethodType.Standard,
+            "ZA",
+            "Gauteng",
+            75m,
+            null,
+            2,
+            5,
+            10,
+            isActive: true);
         var variant = new ProductVariant(product.Id, "SKU-1", "M", "Black", price, price + 100, stockQuantity: 5);
         var cart = new Cart(buyer.Id);
         cart.AddOrUpdateItem(
@@ -121,10 +161,11 @@ public class OrderCreationServiceTests
 
         dbContext.BuyerProfiles.Add(buyer);
         dbContext.Products.Add(product);
+        dbContext.SellerDeliveryMethods.Add(deliveryMethod);
         dbContext.ProductVariants.Add(variant);
         dbContext.Carts.Add(cart);
         await dbContext.SaveChangesAsync();
-        return (buyer, product, variant, cart);
+        return (buyer, product, variant, cart, deliveryMethod);
     }
 
     private static SwyftlyDbContext CreateDbContext()

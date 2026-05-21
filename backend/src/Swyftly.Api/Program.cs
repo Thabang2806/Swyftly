@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Swyftly.Api.Advertising;
@@ -13,6 +14,7 @@ using Swyftly.Api.Buyers;
 using Swyftly.Api.Carts;
 using Swyftly.Api.Catalog;
 using Swyftly.Api.Disputes;
+using Swyftly.Api.Notifications;
 using Swyftly.Api.Observability;
 using Swyftly.Api.Orders;
 using Swyftly.Api.Payments;
@@ -21,12 +23,14 @@ using Swyftly.Api.Refunds;
 using Swyftly.Api.Returns;
 using Swyftly.Api.Sellers;
 using Swyftly.Api.Security;
+using Swyftly.Api.Storage;
 using Swyftly.Api.Support;
 using Swyftly.Application.Abstractions;
 using Swyftly.Application.Identity;
 using Swyftly.Infrastructure;
 using Swyftly.Infrastructure.Identity;
 using Swyftly.Infrastructure.Persistence;
+using Swyftly.Infrastructure.Storage;
 using System.Threading.RateLimiting;
 
 const int ReadinessTimeoutSeconds = 5;
@@ -145,14 +149,18 @@ builder.Services
         "search-placeholder",
         () => HealthCheckResult.Healthy("Search provider placeholder is available."),
         tags: new[] { "ready", "search" })
-    .AddCheck(
-        "storage-placeholder",
-        () => HealthCheckResult.Healthy("Storage provider placeholder is available."),
+    .AddCheck<ImageStorageHealthCheck>(
+        name: "image-storage",
+        failureStatus: HealthStatus.Unhealthy,
         tags: new[] { "ready", "storage" })
     .AddCheck<PaymentProviderHealthCheck>(
         name: "payment-provider",
         failureStatus: HealthStatus.Unhealthy,
-        tags: new[] { "ready", "payments" });
+        tags: new[] { "ready", "payments" })
+    .AddCheck<EmailDeliveryHealthCheck>(
+        name: "email-delivery",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: new[] { "ready", "notifications" });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -179,6 +187,22 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+var imageStorageOptions = builder.Configuration
+    .GetSection(ImageStorageOptions.SectionName)
+    .Get<ImageStorageOptions>() ?? new ImageStorageOptions();
+var useLocalImageStorage = !string.Equals(imageStorageOptions.ProviderName, "S3", StringComparison.OrdinalIgnoreCase);
+var imageStorageRoot = imageStorageOptions.LocalRootPath;
+if (useLocalImageStorage && !Path.IsPathRooted(imageStorageRoot))
+{
+    imageStorageRoot = Path.Combine(app.Environment.ContentRootPath, imageStorageRoot);
+}
+
+if (useLocalImageStorage)
+{
+    imageStorageRoot = Path.GetFullPath(imageStorageRoot);
+    Directory.CreateDirectory(imageStorageRoot);
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -190,6 +214,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+if (useLocalImageStorage)
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(imageStorageRoot),
+        RequestPath = imageStorageOptions.PublicBasePath.StartsWith('/')
+            ? imageStorageOptions.PublicBasePath.TrimEnd('/')
+            : $"/{imageStorageOptions.PublicBasePath.TrimEnd('/')}"
+    });
+}
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseCors("LocalFrontend");
@@ -277,7 +311,10 @@ app.MapAdminCategoryEndpoints();
 app.MapAdminOrderPaymentEndpoints();
 app.MapSellerCatalogEndpoints();
 app.MapSellerProductEndpoints();
+app.MapSellerInventoryEndpoints();
+app.MapSellerDeliveryMethodEndpoints();
 app.MapPublicProductEndpoints();
+app.MapBuyerSettingsEndpoints();
 app.MapBuyerEngagementEndpoints();
 app.MapCartEndpoints();
 app.MapOrderEndpoints();

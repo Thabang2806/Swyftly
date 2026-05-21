@@ -12,6 +12,19 @@ export interface AdminProductSummaryResponse {
   updatedAtUtc: string;
 }
 
+export interface AdminProductRevisionSummaryResponse {
+  revisionId: string;
+  productId: string;
+  sellerId: string;
+  sellerDisplayName: string | null;
+  sellerVerificationStatus: string | null;
+  currentTitle: string | null;
+  proposedTitle: string | null;
+  status: string;
+  submittedAtUtc: string | null;
+  updatedAtUtc: string;
+}
+
 export interface AdminProductDetailResponse {
   productId: string;
   sellerId: string;
@@ -36,6 +49,33 @@ export interface AdminProductDetailResponse {
   auditTrail: AdminAuditLogResponse[];
 }
 
+export interface AdminProductRevisionDetailResponse {
+  revisionId: string;
+  productId: string;
+  sellerId: string;
+  seller: AdminProductSellerResponse;
+  status: string;
+  rejectionReason: string | null;
+  submittedAtUtc: string | null;
+  reviewedAtUtc: string | null;
+  current: AdminProductListingSnapshotResponse;
+  proposed: AdminProductListingSnapshotResponse;
+  auditTrail: AdminAuditLogResponse[];
+}
+
+export interface AdminProductListingSnapshotResponse {
+  categoryId: string | null;
+  categoryPath: string | null;
+  brandId: string | null;
+  title: string | null;
+  slug: string | null;
+  shortDescription: string | null;
+  fullDescription: string | null;
+  tags: string[];
+  attributes: Record<string, string>;
+  images: AdminProductRevisionImageResponse[];
+}
+
 export interface AdminProductSellerResponse {
   displayName: string | null;
   contactEmail: string | null;
@@ -56,6 +96,15 @@ export interface AdminProductVariantResponse {
 }
 
 export interface AdminProductImageResponse {
+  imageId: string;
+  url: string;
+  altText: string | null;
+  sortOrder: number;
+  isPrimary: boolean;
+  createdAtUtc: string;
+}
+
+export interface AdminProductRevisionImageResponse {
   imageId: string;
   url: string;
   altText: string | null;

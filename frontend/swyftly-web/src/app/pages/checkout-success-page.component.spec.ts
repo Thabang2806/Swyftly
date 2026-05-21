@@ -49,7 +49,10 @@ describe('CheckoutSuccessPageComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.hf-checkout-result-card')).not.toBeNull();
     expect(compiled.textContent).toContain('PendingPayment');
+    expect(compiled.textContent).toContain('Order reference');
+    expect(compiled.textContent).toContain('Total');
     expect(compiled.textContent).toContain('Retry payment');
 
     const retryButton = Array.from(compiled.querySelectorAll('button'))
@@ -92,4 +95,3 @@ export function createOrder(overrides: Partial<BuyerOrderResult> = {}): BuyerOrd
     ...overrides
   };
 }
-

@@ -6,6 +6,8 @@ import {
   AdminProductApproveRequest,
   AdminProductDetailResponse,
   AdminProductReasonRequest,
+  AdminProductRevisionDetailResponse,
+  AdminProductRevisionSummaryResponse,
   AdminProductSummaryResponse
 } from './admin-product.models';
 
@@ -18,8 +20,16 @@ export class AdminProductService {
     return firstValueFrom(this.http.get<AdminProductSummaryResponse[]>(`${this.baseUrl}/pending-review`));
   }
 
+  getPendingRevisions(): Promise<AdminProductRevisionSummaryResponse[]> {
+    return firstValueFrom(this.http.get<AdminProductRevisionSummaryResponse[]>(`${this.baseUrl}/pending-revisions`));
+  }
+
   getProduct(productId: string): Promise<AdminProductDetailResponse> {
     return firstValueFrom(this.http.get<AdminProductDetailResponse>(`${this.baseUrl}/${productId}`));
+  }
+
+  getRevision(revisionId: string): Promise<AdminProductRevisionDetailResponse> {
+    return firstValueFrom(this.http.get<AdminProductRevisionDetailResponse>(`${this.baseUrl}/revisions/${revisionId}`));
   }
 
   approveProduct(productId: string, request: AdminProductApproveRequest = {}): Promise<AdminProductDetailResponse> {
@@ -32,5 +42,13 @@ export class AdminProductService {
 
   requestChanges(productId: string, request: AdminProductReasonRequest): Promise<AdminProductDetailResponse> {
     return firstValueFrom(this.http.post<AdminProductDetailResponse>(`${this.baseUrl}/${productId}/request-changes`, request));
+  }
+
+  approveRevision(revisionId: string): Promise<AdminProductRevisionDetailResponse> {
+    return firstValueFrom(this.http.post<AdminProductRevisionDetailResponse>(`${this.baseUrl}/revisions/${revisionId}/approve`, {}));
+  }
+
+  rejectRevision(revisionId: string, request: AdminProductReasonRequest): Promise<AdminProductRevisionDetailResponse> {
+    return firstValueFrom(this.http.post<AdminProductRevisionDetailResponse>(`${this.baseUrl}/revisions/${revisionId}/reject`, request));
   }
 }

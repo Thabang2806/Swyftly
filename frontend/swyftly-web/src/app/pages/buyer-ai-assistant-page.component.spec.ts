@@ -68,6 +68,9 @@ describe('BuyerAiAssistantPageComponent', () => {
     fixture.detectChanges();
 
     expect(assistantService.search).toHaveBeenCalledWith({ message: 'black dress' });
+    expect((fixture.nativeElement as HTMLElement).querySelector('.ai-chat-panel')).not.toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.ai-recommendations-panel')).not.toBeNull();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('black dress');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Black Wedding Dress');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Dresses');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Up to R1,500');

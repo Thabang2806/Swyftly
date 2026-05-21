@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
+import { BuyerWishlistStateService } from '../buyer/buyer-wishlist-state.service';
 import { CartService } from '../cart/cart.service';
 import { createCart } from '../cart/cart.service.spec';
 import { CartPageComponent } from './cart-page.component';
@@ -8,19 +9,23 @@ import { CartPageComponent } from './cart-page.component';
 describe('CartPageComponent', () => {
   let fixture: ComponentFixture<CartPageComponent>;
   let cartService: jasmine.SpyObj<CartService>;
+  let wishlistState: jasmine.SpyObj<BuyerWishlistStateService>;
 
   beforeEach(async () => {
-    cartService = jasmine.createSpyObj<CartService>('CartService', ['getCart', 'updateItem', 'removeItem']);
+    cartService = jasmine.createSpyObj<CartService>('CartService', ['getCart', 'updateItem', 'removeItem', 'moveItemToWishlist']);
+    wishlistState = jasmine.createSpyObj<BuyerWishlistStateService>('BuyerWishlistStateService', ['markSaved']);
     cartService.getCart.and.resolveTo(createCart());
     cartService.updateItem.and.resolveTo({ ...createCart(), totalQuantity: 3 });
     cartService.removeItem.and.resolveTo({ ...createCart(), items: [], totalQuantity: 0, subtotal: 0 });
+    cartService.moveItemToWishlist.and.resolveTo({ ...createCart(), items: [], totalQuantity: 0, subtotal: 0 });
 
     await TestBed.configureTestingModule({
       imports: [CartPageComponent],
       providers: [
         provideNoopAnimations(),
         provideRouter([]),
-        { provide: CartService, useValue: cartService }
+        { provide: CartService, useValue: cartService },
+        { provide: BuyerWishlistStateService, useValue: wishlistState }
       ]
     }).compileComponents();
 
@@ -38,7 +43,9 @@ describe('CartPageComponent', () => {
     expect(compiled.textContent).toContain('Checkout');
     expect(compiled.textContent).toContain('Single-seller checkout');
     expect(compiled.textContent).toContain('Stock checked at checkout');
-    expect(compiled.querySelector('.cart-item-media')?.textContent?.trim()).toBe('S');
+    const image = compiled.querySelector<HTMLImageElement>('.cart-item-media img');
+    expect(image?.src).toContain('summer-dress.jpg');
+    expect(image?.alt).toBe('Summer dress');
   });
 
   it('updates item quantity', async () => {
@@ -68,5 +75,19 @@ describe('CartPageComponent', () => {
     await fixture.whenStable();
 
     expect(cartService.removeItem).toHaveBeenCalledWith('cart-item-id');
+  });
+
+  it('moves a cart item to wishlist', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const saveButton = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button'))
+      .find(button => button.textContent?.includes('Save for later')) as HTMLButtonElement;
+    saveButton.click();
+    await fixture.whenStable();
+
+    expect(cartService.moveItemToWishlist).toHaveBeenCalledWith('cart-item-id');
+    expect(wishlistState.markSaved).toHaveBeenCalledWith('product-id');
   });
 });

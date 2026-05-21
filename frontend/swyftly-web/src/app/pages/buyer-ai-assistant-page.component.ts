@@ -9,7 +9,7 @@ import { BuyerAiProductCardResponse, BuyerAiShoppingAssistantResponse } from '..
 import { BuyerAiAssistantService } from '../buyer/buyer-ai-assistant.service';
 import { getApiErrorMessage } from '../auth/api-error';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
-import { PageHeaderComponent } from '../shared/ui/page-header.component';
+import { ProductVisualFallbackComponent, ProductVisualTone } from '../shared/ui/product-visual-fallback.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
 import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 
@@ -21,147 +21,179 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     MatFormFieldModule,
     MatInputModule,
     EmptyStateComponent,
-    PageHeaderComponent,
+    ProductVisualFallbackComponent,
     ReactiveFormsModule,
     RouterLink,
     StatusBadgeComponent,
     UiAlertComponent
   ],
   template: `
-    <section class="page ai-discovery-page">
-      <app-page-header
-        eyebrow="Shopping assistant"
-        heading="Find products with a natural request"
-        description="Search the Swyftly catalog using budget, size, colour, occasion, style, material, or beauty needs."
-      >
-        <a mat-stroked-button routerLink="/shop" pageHeaderActions>Browse shop</a>
-      </app-page-header>
-
-      <section class="ai-discovery-shell">
-        <form [formGroup]="form" (ngSubmit)="search()" class="ai-discovery-form" novalidate>
-          <div class="ai-discovery-form-copy">
-            <app-status-badge label="Buyer tool" tone="accent" />
-            <h2>Describe what you need</h2>
-            <p>Results come from published Swyftly products returned by backend search. The assistant does not reserve stock or create orders.</p>
+    <section class="page ai-discovery-page ai-style-page">
+      <section class="ai-style-layout">
+        <aside class="ai-chat-panel" aria-label="AI Style Finder">
+          <div class="ai-chat-title">
+            <div>
+              <span class="eyebrow">AI Style Finder</span>
+              <h1>Tell Swyftly what you need</h1>
+            </div>
+            <app-status-badge label="AI" tone="accent" />
           </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>What are you looking for?</mat-label>
-            <textarea matInput rows="4" formControlName="message" placeholder="Show me a black dress in size medium under R1,500"></textarea>
-            @if (form.controls.message.hasError('required')) {
-              <mat-error>Enter a shopping request.</mat-error>
+          <div class="ai-chat-transcript" aria-live="polite">
+            <div class="ai-chat-bubble ai-chat-bubble--bot">
+              I can find outfits, gifts, jewellery, beauty products, or occasion-ready pieces from published Swyftly listings.
+            </div>
+            @if (submittedPrompt()) {
+              <div class="ai-chat-bubble ai-chat-bubble--user">{{ submittedPrompt() }}</div>
             }
-          </mat-form-field>
-
-          <div class="ai-example-row" aria-label="Example shopping requests">
-            @for (example of examplePrompts; track example) {
-              <button mat-stroked-button type="button" (click)="useExamplePrompt(example)">
-                {{ example }}
-              </button>
+            @if (response()) {
+              <div class="ai-chat-bubble ai-chat-bubble--bot">{{ response()!.summary }}</div>
             }
           </div>
 
-          <button mat-flat-button type="submit" [disabled]="form.invalid || isLoading()">
-            {{ isLoading() ? 'Searching...' : 'Search products' }}
-          </button>
-        </form>
+          @if (response()) {
+            <div class="ai-intent-card">
+              <div class="ai-results-header">
+                <div>
+                  <strong>Extracted intent</strong>
+                  <p>{{ response()!.intent.isVague ? 'The assistant needs a little more detail.' : 'The backend parsed this shopping intent.' }}</p>
+                </div>
+                <app-status-badge
+                  [label]="response()!.intent.isVague ? 'Needs more detail' : 'Ready'"
+                  [tone]="response()!.intent.isVague ? 'warning' : 'success'"
+                />
+              </div>
+              <div class="ai-intent-grid" aria-label="Extracted shopping intent">
+                @for (item of intentItems(); track item.label) {
+                  <span>
+                    <small>{{ item.label }}</small>
+                    <strong>{{ item.value }}</strong>
+                  </span>
+                } @empty {
+                  <span>
+                    <small>Search text</small>
+                    <strong>{{ response()!.intent.searchText }}</strong>
+                  </span>
+                }
+              </div>
+            </div>
+          } @else {
+            <div class="ai-discovery-guide" aria-label="Assistant guidance">
+              <strong>Better prompts include:</strong>
+              <span>Category or item type</span>
+              <span>Size, colour, or material</span>
+              <span>Budget and occasion</span>
+              <span>Beauty skin type or concern where relevant</span>
+            </div>
+          }
 
-        <aside class="ai-discovery-guide" aria-label="Assistant guidance">
-          <strong>Better prompts include:</strong>
-          <span>Category or item type</span>
-          <span>Size, colour, or material</span>
-          <span>Budget and occasion</span>
-          <span>Beauty skin type or concern where relevant</span>
+          <form [formGroup]="form" (ngSubmit)="search()" class="ai-discovery-form ai-refine-form" novalidate>
+            <mat-form-field appearance="outline">
+              <mat-label>Ask to refine results</mat-label>
+              <textarea matInput rows="3" formControlName="message" placeholder="Find a wedding outfit under R1,500 in neutral colours"></textarea>
+              @if (form.controls.message.hasError('required')) {
+                <mat-error>Enter a shopping request.</mat-error>
+              }
+            </mat-form-field>
+
+            <div class="ai-example-row" aria-label="Example shopping requests">
+              @for (example of examplePrompts; track example) {
+                <button mat-stroked-button type="button" (click)="useExamplePrompt(example)">
+                  {{ example }}
+                </button>
+              }
+            </div>
+
+            <button mat-flat-button type="submit" [disabled]="form.invalid || isLoading()">
+              {{ isLoading() ? 'Searching...' : (response() ? 'Update recommendations' : 'Find products') }}
+            </button>
+          </form>
         </aside>
-      </section>
 
-      @if (errorMessage()) {
-        <app-ui-alert tone="error">{{ errorMessage() }}</app-ui-alert>
-      }
+        <section class="ai-recommendations-panel" aria-label="Assistant recommendations">
+          <div class="ai-results-header">
+            <div>
+              <span class="eyebrow">Real product recommendations</span>
+              <h2>{{ response() ? 'Product matches from the catalog' : 'Recommendations appear here' }}</h2>
+              <p>Only products returned by the backend are shown. The assistant does not reserve stock or create orders.</p>
+            </div>
+            <a mat-stroked-button routerLink="/shop">Browse shop</a>
+          </div>
 
-      @if (isLoading()) {
-        <app-ui-alert>Searching published products and extracting intent...</app-ui-alert>
-      }
+          @if (errorMessage()) {
+            <app-ui-alert tone="error">{{ errorMessage() }}</app-ui-alert>
+          }
 
-      @if (response()) {
-        <section class="ai-result-panel" aria-label="Assistant result summary">
-          <div class="ai-result-copy">
-            <app-status-badge
-              [label]="response()!.intent.isVague ? 'Needs more detail' : 'Intent extracted'"
-              [tone]="response()!.intent.isVague ? 'warning' : 'success'"
-            />
-            <h2>Assistant summary</h2>
-            <p>{{ response()!.summary }}</p>
+          @if (isLoading()) {
+            <app-ui-alert>Searching published products and extracting intent...</app-ui-alert>
+          }
+
+          @if (response()) {
             @if (response()!.intent.clarificationPrompt) {
               <app-ui-alert tone="warning">{{ response()!.intent.clarificationPrompt }}</app-ui-alert>
             }
             @if (response()!.safetyNote) {
               <app-ui-alert>{{ response()!.safetyNote }}</app-ui-alert>
             }
-          </div>
 
-          <div class="ai-intent-grid" aria-label="Extracted shopping intent">
-            @for (item of intentItems(); track item.label) {
-              <span>
-                <small>{{ item.label }}</small>
-                <strong>{{ item.value }}</strong>
-              </span>
-            } @empty {
-              <span>
-                <small>Search text</small>
-                <strong>{{ response()!.intent.searchText }}</strong>
-              </span>
-            }
-          </div>
-        </section>
-
-        <section class="ai-results-section" aria-label="Assistant product matches">
-          <div class="ai-results-header">
-            <div>
-              <h2>Product matches</h2>
-              <p>{{ products().length }} {{ products().length === 1 ? 'match' : 'matches' }} returned by backend search.</p>
-            </div>
-            <a mat-stroked-button routerLink="/shop">Search manually</a>
-          </div>
-
-          @if (products().length > 0) {
-            <div class="ai-result-grid">
-              @for (product of products(); track product.productId) {
-                <a class="ai-product-result-card" [routerLink]="['/product', product.slug]">
-                  <div class="ai-product-result-media">
-                    @if (product.imageUrl) {
-                      <img [src]="product.imageUrl" [alt]="product.title">
-                    } @else {
-                      <div class="product-card-fallback">
-                        <span>Product match</span>
-                        <strong>{{ product.title }}</strong>
-                      </div>
-                    }
-                  </div>
-                  <div class="ai-product-result-body">
-                    <span>{{ product.sellerDisplayName ?? 'Swyftly seller' }}</span>
-                    <h3>{{ product.title }}</h3>
-                    <strong>{{ product.price | currency:product.currency:'symbol':'1.2-2' }}</strong>
-                    <ul>
-                      @for (reason of product.matchReasons; track reason) {
-                        <li>{{ reason }}</li>
+            @if (products().length > 0) {
+              <div class="ai-result-grid hf-ai-result-grid">
+                @for (product of products(); track product.productId) {
+                  <a class="ai-product-result-card hf-ai-product-card" [routerLink]="['/product', product.slug]">
+                    <div class="ai-product-result-media hf-ai-product-media">
+                      @if (product.imageUrl) {
+                        <img [src]="product.imageUrl" [alt]="product.title">
+                      } @else {
+                        <app-product-visual-fallback
+                          [title]="product.title"
+                          label="AI match"
+                          [tone]="productTone(product)"
+                        />
                       }
-                    </ul>
-                  </div>
-                </a>
-              }
-            </div>
+                    </div>
+                    <div class="ai-product-result-body">
+                      <span>{{ product.sellerDisplayName ?? 'Swyftly seller' }}</span>
+                      <h3>{{ product.title }}</h3>
+                      <strong>{{ product.price | currency:product.currency:'symbol':'1.2-2' }}</strong>
+                      <ul>
+                        @for (reason of product.matchReasons; track reason) {
+                          <li>{{ reason }}</li>
+                        }
+                      </ul>
+                    </div>
+                  </a>
+                }
+              </div>
+
+              <div class="ai-why-card">
+                <h3>Why this works</h3>
+                <p>{{ response()!.summary }}</p>
+                <div class="active-filter-row">
+                  <app-status-badge [label]="products().length + ' real listings'" tone="success" />
+                  <app-status-badge label="Backend matched" />
+                  <app-status-badge label="No stock reservation" tone="accent" />
+                </div>
+              </div>
+            } @else {
+              <app-empty-state
+                eyebrow="No matches"
+                heading="No product cards to show"
+                message="Try a broader category, colour, size, style, or budget."
+              >
+                <button mat-stroked-button type="button" (click)="useExamplePrompt(examplePrompts[0])">Use an example</button>
+              </app-empty-state>
+            }
           } @else {
             <app-empty-state
-              eyebrow="No matches"
-              heading="No product cards to show"
-              message="Try a broader category, colour, size, style, or budget."
+              eyebrow="Ready when you are"
+              heading="Ask for a style, gift, product, or beauty need"
+              message="Example prompts can fill the box, but the assistant only searches when you submit."
             >
-              <button mat-stroked-button type="button" (click)="useExamplePrompt(examplePrompts[0])">Use an example</button>
+              <button mat-stroked-button type="button" (click)="useExamplePrompt(examplePrompts[0])">Start with an example</button>
             </app-empty-state>
           }
         </section>
-      }
+      </section>
     </section>
   `
 })
@@ -172,8 +204,9 @@ export class BuyerAiAssistantPageComponent {
   protected readonly response = signal<BuyerAiShoppingAssistantResponse | null>(null);
   protected readonly isLoading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly submittedPrompt = signal<string | null>(null);
   protected readonly examplePrompts = [
-    'Black dress in size medium under R1,500',
+    'Wedding outfit under R1,500, neutral colours',
     'Minimal gold earrings for everyday wear',
     'Gentle cleanser for oily skin'
   ];
@@ -222,11 +255,13 @@ export class BuyerAiAssistantPageComponent {
       return;
     }
 
+    const request = this.form.getRawValue();
+    this.submittedPrompt.set(request.message);
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
     try {
-      this.response.set(await this.assistantService.search(this.form.getRawValue()));
+      this.response.set(await this.assistantService.search(request));
     } catch (error) {
       this.errorMessage.set(getApiErrorMessage(error));
       this.response.set(null);
@@ -249,5 +284,26 @@ export class BuyerAiAssistantPageComponent {
     }
 
     return null;
+  }
+
+  protected productTone(product: BuyerAiProductCardResponse): ProductVisualTone {
+    const text = `${product.title} ${product.matchReasons.join(' ')}`.toLowerCase();
+    if (text.includes('earring') || text.includes('jewel') || text.includes('ring') || text.includes('gold')) {
+      return 'jewel';
+    }
+
+    if (text.includes('cleanser') || text.includes('beauty') || text.includes('skin')) {
+      return 'beauty';
+    }
+
+    if (text.includes('bag') || text.includes('clutch')) {
+      return 'bag';
+    }
+
+    if (text.includes('shoe') || text.includes('sneaker') || text.includes('heel')) {
+      return 'shoe';
+    }
+
+    return 'dress';
   }
 }

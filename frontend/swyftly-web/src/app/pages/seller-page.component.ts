@@ -23,7 +23,9 @@ import {
 } from '../seller/seller-onboarding.models';
 import { SellerOnboardingService } from '../seller/seller-onboarding.service';
 import { DashboardCardComponent } from '../shared/ui/dashboard-card.component';
-import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
+import { MetricTileComponent } from '../shared/ui/metric-tile.component';
+import { StatusBadgeComponent, StatusBadgeTone } from '../shared/ui/status-badge.component';
+import { WorkspaceShellComponent } from '../shared/ui/workspace-shell.component';
 
 type WizardStep = 0 | 1 | 2 | 3 | 4;
 
@@ -35,93 +37,133 @@ type WizardStep = 0 | 1 | 2 | 3 | 4;
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MetricTileComponent,
     ReactiveFormsModule,
     RouterLink,
     SellerWorkspaceNavComponent,
-    StatusBadgeComponent
+    StatusBadgeComponent,
+    WorkspaceShellComponent
   ],
   template: `
     <section class="page seller-onboarding">
-      <app-seller-workspace-nav />
+      <app-workspace-shell>
+        <app-seller-workspace-nav workspaceNav />
 
-      <div class="page-header">
-        <span class="eyebrow">{{ isVerified() ? 'Seller dashboard' : 'Seller onboarding' }}</span>
-        <h1>Seller workspace</h1>
-        <p>{{ isVerified() ? 'Manage store operations, products, payouts, support, ads, and analytics.' : 'Complete the required setup details before submitting your seller profile for review.' }}</p>
-        <div class="auth-actions">
-          <a mat-stroked-button routerLink="/seller/products">Products</a>
-          <a mat-stroked-button routerLink="/seller/orders">Orders</a>
-          <a mat-stroked-button routerLink="/seller/returns">Returns</a>
-          <a mat-stroked-button routerLink="/seller/payouts">Payouts</a>
-          <a mat-stroked-button routerLink="/seller/support">Support</a>
-          <a mat-stroked-button routerLink="/seller/ads">Ads</a>
-          <a mat-stroked-button routerLink="/seller/analytics">Analytics</a>
+        <div class="page-header hf-seller-page-header">
+          <div>
+            <span class="eyebrow">{{ isVerified() ? 'Seller dashboard' : 'Seller onboarding' }}</span>
+            <h1>{{ isVerified() ? (storeName()) : 'Seller workspace' }}</h1>
+            <p>{{ isVerified() ? 'Manage daily operations, listing quality, payouts, support, ads, and analytics from one seller workspace.' : 'Complete the required setup details before submitting your seller profile for review.' }}</p>
+          </div>
+          <div class="auth-actions">
+            <a mat-flat-button routerLink="/seller/products/new">Create product</a>
+            <a mat-stroked-button routerLink="/seller/orders">Orders</a>
+          </div>
         </div>
-      </div>
 
-      <div class="onboarding-status">
-        <span class="status-pill">{{ onboarding()?.verificationStatus ?? 'Loading' }}</span>
-        @if (onboarding()) {
-          <span>{{ completionLabel() }}</span>
-        }
-      </div>
+        <div class="onboarding-status hf-seller-status-strip">
+          <span class="status-pill">{{ onboarding()?.verificationStatus ?? 'Loading' }}</span>
+          @if (onboarding()) {
+            <span>{{ completionLabel() }}</span>
+          }
+        </div>
 
-      @if (isLoading()) {
-        <div class="route-card">Loading seller onboarding...</div>
-      } @else if (isVerified()) {
-        <div class="seller-dashboard">
+        @if (isLoading()) {
+          <div class="route-card">Loading seller onboarding...</div>
+        } @else if (isVerified()) {
+          <div class="seller-dashboard hf-seller-dashboard">
+            @if (errorMessage()) {
+              <p class="auth-alert error" role="alert">{{ errorMessage() }}</p>
+            }
+
+            <section class="seller-dashboard-hero hf-seller-dashboard-hero">
+              <div>
+                <app-status-badge label="Verified seller" tone="success" />
+                <h2>{{ storeName() }}</h2>
+                <p>Use this workspace for the daily seller loop: create listings, fulfil orders, answer support, monitor payouts, and decide what to promote next.</p>
+              </div>
+              <div class="seller-dashboard-status hf-seller-quality-panel">
+                <strong>{{ setupPercent() }}%</strong>
+                <span>{{ onboarding()?.storefront?.isPublished ? 'Storefront published' : 'Storefront not published' }}</span>
+                <a mat-stroked-button routerLink="/seller/products">Improve listings</a>
+              </div>
+            </section>
+
+            <section class="hf-metric-grid" aria-label="Seller dashboard summary">
+              @for (metric of dashboardMetrics(); track metric.label) {
+                <app-metric-tile
+                  [label]="metric.label"
+                  [value]="metric.value"
+                  [badge]="metric.badge"
+                  [badgeTone]="metric.tone"
+                />
+              }
+            </section>
+
+            <section class="hf-seller-dashboard-layout">
+              <div class="hf-seller-queue-card">
+                <div class="seller-products-header">
+                  <div>
+                    <span class="eyebrow">Operational queues</span>
+                    <h2>What to check next</h2>
+                  </div>
+                  <a mat-stroked-button routerLink="/seller/orders">View orders</a>
+                </div>
+
+                @for (item of operationHighlights; track item.route) {
+                  <a class="hf-seller-queue-row" [routerLink]="item.route">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.heading }}</strong>
+                    <small>{{ item.description }}</small>
+                  </a>
+                }
+              </div>
+
+              <aside class="hf-seller-opportunity-card">
+                <span class="eyebrow">AI opportunity</span>
+                <h2>Improve product quality before spending on ads</h2>
+                <p>Use the AI listing assistant to tighten titles, attributes, missing fields, and image alt text before submitting products or campaigns.</p>
+                <div class="hf-progress-ring" aria-label="Listing quality emphasis"><strong>AI</strong></div>
+                <a mat-flat-button routerLink="/seller/products/new">Open listing assistant</a>
+              </aside>
+            </section>
+
+            <div class="seller-dashboard-grid hf-seller-dashboard-grid">
+              @for (card of dashboardCards; track card.route) {
+                <app-dashboard-card [eyebrow]="card.eyebrow" [heading]="card.heading" [description]="card.description">
+                  <a mat-stroked-button [routerLink]="card.route">{{ card.action }}</a>
+                </app-dashboard-card>
+              }
+            </div>
+          </div>
+        } @else {
           @if (errorMessage()) {
             <p class="auth-alert error" role="alert">{{ errorMessage() }}</p>
           }
 
-          <section class="seller-dashboard-hero">
-            <div>
-              <app-status-badge label="Verified seller" tone="success" />
-              <h2>{{ onboarding()?.storefront?.storeName ?? onboarding()?.profile?.displayName ?? 'Seller store' }}</h2>
-              <p>Use this workspace for daily store operations. Payout actions are read-only for sellers; admin finance controls stay in the admin area.</p>
-            </div>
-            <div class="seller-dashboard-status">
-              <strong>{{ completionLabel() }}</strong>
-              <span>{{ onboarding()?.storefront?.isPublished ? 'Storefront published' : 'Storefront not published' }}</span>
-            </div>
-          </section>
+          @if (successMessage()) {
+            <p class="auth-alert success" role="status">{{ successMessage() }}</p>
+          }
 
-          <div class="seller-dashboard-grid">
-            @for (card of dashboardCards; track card.route) {
-              <app-dashboard-card [eyebrow]="card.eyebrow" [heading]="card.heading" [description]="card.description">
-                <a mat-stroked-button [routerLink]="card.route">{{ card.action }}</a>
-              </app-dashboard-card>
-            }
-          </div>
-        </div>
-      } @else {
-        @if (errorMessage()) {
-          <p class="auth-alert error" role="alert">{{ errorMessage() }}</p>
-        }
+          <div class="wizard-layout">
+            <nav class="wizard-steps" aria-label="Seller onboarding steps">
+              @for (step of steps; track step.index) {
+                <button
+                  type="button"
+                  [class.active]="currentStep() === step.index"
+                  [class.complete]="isStepComplete(step.index)"
+                  (click)="currentStep.set(step.index)"
+                >
+                  <span>{{ step.index + 1 }}</span>
+                  {{ step.label }}
+                </button>
+              }
+            </nav>
 
-        @if (successMessage()) {
-          <p class="auth-alert success" role="status">{{ successMessage() }}</p>
-        }
-
-        <div class="wizard-layout">
-          <nav class="wizard-steps" aria-label="Seller onboarding steps">
-            @for (step of steps; track step.index) {
-              <button
-                type="button"
-                [class.active]="currentStep() === step.index"
-                [class.complete]="isStepComplete(step.index)"
-                (click)="currentStep.set(step.index)"
-              >
-                <span>{{ step.index + 1 }}</span>
-                {{ step.label }}
-              </button>
-            }
-          </nav>
-
-          <div class="wizard-panel">
-            @switch (currentStep()) {
-              @case (0) {
-                <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="wizard-form" novalidate>
+            <div class="wizard-panel">
+              @switch (currentStep()) {
+                @case (0) {
+                  <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="wizard-form" novalidate>
                   <h2>Basic seller details</h2>
                   <mat-form-field appearance="outline">
                     <mat-label>Display name</mat-label>
@@ -166,10 +208,10 @@ type WizardStep = 0 | 1 | 2 | 3 | 4;
                   </mat-form-field>
 
                   <button mat-flat-button type="submit" [disabled]="isSaving()">Save and continue</button>
-                </form>
-              }
-              @case (1) {
-                <form [formGroup]="storefrontForm" (ngSubmit)="saveStorefront()" class="wizard-form" novalidate>
+                  </form>
+                }
+                @case (1) {
+                  <form [formGroup]="storefrontForm" (ngSubmit)="saveStorefront()" class="wizard-form" novalidate>
                   <h2>Storefront details</h2>
                   <mat-form-field appearance="outline">
                     <mat-label>Store name</mat-label>
@@ -205,10 +247,10 @@ type WizardStep = 0 | 1 | 2 | 3 | 4;
                   </mat-form-field>
 
                   <button mat-flat-button type="submit" [disabled]="isSaving()">Save and continue</button>
-                </form>
-              }
-              @case (2) {
-                <form [formGroup]="addressForm" (ngSubmit)="saveAddress()" class="wizard-form" novalidate>
+                  </form>
+                }
+                @case (2) {
+                  <form [formGroup]="addressForm" (ngSubmit)="saveAddress()" class="wizard-form" novalidate>
                   <h2>Address and fulfilment</h2>
                   <mat-form-field appearance="outline">
                     <mat-label>Address line 1</mat-label>
@@ -262,10 +304,10 @@ type WizardStep = 0 | 1 | 2 | 3 | 4;
                   </div>
 
                   <button mat-flat-button type="submit" [disabled]="isSaving()">Save and continue</button>
-                </form>
-              }
-              @case (3) {
-                <form [formGroup]="payoutForm" (ngSubmit)="savePayout()" class="wizard-form" novalidate>
+                  </form>
+                }
+                @case (3) {
+                  <form [formGroup]="payoutForm" (ngSubmit)="savePayout()" class="wizard-form" novalidate>
                   <h2>Payout setup</h2>
                   <p>No bank details are stored here. Use a provider reference or setup token for now.</p>
                   <mat-form-field appearance="outline">
@@ -277,10 +319,10 @@ type WizardStep = 0 | 1 | 2 | 3 | 4;
                   </mat-form-field>
 
                   <button mat-flat-button type="submit" [disabled]="isSaving()">Save and continue</button>
-                </form>
-              }
-              @case (4) {
-                <div class="review-panel">
+                  </form>
+                }
+                @case (4) {
+                  <div class="review-panel">
                   <h2>Review and submit</h2>
                   <div class="review-grid">
                     @for (item of reviewItems(); track item.label) {
@@ -304,12 +346,13 @@ type WizardStep = 0 | 1 | 2 | 3 | 4;
                   @if (!onboarding()?.canSubmitForVerification) {
                     <p>Complete every onboarding step before submitting for review.</p>
                   }
-                </div>
+                  </div>
+                }
               }
-            }
+            </div>
           </div>
-        </div>
-      }
+        }
+      </app-workspace-shell>
     </section>
   `
 })
@@ -347,6 +390,13 @@ export class SellerPageComponent implements OnInit {
       action: 'Manage products'
     },
     {
+      eyebrow: 'Stock',
+      heading: 'Inventory',
+      description: 'Adjust live variant stock, reserved-stock visibility, and sellable inventory status.',
+      route: '/seller/inventory',
+      action: 'Manage inventory'
+    },
+    {
       eyebrow: 'Fulfilment',
       heading: 'Orders',
       description: 'Review seller orders, add tracking, and move orders through manual fulfilment.',
@@ -380,6 +430,45 @@ export class SellerPageComponent implements OnInit {
       description: 'Access existing advertising and aggregate analytics tools after core operations.',
       route: '/seller/analytics',
       action: 'View analytics'
+    },
+    {
+      eyebrow: 'Settings',
+      heading: 'Store profile',
+      description: 'Maintain storefront presentation and fulfilment address details after verification.',
+      route: '/seller/settings/store',
+      action: 'Open settings'
+    }
+  ];
+
+  protected readonly operationHighlights: readonly {
+    label: string;
+    heading: string;
+    description: string;
+    route: string;
+  }[] = [
+    {
+      label: 'Orders',
+      heading: 'Fulfil paid orders',
+      description: 'Add tracking, mark shipped, and confirm delivery from the order workspace.',
+      route: '/seller/orders'
+    },
+    {
+      label: 'Inventory',
+      heading: 'Check low-stock variants',
+      description: 'Keep published products sellable without reopening listing review.',
+      route: '/seller/inventory'
+    },
+    {
+      label: 'Returns',
+      heading: 'Review buyer requests',
+      description: 'Respond clearly so refunds and disputes do not drift.',
+      route: '/seller/returns'
+    },
+    {
+      label: 'Support',
+      heading: 'Keep tickets moving',
+      description: 'Use support threads for operational issues and buyer follow-up.',
+      route: '/seller/support'
     }
   ];
 
@@ -399,6 +488,62 @@ export class SellerPageComponent implements OnInit {
     ].filter(Boolean).length;
 
     return `${completed} of 4 setup sections complete`;
+  });
+
+  protected readonly storeName = computed(() =>
+    this.onboarding()?.storefront?.storeName
+      ?? this.onboarding()?.profile?.displayName
+      ?? 'Seller store');
+
+  protected readonly setupPercent = computed(() => {
+    const onboarding = this.onboarding();
+    if (!onboarding) {
+      return 0;
+    }
+
+    const completed = [
+      onboarding.isProfileComplete,
+      onboarding.isStorefrontComplete,
+      onboarding.isAddressComplete,
+      onboarding.isPayoutPlaceholderComplete
+    ].filter(Boolean).length;
+
+    return Math.round((completed / 4) * 100);
+  });
+
+  protected readonly dashboardMetrics = computed<readonly {
+    label: string;
+    value: string;
+    badge: string;
+    tone: StatusBadgeTone;
+  }[]>(() => {
+    const onboarding = this.onboarding();
+    return [
+      {
+        label: 'Setup',
+        value: `${this.setupPercent()}%`,
+        badge: onboarding?.verificationStatus ?? 'Loading',
+        tone: this.isVerified() ? 'success' : 'warning'
+      },
+      {
+        label: 'Storefront',
+        value: onboarding?.storefront?.isPublished ? 'Published' : 'Draft',
+        badge: 'Buyer visibility',
+        tone: onboarding?.storefront?.isPublished ? 'success' : 'warning'
+      },
+      {
+        label: 'Operations',
+        value: '4 queues',
+        badge: 'Orders, returns, payouts, support',
+        tone: 'accent'
+      },
+      {
+        label: 'Growth',
+        value: 'AI + Ads',
+        badge: 'Listing quality first',
+        tone: 'neutral'
+      }
+    ];
   });
 
   protected readonly profileForm = this.formBuilder.group({
