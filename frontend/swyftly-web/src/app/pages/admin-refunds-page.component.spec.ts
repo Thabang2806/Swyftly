@@ -51,6 +51,7 @@ describe('AdminRefundsPageComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('app-admin-workspace-nav')).not.toBeNull();
     expect(compiled.textContent).toContain('refund-id');
 
     const component = fixture.componentInstance as unknown as {

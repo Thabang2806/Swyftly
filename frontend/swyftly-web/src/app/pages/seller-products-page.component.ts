@@ -28,7 +28,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     UiAlertComponent
   ],
   template: `
-    <section class="page seller-products">
+    <section class="page seller-ops-page seller-products hf-seller-products-page">
       <app-seller-workspace-nav />
 
       <div class="page-header seller-products-header">
@@ -79,8 +79,8 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
             message="Adjust the search or status filter to find another listing."
           />
         } @else {
-          <div class="admin-table" role="table" aria-label="Seller products">
-            <div class="admin-table-row heading" role="row">
+          <div class="admin-table seller-ops-table seller-products-table" role="table" aria-label="Seller products">
+            <div class="admin-table-row heading seller-ops-table-row" role="row">
               <span role="columnheader">Product</span>
               <span role="columnheader">Slug</span>
               <span role="columnheader">Updated</span>
@@ -89,7 +89,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
             </div>
 
             @for (product of filteredProducts(); track product.productId) {
-              <div class="admin-table-row" role="row">
+              <div class="admin-table-row seller-ops-table-row" role="row">
                 <span role="cell">
                   <strong>{{ product.title ?? 'Untitled product' }}</strong>
                   <small>{{ product.productId }}</small>

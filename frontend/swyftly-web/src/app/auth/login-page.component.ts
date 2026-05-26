@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { LuxuryPublicStylesComponent } from '../shared/ui/luxury-public-styles.component';
 import { getApiErrorMessage } from './api-error';
 import { AuthService } from './auth.service';
 
@@ -13,10 +14,12 @@ import { AuthService } from './auth.service';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    LuxuryPublicStylesComponent,
     ReactiveFormsModule,
     RouterLink
   ],
   template: `
+    <app-luxury-public-styles />
     <section class="page auth-page">
       <form class="auth-panel" [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <span class="eyebrow">Account</span>

@@ -12,6 +12,8 @@ import { BuyerSettingsService } from '../buyer/buyer-settings.service';
 import { CartAddressVerificationResponse, CartResponse, CartShippingOptionResponse, OrderDeliveryAddressRequest } from '../cart/cart.models';
 import { CartService } from '../cart/cart.service';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
+import { LuxuryPublicStylesComponent } from '../shared/ui/luxury-public-styles.component';
+import { ProductVisualFallbackComponent, ProductVisualTone } from '../shared/ui/product-visual-fallback.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
 import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 
@@ -20,15 +22,18 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
   imports: [
     CurrencyPipe,
     EmptyStateComponent,
+    LuxuryPublicStylesComponent,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    ProductVisualFallbackComponent,
     ReactiveFormsModule,
     RouterLink,
     StatusBadgeComponent,
     UiAlertComponent
   ],
   template: `
+    <app-luxury-public-styles />
     <section class="page checkout-page">
       <a class="admin-back-link" routerLink="/cart">Back to cart</a>
 
@@ -124,7 +129,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                   </div>
                 } @else {
                   <div class="form-grid">
-                  <mat-form-field appearance="outline">
+                  <mat-form-field class="swyftly-field" appearance="outline" hideRequiredMarker>
                     <mat-label>Full name</mat-label>
                     <input matInput formControlName="fullName">
                     @if (shippingForm.controls.fullName.hasError('required')) {
@@ -132,7 +137,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline">
+                  <mat-form-field class="swyftly-field" appearance="outline" hideRequiredMarker>
                     <mat-label>Phone</mat-label>
                     <input matInput formControlName="phone">
                     @if (shippingForm.controls.phone.hasError('required')) {
@@ -140,7 +145,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline">
+                  <mat-form-field class="swyftly-field" appearance="outline" hideRequiredMarker>
                     <mat-label>Address line 1</mat-label>
                     <input matInput formControlName="addressLine1">
                     @if (shippingForm.controls.addressLine1.hasError('required')) {
@@ -148,17 +153,17 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline">
+                  <mat-form-field class="swyftly-field" appearance="outline" hideRequiredMarker>
                     <mat-label>Address line 2</mat-label>
                     <input matInput formControlName="addressLine2">
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline">
+                  <mat-form-field class="swyftly-field" appearance="outline" hideRequiredMarker>
                     <mat-label>Suburb</mat-label>
                     <input matInput formControlName="suburb">
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline">
+                  <mat-form-field class="swyftly-field" appearance="outline" hideRequiredMarker>
                     <mat-label>City</mat-label>
                     <input matInput formControlName="city">
                     @if (shippingForm.controls.city.hasError('required')) {
@@ -166,7 +171,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline">
+                  <mat-form-field class="swyftly-field" appearance="outline" hideRequiredMarker>
                     <mat-label>Province</mat-label>
                     <input matInput formControlName="province">
                     @if (shippingForm.controls.province.hasError('required')) {
@@ -174,7 +179,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline">
+                  <mat-form-field class="swyftly-field" appearance="outline" hideRequiredMarker>
                     <mat-label>Postal code</mat-label>
                     <input matInput formControlName="postalCode">
                     @if (shippingForm.controls.postalCode.hasError('required')) {
@@ -182,7 +187,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline">
+                  <mat-form-field class="swyftly-field" appearance="outline" hideRequiredMarker>
                     <mat-label>Country code</mat-label>
                     <input matInput formControlName="countryCode" maxlength="2">
                     @if (shippingForm.controls.countryCode.invalid) {
@@ -190,7 +195,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                     }
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline">
+                  <mat-form-field class="swyftly-field" appearance="outline" hideRequiredMarker>
                     <mat-label>Delivery instructions</mat-label>
                     <textarea matInput rows="3" formControlName="deliveryInstructions" maxlength="500"></textarea>
                     @if (shippingForm.controls.deliveryInstructions.hasError('maxlength')) {
@@ -321,7 +326,17 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
               </div>
               @for (item of cart()?.items; track item.cartItemId) {
                 <div class="checkout-summary-item">
-                  <div class="checkout-summary-thumb" aria-hidden="true">{{ item.productTitle?.charAt(0) ?? 'S' }}</div>
+                  <div class="checkout-summary-thumb" aria-hidden="true">
+                    @if (item.primaryImageUrl) {
+                      <img [src]="item.primaryImageUrl" [alt]="item.primaryImageAltText ?? item.productTitle ?? 'Checkout product image'">
+                    } @else {
+                      <app-product-visual-fallback
+                        [label]="item.size + ' / ' + item.colour"
+                        [title]="item.productTitle ?? 'Checkout item'"
+                        [tone]="visualTone(item)"
+                      />
+                    }
+                  </div>
                   <div>
                     <strong>{{ item.productTitle ?? 'Product' }}</strong>
                     <span>{{ item.size || item.colour ? (item.size + ' ' + item.colour).trim() : item.sku }} - Qty {{ item.quantity }}</span>
@@ -571,6 +586,31 @@ export class CheckoutPageComponent implements OnInit {
     return option.estimatedMinDays === option.estimatedMaxDays
       ? `${option.estimatedMinDays} day${option.estimatedMinDays === 1 ? '' : 's'}`
       : `${option.estimatedMinDays}-${option.estimatedMaxDays} days`;
+  }
+
+  protected visualTone(item: CartResponse['items'][number]): ProductVisualTone {
+    const text = `${item.productTitle ?? ''} ${item.colour} ${item.size}`.toLowerCase();
+    if (/(jewel|ring|earring|necklace|bracelet|gold|silver)/.test(text)) {
+      return 'jewel';
+    }
+
+    if (/(beauty|skin|makeup|lip|hair|fragrance|serum)/.test(text)) {
+      return 'beauty';
+    }
+
+    if (/(bag|tote|clutch|purse|wallet)/.test(text)) {
+      return 'bag';
+    }
+
+    if (/(shoe|heel|sneaker|boot|sandal)/.test(text)) {
+      return 'shoe';
+    }
+
+    if (/(dress|coat|shirt|denim|fashion|clothing|linen|silk)/.test(text)) {
+      return 'dress';
+    }
+
+    return 'neutral';
   }
 
   private applyDefaultAddress(addresses: BuyerDeliveryAddressResponse[]): void {

@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { AdminAiUsageAnalyticsResponse } from '../admin/admin-ai-usage-analytics.models';
 import { AdminAiUsageAnalyticsService } from '../admin/admin-ai-usage-analytics.service';
+import { AdminWorkspaceNavComponent } from '../admin/admin-workspace-nav.component';
 import { getApiErrorMessage } from '../auth/api-error';
 
 @Component({
@@ -17,12 +18,15 @@ import { getApiErrorMessage } from '../auth/api-error';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    AdminWorkspaceNavComponent,
     PercentPipe,
     ReactiveFormsModule,
     RouterLink
   ],
   template: `
     <section class="page admin-review">
+      <app-admin-workspace-nav />
+
       <a class="admin-back-link" routerLink="/admin">Back to admin</a>
 
       <div class="page-header">

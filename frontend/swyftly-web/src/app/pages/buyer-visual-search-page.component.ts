@@ -8,8 +8,10 @@ import { MatInputModule } from '@angular/material/input';
 import { getApiErrorMessage } from '../auth/api-error';
 import { BuyerVisualSearchProductCardResponse, BuyerVisualSearchResponse } from '../buyer/buyer-visual-search.models';
 import { BuyerVisualSearchService } from '../buyer/buyer-visual-search.service';
+import { LuxuryBuyerStylesComponent } from '../buyer/luxury-buyer-styles.component';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
 import { PageHeaderComponent } from '../shared/ui/page-header.component';
+import { ProductVisualFallbackComponent, ProductVisualTone } from '../shared/ui/product-visual-fallback.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
 import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 
@@ -20,14 +22,17 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    LuxuryBuyerStylesComponent,
     EmptyStateComponent,
     PageHeaderComponent,
+    ProductVisualFallbackComponent,
     ReactiveFormsModule,
     RouterLink,
     StatusBadgeComponent,
     UiAlertComponent
   ],
   template: `
+    <app-luxury-buyer-styles />
     <section class="page ai-discovery-page">
       <app-page-header
         eyebrow="Visual search"
@@ -65,7 +70,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
             </div>
           }
 
-          <mat-form-field appearance="outline">
+          <mat-form-field class="swyftly-field" appearance="outline" hideRequiredMarker>
             <mat-label>Image reference</mat-label>
             <input matInput formControlName="imageReference" placeholder="black formal maxi dress flatlay">
           </mat-form-field>
@@ -130,15 +135,16 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
           @if (products().length > 0) {
             <div class="ai-result-grid">
               @for (product of products(); track product.productId) {
-                <a class="ai-product-result-card" [routerLink]="['/product', product.slug]">
-                  <div class="ai-product-result-media">
+                <a class="ai-product-result-card hf-ai-product-card" [routerLink]="['/product', product.slug]">
+                  <div class="ai-product-result-media hf-ai-product-media">
                     @if (product.imageUrl) {
                       <img [src]="product.imageUrl" [alt]="product.title">
                     } @else {
-                      <div class="product-card-fallback">
-                        <span>Visual match</span>
-                        <strong>{{ product.title }}</strong>
-                      </div>
+                      <app-product-visual-fallback
+                        [title]="product.title"
+                        label="Visual match"
+                        [tone]="productTone(product)"
+                      />
                     }
                   </div>
                   <div class="ai-product-result-body">
@@ -214,6 +220,31 @@ export class BuyerVisualSearchPageComponent {
   protected confidenceLabel(): string {
     const confidence = this.response()?.attributes.confidence ?? 0;
     return `Confidence ${Math.round(confidence * 100)}%`;
+  }
+
+  protected productTone(product: BuyerVisualSearchProductCardResponse): ProductVisualTone {
+    const text = `${product.title} ${product.sellerDisplayName ?? ''}`.toLowerCase();
+    if (/(jewel|ring|earring|necklace|bracelet|gold|silver)/.test(text)) {
+      return 'jewel';
+    }
+
+    if (/(beauty|skin|makeup|lip|hair|fragrance|serum)/.test(text)) {
+      return 'beauty';
+    }
+
+    if (/(bag|tote|clutch|purse|wallet)/.test(text)) {
+      return 'bag';
+    }
+
+    if (/(shoe|heel|sneaker|boot|sandal)/.test(text)) {
+      return 'shoe';
+    }
+
+    if (/(dress|coat|shirt|denim|fashion|clothing|linen|silk)/.test(text)) {
+      return 'dress';
+    }
+
+    return 'neutral';
   }
 
   protected onFileSelected(event: Event): void {

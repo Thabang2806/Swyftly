@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { AdminSupportTicketResponse } from '../admin/admin-support.models';
 import { AdminSupportService } from '../admin/admin-support.service';
+import { AdminWorkspaceNavComponent } from '../admin/admin-workspace-nav.component';
 import { getApiErrorMessage } from '../auth/api-error';
 import { PageHeaderComponent } from '../shared/ui/page-header.component';
 import { StatusBadgeComponent, StatusBadgeTone } from '../shared/ui/status-badge.component';
@@ -19,6 +20,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    AdminWorkspaceNavComponent,
     PageHeaderComponent,
     ReactiveFormsModule,
     RouterLink,
@@ -27,6 +29,8 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
   ],
   template: `
     <section class="page admin-support-page">
+      <app-admin-workspace-nav />
+
       <a class="admin-back-link" routerLink="/admin/support">Back to support tickets</a>
 
       <app-page-header

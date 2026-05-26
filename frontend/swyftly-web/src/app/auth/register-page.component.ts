@@ -11,6 +11,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { LuxuryPublicStylesComponent } from '../shared/ui/luxury-public-styles.component';
 import { getApiErrorMessage } from './api-error';
 import { AuthService } from './auth.service';
 
@@ -22,10 +23,12 @@ type PublicRegistrationRole = 'Buyer' | 'Seller';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    LuxuryPublicStylesComponent,
     ReactiveFormsModule,
     RouterLink
   ],
   template: `
+    <app-luxury-public-styles />
     <section class="page auth-page">
       <form class="auth-panel" [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <span class="eyebrow">{{ roleLabel() }}</span>
@@ -115,8 +118,8 @@ export class RegisterPageComponent {
 
   protected summary(): string {
     return this.role === 'Seller'
-      ? 'Register a seller account for future storefront and listing workflows.'
-      : 'Register a buyer account for future account and order workflows.';
+      ? 'Start seller onboarding, prepare your storefront, and submit listings for marketplace review.'
+      : 'Save products, manage orders, track returns, and keep your marketplace preferences in one place.';
   }
 
   protected alternateRoute(): string {

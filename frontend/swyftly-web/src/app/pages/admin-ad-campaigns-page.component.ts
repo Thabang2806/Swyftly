@@ -4,13 +4,16 @@ import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { AdminAdCampaignSummaryResponse } from '../admin/admin-ad-campaign.models';
 import { AdminAdCampaignService } from '../admin/admin-ad-campaign.service';
+import { AdminWorkspaceNavComponent } from '../admin/admin-workspace-nav.component';
 import { getApiErrorMessage } from '../auth/api-error';
 
 @Component({
   selector: 'app-admin-ad-campaigns-page',
-  imports: [CurrencyPipe, DatePipe, MatButtonModule, RouterLink],
+  imports: [CurrencyPipe, DatePipe, MatButtonModule, AdminWorkspaceNavComponent, RouterLink],
   template: `
     <section class="page admin-review">
+      <app-admin-workspace-nav />
+
       <a class="admin-back-link" routerLink="/admin">Back to admin</a>
 
       <div class="page-header">

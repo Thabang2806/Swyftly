@@ -74,7 +74,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                   <small>Saved {{ item.createdAtUtc | date:'mediumDate' }}</small>
                   @if (item.availableVariants.length > 0) {
                     <div class="wishlist-move-controls">
-                      <mat-form-field appearance="outline">
+                      <mat-form-field class="swyftly-field swyftly-field--compact" appearance="outline">
                         <mat-label>Variant</mat-label>
                         <mat-select
                           [ngModel]="selectedVariantId(item)"
@@ -87,7 +87,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                           }
                         </mat-select>
                       </mat-form-field>
-                      <mat-form-field appearance="outline">
+                      <mat-form-field class="swyftly-field swyftly-field--compact" appearance="outline">
                         <mat-label>Qty</mat-label>
                         <input
                           matInput

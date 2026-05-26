@@ -10,6 +10,7 @@ import { BuyerWishlistStateService } from '../buyer/buyer-wishlist-state.service
 import { CartItemResponse, CartResponse } from '../cart/cart.models';
 import { CartService } from '../cart/cart.service';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
+import { LuxuryPublicStylesComponent } from '../shared/ui/luxury-public-styles.component';
 import { PageHeaderComponent } from '../shared/ui/page-header.component';
 import { ProductVisualFallbackComponent, ProductVisualTone } from '../shared/ui/product-visual-fallback.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
@@ -21,6 +22,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     CurrencyPipe,
     EmptyStateComponent,
     FormsModule,
+    LuxuryPublicStylesComponent,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
@@ -31,11 +33,12 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     UiAlertComponent
   ],
   template: `
+    <app-luxury-public-styles />
     <section class="page cart-page">
       <app-page-header
         eyebrow="Cart"
-        heading="Cart"
-        description="Review product quantities, seller details, and subtotal before checkout."
+        heading="Review your selected pieces"
+        description="Confirm quantities, seller details, and subtotal before moving into delivery and payment."
       >
         <a pageHeaderActions mat-stroked-button routerLink="/shop">Continue shopping</a>
       </app-page-header>
@@ -98,7 +101,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                     <small>SKU {{ item.sku }} - {{ item.unitPrice | currency:'ZAR':'symbol-narrow' }} each</small>
                   </div>
 
-                  <mat-form-field appearance="outline">
+                  <mat-form-field class="swyftly-field swyftly-field--compact" appearance="outline">
                     <mat-label>Qty</mat-label>
                     <input
                       matInput

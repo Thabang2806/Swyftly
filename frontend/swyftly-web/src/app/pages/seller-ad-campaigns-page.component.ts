@@ -5,14 +5,17 @@ import { MatButtonModule } from '@angular/material/button';
 import { SellerAdCampaignResponse } from '../seller/seller-ad-campaign.models';
 import { SellerAdCampaignService } from '../seller/seller-ad-campaign.service';
 import { getApiErrorMessage } from '../auth/api-error';
+import { SellerWorkspaceNavComponent } from '../seller/seller-workspace-nav.component';
 import { MetricTileComponent } from '../shared/ui/metric-tile.component';
 import { StatusBadgeComponent, StatusBadgeTone } from '../shared/ui/status-badge.component';
 
 @Component({
   selector: 'app-seller-ad-campaigns-page',
-  imports: [CurrencyPipe, DatePipe, MatButtonModule, MetricTileComponent, RouterLink, StatusBadgeComponent],
+  imports: [CurrencyPipe, DatePipe, MatButtonModule, MetricTileComponent, RouterLink, SellerWorkspaceNavComponent, StatusBadgeComponent],
   template: `
-    <section class="page seller-products hf-seller-ads-page">
+    <section class="page seller-ops-page seller-products hf-seller-ads-page">
+      <app-seller-workspace-nav />
+
       <div class="page-header seller-products-header hf-ads-header">
         <div>
           <span class="eyebrow">Seller advertising</span>

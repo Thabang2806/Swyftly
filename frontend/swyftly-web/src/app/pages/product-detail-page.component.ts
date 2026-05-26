@@ -14,6 +14,7 @@ import { CartService } from '../cart/cart.service';
 import { PublicProductDetailResponse, PublicProductImageResponse } from '../shop/public-catalog.models';
 import { PublicCatalogService } from '../shop/public-catalog.service';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
+import { LuxuryPublicStylesComponent } from '../shared/ui/luxury-public-styles.component';
 import { ProductVisualFallbackComponent, ProductVisualTone } from '../shared/ui/product-visual-fallback.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
 import { UiAlertComponent } from '../shared/ui/ui-alert.component';
@@ -25,6 +26,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     DatePipe,
     EmptyStateComponent,
     FormsModule,
+    LuxuryPublicStylesComponent,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
@@ -34,6 +36,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     UiAlertComponent
   ],
   template: `
+    <app-luxury-public-styles />
     <section class="page product-detail-page">
       <a class="admin-back-link" routerLink="/shop">Back to shop</a>
 
@@ -167,7 +170,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
             </section>
 
             <div class="product-detail-actions product-purchase-actions">
-              <mat-form-field appearance="outline">
+              <mat-form-field class="swyftly-field swyftly-field--compact" appearance="outline">
                 <mat-label>Qty</mat-label>
                 <input matInput type="number" min="1" [(ngModel)]="quantity">
               </mat-form-field>

@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { AdminAdCampaignDetailResponse } from '../admin/admin-ad-campaign.models';
 import { AdminAdCampaignService } from '../admin/admin-ad-campaign.service';
+import { AdminWorkspaceNavComponent } from '../admin/admin-workspace-nav.component';
 import { getApiErrorMessage } from '../auth/api-error';
 
 @Component({
@@ -17,11 +18,14 @@ import { getApiErrorMessage } from '../auth/api-error';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    AdminWorkspaceNavComponent,
     ReactiveFormsModule,
     RouterLink
   ],
   template: `
     <section class="page admin-review">
+      <app-admin-workspace-nav />
+
       <a class="admin-back-link" routerLink="/admin/ads">Back to ad queue</a>
 
       @if (isLoading()) {

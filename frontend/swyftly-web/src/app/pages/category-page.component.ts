@@ -6,6 +6,7 @@ import { ProductCardComponent } from '../shop/product-card.component';
 import { ProductSearchItemResponse, PublicCategoryResponse } from '../shop/public-catalog.models';
 import { PublicCatalogService } from '../shop/public-catalog.service';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
+import { LuxuryPublicStylesComponent } from '../shared/ui/luxury-public-styles.component';
 import { PageHeaderComponent } from '../shared/ui/page-header.component';
 import { ProductVisualFallbackComponent } from '../shared/ui/product-visual-fallback.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
@@ -15,6 +16,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
   selector: 'app-category-page',
   imports: [
     EmptyStateComponent,
+    LuxuryPublicStylesComponent,
     MatButtonModule,
     PageHeaderComponent,
     ProductCardComponent,
@@ -24,6 +26,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     UiAlertComponent
   ],
   template: `
+    <app-luxury-public-styles />
     <section class="page shop-surface category-surface">
       <a class="admin-back-link" routerLink="/shop">Back to shop</a>
 

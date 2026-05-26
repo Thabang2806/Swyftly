@@ -52,7 +52,7 @@ type ProductEditorImage = (SellerProductImageResponse | SellerProductRevisionIma
     SellerWorkspaceNavComponent
   ],
   template: `
-    <section class="page product-editor">
+    <section class="page seller-ops-page product-editor">
       <app-seller-workspace-nav />
 
       <a class="admin-back-link" routerLink="/seller/products">Back to products</a>

@@ -51,6 +51,7 @@ describe('AdminSupportDetailPageComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('app-admin-workspace-nav')).not.toBeNull();
     expect(compiled.textContent).toContain('Damaged order');
     expect(compiled.textContent).toContain('Check delivery evidence.');
     expect(compiled.textContent).toContain('Internal');

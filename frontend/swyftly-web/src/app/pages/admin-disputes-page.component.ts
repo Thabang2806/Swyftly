@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { AdminDisputeResponse } from '../admin/admin-dispute.models';
 import { AdminDisputeService } from '../admin/admin-dispute.service';
+import { AdminWorkspaceNavComponent } from '../admin/admin-workspace-nav.component';
 import { getApiErrorMessage } from '../auth/api-error';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
 import { PageHeaderComponent } from '../shared/ui/page-header.component';
@@ -23,6 +24,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    AdminWorkspaceNavComponent,
     PageHeaderComponent,
     ReactiveFormsModule,
     RouterLink,
@@ -31,6 +33,8 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
   ],
   template: `
     <section class="page admin-finance-page">
+      <app-admin-workspace-nav />
+
       <a class="admin-back-link" routerLink="/admin">Back to dashboard</a>
 
       <app-page-header

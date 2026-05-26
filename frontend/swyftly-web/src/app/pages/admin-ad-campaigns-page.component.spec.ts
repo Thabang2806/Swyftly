@@ -31,6 +31,7 @@ describe('AdminAdCampaignsPageComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('app-admin-workspace-nav')).not.toBeNull();
     expect(compiled.textContent).toContain('Launch campaign');
     expect(compiled.textContent).toContain('Seller Store');
     expect(compiled.textContent).toContain('FeaturedProduct');

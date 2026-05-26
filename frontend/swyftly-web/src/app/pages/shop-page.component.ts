@@ -10,6 +10,7 @@ import { ProductCardComponent } from '../shop/product-card.component';
 import { ProductSearchItemResponse, PublicCategoryResponse } from '../shop/public-catalog.models';
 import { PublicCatalogService } from '../shop/public-catalog.service';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
+import { LuxuryPublicStylesComponent } from '../shared/ui/luxury-public-styles.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
 import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 
@@ -21,6 +22,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    LuxuryPublicStylesComponent,
     ProductCardComponent,
     ReactiveFormsModule,
     RouterLink,
@@ -28,6 +30,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     UiAlertComponent
   ],
   template: `
+    <app-luxury-public-styles />
     <section class="page shop-surface hf-shop-surface">
       <div class="shop-hero hf-shop-hero">
         <div class="shop-search-title">

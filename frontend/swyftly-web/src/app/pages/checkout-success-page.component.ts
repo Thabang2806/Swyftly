@@ -6,13 +6,15 @@ import { getApiErrorMessage } from '../auth/api-error';
 import { BuyerOrderResult } from '../buyer/buyer-order.models';
 import { BuyerOrderService } from '../buyer/buyer-order.service';
 import { BuyerPaymentRedirectService, BuyerPaymentService } from '../buyer/buyer-payment.service';
+import { LuxuryPublicStylesComponent } from '../shared/ui/luxury-public-styles.component';
 import { StatusBadgeComponent, StatusBadgeTone } from '../shared/ui/status-badge.component';
 import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 
 @Component({
   selector: 'app-checkout-success-page',
-  imports: [CurrencyPipe, MatButtonModule, RouterLink, StatusBadgeComponent, UiAlertComponent],
+  imports: [CurrencyPipe, LuxuryPublicStylesComponent, MatButtonModule, RouterLink, StatusBadgeComponent, UiAlertComponent],
   template: `
+    <app-luxury-public-styles />
     <section class="page checkout-result-page">
       <div class="checkout-result-card hf-checkout-result-card">
         <div class="checkout-result-heading">

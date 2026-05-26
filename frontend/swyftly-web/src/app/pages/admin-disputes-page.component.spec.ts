@@ -36,6 +36,7 @@ describe('AdminDisputesPageComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('app-admin-workspace-nav')).not.toBeNull();
     expect(compiled.textContent).toContain('Damaged item');
 
     const reviewButton = Array.from(compiled.querySelectorAll('button'))

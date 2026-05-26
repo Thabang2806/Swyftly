@@ -1,0 +1,614 @@
+﻿[
+    {
+        "route":  "/",
+        "slug":  "home",
+        "area":  "buyer-public",
+        "desktop":  "desktop/home.png",
+        "mobile":  "mobile/home.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/shop",
+        "slug":  "shop",
+        "area":  "buyer-public",
+        "desktop":  "desktop/shop.png",
+        "mobile":  "mobile/shop.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/products",
+        "slug":  "seller-products",
+        "area":  "seller",
+        "desktop":  "desktop/seller-products.png",
+        "mobile":  "mobile/seller-products.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/inventory",
+        "slug":  "seller-inventory",
+        "area":  "seller",
+        "desktop":  "desktop/seller-inventory.png",
+        "mobile":  "mobile/seller-inventory.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/settings/store",
+        "slug":  "seller-settings-store",
+        "area":  "seller",
+        "desktop":  "desktop/seller-settings-store.png",
+        "mobile":  "mobile/seller-settings-store.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/products/new",
+        "slug":  "seller-products-new",
+        "area":  "seller",
+        "desktop":  "desktop/seller-products-new.png",
+        "mobile":  "mobile/seller-products-new.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/products/:id/edit",
+        "slug":  "seller-products-id-edit",
+        "area":  "seller",
+        "desktop":  "desktop/seller-products-id-edit.png",
+        "mobile":  "mobile/seller-products-id-edit.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/orders",
+        "slug":  "seller-orders",
+        "area":  "seller",
+        "desktop":  "desktop/seller-orders.png",
+        "mobile":  "mobile/seller-orders.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/orders/:orderId",
+        "slug":  "seller-orders-orderid",
+        "area":  "seller",
+        "desktop":  "desktop/seller-orders-orderid.png",
+        "mobile":  "mobile/seller-orders-orderid.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/returns",
+        "slug":  "seller-returns",
+        "area":  "seller",
+        "desktop":  "desktop/seller-returns.png",
+        "mobile":  "mobile/seller-returns.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/returns/:returnRequestId",
+        "slug":  "seller-returns-returnrequestid",
+        "area":  "seller",
+        "desktop":  "desktop/seller-returns-returnrequestid.png",
+        "mobile":  "mobile/seller-returns-returnrequestid.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/payouts",
+        "slug":  "seller-payouts",
+        "area":  "seller",
+        "desktop":  "desktop/seller-payouts.png",
+        "mobile":  "mobile/seller-payouts.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/support",
+        "slug":  "seller-support",
+        "area":  "seller",
+        "desktop":  "desktop/seller-support.png",
+        "mobile":  "mobile/seller-support.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/support/:ticketId",
+        "slug":  "seller-support-ticketid",
+        "area":  "seller",
+        "desktop":  "desktop/seller-support-ticketid.png",
+        "mobile":  "mobile/seller-support-ticketid.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/ads",
+        "slug":  "seller-ads",
+        "area":  "seller",
+        "desktop":  "desktop/seller-ads.png",
+        "mobile":  "mobile/seller-ads.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/ads/new",
+        "slug":  "seller-ads-new",
+        "area":  "seller",
+        "desktop":  "desktop/seller-ads-new.png",
+        "mobile":  "mobile/seller-ads-new.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/ads/:id",
+        "slug":  "seller-ads-id",
+        "area":  "seller",
+        "desktop":  "desktop/seller-ads-id.png",
+        "mobile":  "mobile/seller-ads-id.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/analytics",
+        "slug":  "seller-analytics",
+        "area":  "seller",
+        "desktop":  "desktop/seller-analytics.png",
+        "mobile":  "mobile/seller-analytics.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller",
+        "slug":  "seller",
+        "area":  "seller",
+        "desktop":  "desktop/seller.png",
+        "mobile":  "mobile/seller.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin",
+        "slug":  "admin",
+        "area":  "admin",
+        "desktop":  "desktop/admin.png",
+        "mobile":  "mobile/admin.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/sellers",
+        "slug":  "admin-sellers",
+        "area":  "admin",
+        "desktop":  "desktop/admin-sellers.png",
+        "mobile":  "mobile/admin-sellers.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/sellers/:sellerId",
+        "slug":  "admin-sellers-sellerid",
+        "area":  "admin",
+        "desktop":  "desktop/admin-sellers-sellerid.png",
+        "mobile":  "mobile/admin-sellers-sellerid.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/products",
+        "slug":  "admin-products",
+        "area":  "admin",
+        "desktop":  "desktop/admin-products.png",
+        "mobile":  "mobile/admin-products.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/products/revisions/:revisionId",
+        "slug":  "admin-products-revisions-revisionid",
+        "area":  "admin",
+        "desktop":  "desktop/admin-products-revisions-revisionid.png",
+        "mobile":  "mobile/admin-products-revisions-revisionid.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/products/:productId",
+        "slug":  "admin-products-productid",
+        "area":  "admin",
+        "desktop":  "desktop/admin-products-productid.png",
+        "mobile":  "mobile/admin-products-productid.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/reviews",
+        "slug":  "admin-reviews",
+        "area":  "admin",
+        "desktop":  "desktop/admin-reviews.png",
+        "mobile":  "mobile/admin-reviews.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/audit-logs",
+        "slug":  "admin-audit-logs",
+        "area":  "admin",
+        "desktop":  "desktop/admin-audit-logs.png",
+        "mobile":  "mobile/admin-audit-logs.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/reports",
+        "slug":  "admin-reports",
+        "area":  "admin",
+        "desktop":  "desktop/admin-reports.png",
+        "mobile":  "mobile/admin-reports.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/ai-usage",
+        "slug":  "admin-ai-usage",
+        "area":  "admin",
+        "desktop":  "desktop/admin-ai-usage.png",
+        "mobile":  "mobile/admin-ai-usage.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/orders",
+        "slug":  "admin-orders",
+        "area":  "admin",
+        "desktop":  "desktop/admin-orders.png",
+        "mobile":  "mobile/admin-orders.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/orders/:orderId",
+        "slug":  "admin-orders-orderid",
+        "area":  "admin",
+        "desktop":  "desktop/admin-orders-orderid.png",
+        "mobile":  "mobile/admin-orders-orderid.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/payments",
+        "slug":  "admin-payments",
+        "area":  "admin",
+        "desktop":  "desktop/admin-payments.png",
+        "mobile":  "mobile/admin-payments.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/payments/:paymentId",
+        "slug":  "admin-payments-paymentid",
+        "area":  "admin",
+        "desktop":  "desktop/admin-payments-paymentid.png",
+        "mobile":  "mobile/admin-payments-paymentid.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/refunds",
+        "slug":  "admin-refunds",
+        "area":  "admin",
+        "desktop":  "desktop/admin-refunds.png",
+        "mobile":  "mobile/admin-refunds.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/disputes",
+        "slug":  "admin-disputes",
+        "area":  "admin",
+        "desktop":  "desktop/admin-disputes.png",
+        "mobile":  "mobile/admin-disputes.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/payouts",
+        "slug":  "admin-payouts",
+        "area":  "admin",
+        "desktop":  "desktop/admin-payouts.png",
+        "mobile":  "mobile/admin-payouts.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/payout-profile-changes",
+        "slug":  "admin-payout-profile-changes",
+        "area":  "admin",
+        "desktop":  "desktop/admin-payout-profile-changes.png",
+        "mobile":  "mobile/admin-payout-profile-changes.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/support",
+        "slug":  "admin-support",
+        "area":  "admin",
+        "desktop":  "desktop/admin-support.png",
+        "mobile":  "mobile/admin-support.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/support/:ticketId",
+        "slug":  "admin-support-ticketid",
+        "area":  "admin",
+        "desktop":  "desktop/admin-support-ticketid.png",
+        "mobile":  "mobile/admin-support-ticketid.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/categories",
+        "slug":  "admin-categories",
+        "area":  "admin",
+        "desktop":  "desktop/admin-categories.png",
+        "mobile":  "mobile/admin-categories.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/pickup-points",
+        "slug":  "admin-pickup-points",
+        "area":  "admin",
+        "desktop":  "desktop/admin-pickup-points.png",
+        "mobile":  "mobile/admin-pickup-points.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/ads",
+        "slug":  "admin-ads",
+        "area":  "admin",
+        "desktop":  "desktop/admin-ads.png",
+        "mobile":  "mobile/admin-ads.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/admin/ads/:id",
+        "slug":  "admin-ads-id",
+        "area":  "admin",
+        "desktop":  "desktop/admin-ads-id.png",
+        "mobile":  "mobile/admin-ads-id.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/account",
+        "slug":  "account",
+        "area":  "account",
+        "desktop":  "desktop/account.png",
+        "mobile":  "mobile/account.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/account/orders",
+        "slug":  "account-orders",
+        "area":  "account",
+        "desktop":  "desktop/account-orders.png",
+        "mobile":  "mobile/account-orders.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/account/orders/:orderId",
+        "slug":  "account-orders-orderid",
+        "area":  "account",
+        "desktop":  "desktop/account-orders-orderid.png",
+        "mobile":  "mobile/account-orders-orderid.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/account/returns",
+        "slug":  "account-returns",
+        "area":  "account",
+        "desktop":  "desktop/account-returns.png",
+        "mobile":  "mobile/account-returns.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/account/returns/:returnRequestId",
+        "slug":  "account-returns-returnrequestid",
+        "area":  "account",
+        "desktop":  "desktop/account-returns-returnrequestid.png",
+        "mobile":  "mobile/account-returns-returnrequestid.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/account/wishlist",
+        "slug":  "account-wishlist",
+        "area":  "account",
+        "desktop":  "desktop/account-wishlist.png",
+        "mobile":  "mobile/account-wishlist.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/account/reviews",
+        "slug":  "account-reviews",
+        "area":  "account",
+        "desktop":  "desktop/account-reviews.png",
+        "mobile":  "mobile/account-reviews.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/account/notifications",
+        "slug":  "account-notifications",
+        "area":  "account",
+        "desktop":  "desktop/account-notifications.png",
+        "mobile":  "mobile/account-notifications.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/account/settings",
+        "slug":  "account-settings",
+        "area":  "account",
+        "desktop":  "desktop/account-settings.png",
+        "mobile":  "mobile/account-settings.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/account/disputes",
+        "slug":  "account-disputes",
+        "area":  "account",
+        "desktop":  "desktop/account-disputes.png",
+        "mobile":  "mobile/account-disputes.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/account/support",
+        "slug":  "account-support",
+        "area":  "account",
+        "desktop":  "desktop/account-support.png",
+        "mobile":  "mobile/account-support.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/account/support/:ticketId",
+        "slug":  "account-support-ticketid",
+        "area":  "account",
+        "desktop":  "desktop/account-support-ticketid.png",
+        "mobile":  "mobile/account-support-ticketid.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/cart",
+        "slug":  "cart",
+        "area":  "buyer-public",
+        "desktop":  "desktop/cart.png",
+        "mobile":  "mobile/cart.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/assistant",
+        "slug":  "assistant",
+        "area":  "buyer-public",
+        "desktop":  "desktop/assistant.png",
+        "mobile":  "mobile/assistant.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/visual-search",
+        "slug":  "visual-search",
+        "area":  "buyer-public",
+        "desktop":  "desktop/visual-search.png",
+        "mobile":  "mobile/visual-search.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/checkout",
+        "slug":  "checkout",
+        "area":  "checkout",
+        "desktop":  "desktop/checkout.png",
+        "mobile":  "mobile/checkout.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/checkout/success",
+        "slug":  "checkout-success",
+        "area":  "checkout",
+        "desktop":  "desktop/checkout-success.png",
+        "mobile":  "mobile/checkout-success.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/checkout/failed",
+        "slug":  "checkout-failed",
+        "area":  "checkout",
+        "desktop":  "desktop/checkout-failed.png",
+        "mobile":  "mobile/checkout-failed.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/login",
+        "slug":  "login",
+        "area":  "auth",
+        "desktop":  "desktop/login.png",
+        "mobile":  "mobile/login.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/register/buyer",
+        "slug":  "register-buyer",
+        "area":  "auth",
+        "desktop":  "desktop/register-buyer.png",
+        "mobile":  "mobile/register-buyer.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/register/seller",
+        "slug":  "register-seller",
+        "area":  "auth",
+        "desktop":  "desktop/register-seller.png",
+        "mobile":  "mobile/register-seller.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/access-denied",
+        "slug":  "access-denied",
+        "area":  "auth",
+        "desktop":  "desktop/access-denied.png",
+        "mobile":  "mobile/access-denied.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/category/:slug",
+        "slug":  "category-slug",
+        "area":  "buyer-public",
+        "desktop":  "desktop/category-slug.png",
+        "mobile":  "mobile/category-slug.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/product/:slug",
+        "slug":  "product-slug",
+        "area":  "buyer-public",
+        "desktop":  "desktop/product-slug.png",
+        "mobile":  "mobile/product-slug.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    },
+    {
+        "route":  "/seller/:storeSlug",
+        "slug":  "seller-storeslug",
+        "area":  "buyer-public",
+        "desktop":  "desktop/seller-storeslug.png",
+        "mobile":  "mobile/seller-storeslug.png",
+        "status":  "Generated",
+        "visualReview":  "Pending manual review"
+    }
+]

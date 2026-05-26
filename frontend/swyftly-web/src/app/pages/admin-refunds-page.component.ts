@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { AdminRefundResponse } from '../admin/admin-refund.models';
 import { AdminRefundService } from '../admin/admin-refund.service';
+import { AdminWorkspaceNavComponent } from '../admin/admin-workspace-nav.component';
 import { getApiErrorMessage } from '../auth/api-error';
 import { AuthService } from '../auth/auth.service';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
@@ -23,6 +24,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    AdminWorkspaceNavComponent,
     PageHeaderComponent,
     ReactiveFormsModule,
     RouterLink,
@@ -31,6 +33,8 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
   ],
   template: `
     <section class="page admin-finance-page">
+      <app-admin-workspace-nav />
+
       <a class="admin-back-link" routerLink="/admin">Back to dashboard</a>
 
       <app-page-header

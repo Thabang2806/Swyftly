@@ -33,6 +33,7 @@ describe('AdminAiUsageAnalyticsPageComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('app-admin-workspace-nav')).not.toBeNull();
     expect(compiled.textContent).toContain('AI usage dashboard');
     expect(compiled.textContent).toContain('Suggestions generated');
     expect(compiled.textContent).toContain('ListingAssistant');

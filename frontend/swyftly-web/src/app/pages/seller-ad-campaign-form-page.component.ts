@@ -9,6 +9,7 @@ import { SellerAdCampaignResponse, UpsertSellerAdCampaignRequest } from '../sell
 import { SellerAdCampaignService } from '../seller/seller-ad-campaign.service';
 import { SellerProductSummaryResponse } from '../seller/seller-product.models';
 import { SellerProductService } from '../seller/seller-product.service';
+import { SellerWorkspaceNavComponent } from '../seller/seller-workspace-nav.component';
 import { getApiErrorMessage } from '../auth/api-error';
 
 @Component({
@@ -19,10 +20,13 @@ import { getApiErrorMessage } from '../auth/api-error';
     MatInputModule,
     MatSelectModule,
     ReactiveFormsModule,
-    RouterLink
+    RouterLink,
+    SellerWorkspaceNavComponent
   ],
   template: `
-    <section class="page seller-products">
+    <section class="page seller-ops-page seller-products hf-seller-ad-form-page">
+      <app-seller-workspace-nav />
+
       <a class="admin-back-link" routerLink="/seller/ads">Back to campaigns</a>
 
       <div class="page-header">

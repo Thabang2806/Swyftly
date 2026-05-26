@@ -2,14 +2,16 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { DashboardCardComponent } from '../shared/ui/dashboard-card.component';
+import { LuxuryPublicStylesComponent } from '../shared/ui/luxury-public-styles.component';
 import { PageHeaderComponent } from '../shared/ui/page-header.component';
 import { ProductVisualFallbackComponent, ProductVisualTone } from '../shared/ui/product-visual-fallback.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
 
 @Component({
   selector: 'app-home-page',
-  imports: [DashboardCardComponent, MatButtonModule, PageHeaderComponent, ProductVisualFallbackComponent, RouterLink, StatusBadgeComponent],
+  imports: [DashboardCardComponent, LuxuryPublicStylesComponent, MatButtonModule, PageHeaderComponent, ProductVisualFallbackComponent, RouterLink, StatusBadgeComponent],
   template: `
+    <app-luxury-public-styles />
     <section class="market-home">
       <section class="market-home-hero" aria-labelledby="home-title">
         <div class="market-home-hero-copy">

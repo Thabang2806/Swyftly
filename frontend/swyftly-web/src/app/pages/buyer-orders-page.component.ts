@@ -45,12 +45,12 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
       </app-page-header>
 
       <form [formGroup]="filtersForm" (ngSubmit)="applyFilters()" class="route-card buyer-filter-bar" novalidate>
-        <mat-form-field appearance="outline">
+        <mat-form-field class="swyftly-field swyftly-field--compact" appearance="outline">
           <mat-label>Search orders</mat-label>
           <input matInput formControlName="search" />
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field class="swyftly-field swyftly-field--compact" appearance="outline">
           <mat-label>Status</mat-label>
           <input matInput formControlName="status" placeholder="Delivered, Paid, Shipped" />
         </mat-form-field>

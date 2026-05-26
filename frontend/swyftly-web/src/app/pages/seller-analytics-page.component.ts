@@ -5,12 +5,15 @@ import { MatButtonModule } from '@angular/material/button';
 import { SellerAnalyticsSummaryResponse } from '../seller/seller-analytics.models';
 import { SellerAnalyticsService } from '../seller/seller-analytics.service';
 import { getApiErrorMessage } from '../auth/api-error';
+import { SellerWorkspaceNavComponent } from '../seller/seller-workspace-nav.component';
 
 @Component({
   selector: 'app-seller-analytics-page',
-  imports: [CurrencyPipe, MatButtonModule, PercentPipe, RouterLink],
+  imports: [CurrencyPipe, MatButtonModule, PercentPipe, RouterLink, SellerWorkspaceNavComponent],
   template: `
-    <section class="page seller-products">
+    <section class="page seller-ops-page seller-products seller-analytics-page">
+      <app-seller-workspace-nav />
+
       <div class="page-header seller-products-header">
         <div>
           <span class="eyebrow">Seller analytics</span>

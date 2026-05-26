@@ -35,6 +35,7 @@ describe('AdminMarketplaceReportsPageComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('app-admin-workspace-nav')).not.toBeNull();
     expect(compiled.textContent).toContain('Gross merchandise value');
     expect(compiled.textContent).toContain('Platform commission earned');
     expect(compiled.textContent).toContain('Report Seller');

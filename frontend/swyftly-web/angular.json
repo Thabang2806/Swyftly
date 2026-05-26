@@ -33,6 +33,11 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "styles",
+                "output": "styles"
               }
             ],
             "styles": [
@@ -103,6 +108,11 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "styles",
+                "output": "styles"
               }
             ],
             "styles": [

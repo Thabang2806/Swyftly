@@ -1,11 +1,13 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { LuxuryPublicStylesComponent } from '../shared/ui/luxury-public-styles.component';
 
 @Component({
   selector: 'app-access-denied-page',
-  imports: [MatButtonModule, RouterLink],
+  imports: [LuxuryPublicStylesComponent, MatButtonModule, RouterLink],
   template: `
+    <app-luxury-public-styles />
     <section class="page auth-page">
       <div class="auth-panel">
         <span class="eyebrow">Access denied</span>

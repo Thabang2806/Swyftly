@@ -6,7 +6,9 @@ This document maps the UI/UX blueprint to the current Angular app and turns it i
 
 The main UI issue is not route absence. The app has many useful screens, but they still feel like implementation surfaces rather than a cohesive fashion marketplace. The next UI work should start with navigation, shared visual primitives, marketplace trust, and buyer journey polish before broad feature expansion.
 
-Active high-fidelity implementation progress is tracked in `docs/ui-high-fidelity-progress.md`. That tracker maps the mockup pack in `Documentation/UI UX` to the current Angular routes and should be updated after every high-fidelity UI phase.
+Active high-fidelity implementation progress is tracked in `docs/ui-high-fidelity-progress.md`. The next visual target is the luxury editorial route-complete pack documented in `docs/ui-luxury-editorial-screen-pack.md` and generated under `Documentation/UI UX/luxury-editorial-screen-pack`.
+
+Latest implementation note: Phase 9S split route-specific luxury CSS out of the initial global stylesheet into lazy route-group assets. The Angular build now reports an initial total of `643.13 kB`, below the unchanged `650 kB` warning budget, with global styles reduced from `193.93 kB` to `102.03 kB`.
 
 ## Status Legend
 
@@ -118,13 +120,13 @@ High-level coverage:
 
 1. **Marketplace identity is weak.** The home page and footer still describe a foundation rather than selling the buyer journey. For a fashion marketplace, product imagery and search should dominate the first viewport.
 
-2. **Navigation is too flat.** The top bar exposes public, buyer, seller, and admin destinations in one horizontal group. This will not scale on mobile or for users with multiple roles. The app needs role-aware navigation patterns: public header, buyer account menu, seller workspace nav, and admin side nav.
+2. **Navigation still needs deeper role polish, but the main shell issue is addressed.** Seller and admin now use grouped side navigation with a mobile-safe stacked layout. Remaining work is mostly route-level refinement: buyer account menu density, contextual breadcrumbs, and visual review against every generated screen.
 
 3. **Encoding artifacts need cleanup.** Some UI templates contain mojibake, including `Â·`, `Ã—`, and `â™¡`. These should be replaced with ASCII-safe text or proper icon components.
 
 4. **Product visuals are not strong enough.** The app currently has no marketplace image assets beyond the favicon, and product display relies on remote product URLs or text placeholders. The product card, gallery, and storefront hero need stronger visual fallbacks.
 
-5. **Shared UI primitives are overdue.** The global stylesheet is doing too much. Before large UI changes, extract reusable primitives for page headers, status badges, product cards, dashboards, data tables, empty states, alerts, and step layouts.
+5. **Shared UI primitives are improving, but need discipline.** The global stylesheet now keeps tokens, base layout, app shell, Material baseline overrides, and shared primitives, while luxury route CSS lives in lazy route-group assets. Future UI phases should keep route-specific CSS out of `src/styles.scss`.
 
 6. **Operational screens need denser layouts.** Admin and seller screens should be quiet, table-heavy, filterable, and optimized for repeated work. Avoid making these screens look like marketing pages.
 
@@ -201,7 +203,9 @@ Status: Phase 6A implemented as buyer account operations before growth polish. `
 
 Status: Phase 6B implemented as buyer AI discovery polish. `/assistant` and `/visual-search` now use shared UI primitives, clearer marketplace copy, improved loading/error/empty states, extracted intent/attribute panels, improved product result cards, assistant example prompts, visual-search upload preview, and client-side image type/size validation. The screens continue to call only the existing backend buyer AI endpoints.
 
-Status: Phase 6C implemented as frontend bundle hygiene. The root app shell no longer imports Angular Material button/toolbar modules, trimming the initial bundle slightly. The initial budget warning was recalibrated from `500kB` to `650kB` because the current SSR Angular app already carries shared Angular runtime chunks and a large global stylesheet. A true sub-500kB target requires splitting route-specific global styles into lazy component styles or a broader styling architecture pass.
+Status: Phase 6C implemented as frontend bundle hygiene. The root app shell no longer imports Angular Material button/toolbar modules, trimming the initial bundle slightly. The initial budget warning was recalibrated from `500kB` to `650kB` because the current SSR Angular app already carries shared Angular runtime chunks and a large global stylesheet.
+
+Status: Phase 9S implemented as style split and bundle hygiene. Route-specific luxury editorial CSS now lives in lazy static route-group assets loaded by public/buyer/seller/admin style carriers and workspace navigation components. The initial bundle warning is cleared without raising budgets: initial total moved from `734.14 kB` to `643.13 kB`, and the global styles bundle moved from `193.93 kB` to `102.03 kB`.
 
 ### Phase 7: Buyer Engagement
 
@@ -231,10 +235,11 @@ Status: Phase 8A implemented as checkout lifecycle closure. `/checkout` now crea
 The highest-value next implementation candidates are:
 
 1. Run PayFast sandbox verification before production payments.
-2. Split global route-specific styles into lazy component styles if a stricter initial bundle target is required.
+2. Complete manual desktop/mobile visual spot checks after the Phase 9S style split, especially `/`, `/checkout`, `/account`, `/assistant`, `/seller/products`, and `/admin/payments`.
 3. Choose a real production media scanner adapter before enabling strict production scanner readiness.
 4. Implement the first real carrier adapter after Bob Go API docs/sandbox credentials are available, or use the documented PUDO fallback if Bob Go access is blocked. Carrier-provided rate calculation, external address verification/geocoding, pickup-network APIs, and SMS/push notifications remain separate candidates.
 5. Deeper payout hardening can revisit encrypted/tokenized bank-detail storage after a real external payout provider is selected.
+6. If stricter performance targets are needed, minify/cache the lazy static route CSS assets or split them further by route cluster; do not raise the initial budget to hide regressions.
 
 This keeps UI work tied to real contracts instead of creating fake surfaces that would need to be unwound later.
 
@@ -261,5 +266,5 @@ For visual work, also run the Angular app locally and check desktop and mobile w
 
 - The blueprint is directional and can be optimized where the codebase has evolved.
 - MVP UI priority is buyer trust, product discovery, checkout clarity, seller operations, and admin finance workflows.
-- No Angular code changes were made as part of this audit document.
-- A broad frontend folder restructure should wait until shared primitives and navigation patterns are implemented.
+- The original audit was documentation-only; later phases have since implemented the tracked Angular UI and bundle-hygiene work.
+- A broad frontend folder restructure should still wait until there is a concrete maintenance issue that the current shared primitives and lazy style assets cannot solve.

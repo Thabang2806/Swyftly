@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { BuyerAiProductCardResponse, BuyerAiShoppingAssistantResponse } from '../buyer/buyer-ai-assistant.models';
 import { BuyerAiAssistantService } from '../buyer/buyer-ai-assistant.service';
+import { LuxuryBuyerStylesComponent } from '../buyer/luxury-buyer-styles.component';
 import { getApiErrorMessage } from '../auth/api-error';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
 import { ProductVisualFallbackComponent, ProductVisualTone } from '../shared/ui/product-visual-fallback.component';
@@ -20,6 +21,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    LuxuryBuyerStylesComponent,
     EmptyStateComponent,
     ProductVisualFallbackComponent,
     ReactiveFormsModule,
@@ -28,6 +30,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     UiAlertComponent
   ],
   template: `
+    <app-luxury-buyer-styles />
     <section class="page ai-discovery-page ai-style-page">
       <section class="ai-style-layout">
         <aside class="ai-chat-panel" aria-label="AI Style Finder">
@@ -88,7 +91,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
           }
 
           <form [formGroup]="form" (ngSubmit)="search()" class="ai-discovery-form ai-refine-form" novalidate>
-            <mat-form-field appearance="outline">
+            <mat-form-field class="swyftly-field" appearance="outline" hideRequiredMarker>
               <mat-label>Ask to refine results</mat-label>
               <textarea matInput rows="3" formControlName="message" placeholder="Find a wedding outfit under R1,500 in neutral colours"></textarea>
               @if (form.controls.message.hasError('required')) {

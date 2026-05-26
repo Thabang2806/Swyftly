@@ -6,13 +6,15 @@ import { ProductCardComponent } from '../shop/product-card.component';
 import { PublicSellerStorefrontResponse } from '../shop/public-catalog.models';
 import { PublicCatalogService } from '../shop/public-catalog.service';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
+import { LuxuryPublicStylesComponent } from '../shared/ui/luxury-public-styles.component';
 import { StatusBadgeComponent } from '../shared/ui/status-badge.component';
 import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 
 @Component({
   selector: 'app-seller-storefront-page',
-  imports: [EmptyStateComponent, MatButtonModule, ProductCardComponent, RouterLink, StatusBadgeComponent, UiAlertComponent],
+  imports: [EmptyStateComponent, LuxuryPublicStylesComponent, MatButtonModule, ProductCardComponent, RouterLink, StatusBadgeComponent, UiAlertComponent],
   template: `
+    <app-luxury-public-styles />
     <section class="page shop-surface">
       <a class="admin-back-link" routerLink="/shop">Back to shop</a>
 

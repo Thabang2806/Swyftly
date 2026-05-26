@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { AdminMarketplaceReportResponse } from '../admin/admin-marketplace-report.models';
 import { AdminMarketplaceReportService } from '../admin/admin-marketplace-report.service';
+import { AdminWorkspaceNavComponent } from '../admin/admin-workspace-nav.component';
 import { getApiErrorMessage } from '../auth/api-error';
 
 @Component({
@@ -17,11 +18,14 @@ import { getApiErrorMessage } from '../auth/api-error';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    AdminWorkspaceNavComponent,
     ReactiveFormsModule,
     RouterLink
   ],
   template: `
     <section class="page admin-review">
+      <app-admin-workspace-nav />
+
       <a class="admin-back-link" routerLink="/admin">Back to admin</a>
 
       <div class="page-header">

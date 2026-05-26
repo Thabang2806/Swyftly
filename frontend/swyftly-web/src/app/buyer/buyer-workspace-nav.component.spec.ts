@@ -17,6 +17,12 @@ describe('BuyerWorkspaceNavComponent', () => {
   it('renders buyer account workspace links', () => {
     fixture.detectChanges();
 
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Buyer workspace');
+    expect(text).toContain('Activity');
+    expect(text).toContain('Saved');
+    expect(text).toContain('Help');
+
     const links = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('a'))
       .map(link => ({
         label: link.textContent?.trim(),
