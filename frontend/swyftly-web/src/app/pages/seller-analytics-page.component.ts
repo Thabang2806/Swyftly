@@ -3,6 +3,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -12,8 +13,15 @@ import {
   SellerAnalyticsPerformanceRequest,
   SellerAnalyticsPerformanceResponse,
   SellerAnalyticsSummaryResponse,
+  SellerFunnelSourceBreakdownResponse,
+  SellerFunnelSourceCategory,
+  SellerFunnelTrendBucketResponse,
   SellerInventoryPerformanceResponse,
+  SellerProductFunnelResponse,
   SellerProductPerformanceResponse,
+  SellerReportFrequency,
+  SellerReportRange,
+  SellerReportScheduleResponse,
   SellerSalesTrendBucketResponse
 } from '../seller/seller-analytics.models';
 import { SellerAnalyticsService } from '../seller/seller-analytics.service';
@@ -27,6 +35,7 @@ import { SellerWorkspaceNavComponent } from '../seller/seller-workspace-nav.comp
     DatePipe,
     DecimalPipe,
     MatButtonModule,
+    MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -43,7 +52,7 @@ import { SellerWorkspaceNavComponent } from '../seller/seller-workspace-nav.comp
         <div>
           <span class="eyebrow">Seller analytics</span>
           <h1>Performance workspace</h1>
-          <p>Review seller-owned sales, product, inventory, ad, and customer-care signals. Conversion tracking is not captured yet.</p>
+          <p>Review seller-owned sales, product, inventory, ad, customer-care, and storefront conversion signals.</p>
         </div>
         <a mat-stroked-button routerLink="/seller">Seller workspace</a>
       </div>
@@ -67,6 +76,16 @@ import { SellerWorkspaceNavComponent } from '../seller/seller-workspace-nav.comp
           </mat-select>
         </mat-form-field>
 
+        <mat-form-field appearance="outline" class="swyftly-field">
+          <mat-label>Funnel source</mat-label>
+          <mat-select formControlName="sourceCategory">
+            <mat-option value="">All sources</mat-option>
+            @for (source of sourceCategories; track source) {
+              <mat-option [value]="source">{{ source }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
         <div class="admin-audit-actions">
           <button mat-flat-button type="submit" [disabled]="isLoading()">Apply filters</button>
           @if (performance() && !errorMessage()) {
@@ -86,7 +105,7 @@ import { SellerWorkspaceNavComponent } from '../seller/seller-workspace-nav.comp
 
         <div class="route-card compact-card">
           <span class="status-pill">Range {{ performance()!.fromUtc | date:'mediumDate' }} to {{ performance()!.toUtc | date:'mediumDate' }}</span>
-          <p>Bucketed by {{ performance()!.bucket.toLowerCase() }}. Storefront sessions and conversion-rate tracking are not captured yet.</p>
+          <p>Bucketed by {{ performance()!.bucket.toLowerCase() }}. Funnel events are first-party and best-effort, so operational actions remain authoritative in orders and payments.</p>
         </div>
 
         <div class="dashboard-metrics" aria-label="Seller analytics metrics">
@@ -105,8 +124,45 @@ import { SellerWorkspaceNavComponent } from '../seller/seller-workspace-nav.comp
           <div class="dashboard-metric-card"><span>Range units sold</span><strong>{{ rangeUnitsSold() }}</strong></div>
         </div>
 
+        <div class="dashboard-metrics" aria-label="Storefront conversion metrics">
+          <div class="dashboard-metric-card"><span>Product views</span><strong>{{ performance()!.funnelSummary.productViews }}</strong></div>
+          <div class="dashboard-metric-card"><span>Add to cart</span><strong>{{ performance()!.funnelSummary.addToCartCount }}</strong></div>
+          <div class="dashboard-metric-card"><span>Checkout starts</span><strong>{{ performance()!.funnelSummary.checkoutStartCount }}</strong></div>
+          <div class="dashboard-metric-card"><span>Paid orders</span><strong>{{ performance()!.funnelSummary.paidOrderCount }}</strong></div>
+          <div class="dashboard-metric-card"><span>View to cart</span><strong>{{ performance()!.funnelSummary.productViewToCartRate | percent:'1.0-2' }}</strong></div>
+          <div class="dashboard-metric-card"><span>Checkout to paid</span><strong>{{ performance()!.funnelSummary.checkoutToPaidRate | percent:'1.0-2' }}</strong></div>
+        </div>
+
         <div class="admin-detail-layout">
           <div class="admin-detail-main">
+            <article class="route-card admin-detail-card">
+              <h2>Source breakdown</h2>
+              @if (performance()!.sourceBreakdown.length === 0) {
+                <p>No source attribution has been recorded for this range yet.</p>
+              } @else {
+                <div class="admin-table audit-table" role="table" aria-label="Storefront source breakdown">
+                  <div class="admin-table-row heading" role="row">
+                    <span role="columnheader">Source</span>
+                    <span role="columnheader">Views</span>
+                    <span role="columnheader">Cart</span>
+                    <span role="columnheader">Checkout</span>
+                    <span role="columnheader">Paid</span>
+                    <span role="columnheader">Top detail</span>
+                  </div>
+                  @for (source of visibleSourceBreakdown(); track source.sourceCategory) {
+                    <div class="admin-table-row" role="row">
+                      <span role="cell"><span class="status-pill">{{ source.sourceCategory }}</span></span>
+                      <span role="cell">{{ source.productViews }}</span>
+                      <span role="cell">{{ source.addToCartCount }} / {{ source.productViewToCartRate | percent:'1.0-2' }}</span>
+                      <span role="cell">{{ source.checkoutStartCount }}</span>
+                      <span role="cell">{{ source.paidOrderCount }} / {{ source.checkoutToPaidRate | percent:'1.0-2' }}</span>
+                      <span role="cell">{{ source.topUtmSource ?? source.topReferrerHost ?? 'No detail' }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </article>
+
             <article class="route-card admin-detail-card">
               <h2>Sales trend</h2>
               @if (performance()!.salesTrend.length === 0) {
@@ -129,6 +185,65 @@ import { SellerWorkspaceNavComponent } from '../seller/seller-workspace-nav.comp
                       <span role="cell">{{ bucket.refundedAmount | currency:'ZAR':'symbol-narrow' }}</span>
                       <span role="cell">{{ bucket.netSales | currency:'ZAR':'symbol-narrow' }}</span>
                       <span role="cell">{{ bucket.unitsSold }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </article>
+
+            <article class="route-card admin-detail-card">
+              <h2>Conversion funnel</h2>
+              @if (performance()!.funnelTrend.length === 0) {
+                <p>No storefront funnel events have been recorded for this range.</p>
+              } @else {
+                <div class="admin-table audit-table" role="table" aria-label="Storefront conversion trend">
+                  <div class="admin-table-row heading" role="row">
+                    <span role="columnheader">Period</span>
+                    <span role="columnheader">Views</span>
+                    <span role="columnheader">Cart</span>
+                    <span role="columnheader">Checkout</span>
+                    <span role="columnheader">Paid</span>
+                    <span role="columnheader">Rate</span>
+                  </div>
+                  @for (bucket of visibleFunnelTrend(); track bucket.periodStartUtc) {
+                    <div class="admin-table-row" role="row">
+                      <span role="cell">{{ bucket.periodStartUtc | date:'mediumDate' }}</span>
+                      <span role="cell">{{ bucket.productViews }}</span>
+                      <span role="cell">{{ bucket.addToCartCount }}</span>
+                      <span role="cell">{{ bucket.checkoutStartCount }}</span>
+                      <span role="cell">{{ bucket.paidOrderCount }}</span>
+                      <span role="cell">{{ bucket.productViewToCartRate | percent:'1.0-2' }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </article>
+
+            <article class="route-card admin-detail-card">
+              <h2>Product funnel</h2>
+              @if (performance()!.productFunnel.length === 0) {
+                <p>No product-level funnel rows are available yet. Views begin populating after buyers browse public product pages.</p>
+              } @else {
+                <div class="admin-table audit-table" role="table" aria-label="Product funnel">
+                  <div class="admin-table-row heading" role="row">
+                    <span role="columnheader">Product</span>
+                    <span role="columnheader">Views</span>
+                    <span role="columnheader">Cart</span>
+                    <span role="columnheader">Paid</span>
+                    <span role="columnheader">Revenue</span>
+                    <span role="columnheader">Action</span>
+                  </div>
+                  @for (product of visibleProductFunnel(); track product.productId) {
+                    <div class="admin-table-row" role="row">
+                      <span role="cell">
+                        <strong>{{ product.productTitle ?? 'Untitled product' }}</strong>
+                        <small>{{ product.productViewToCartRate | percent:'1.0-2' }} view-to-cart / {{ product.dominantSourceCategory }}</small>
+                      </span>
+                      <span role="cell">{{ product.productViews }}</span>
+                      <span role="cell">{{ product.addToCartCount }}</span>
+                      <span role="cell">{{ product.paidOrderCount }}</span>
+                      <span role="cell">{{ product.revenue | currency:'ZAR':'symbol-narrow' }}</span>
+                      <span role="cell"><a mat-stroked-button [routerLink]="['/seller/products', product.productId, 'edit']">Open</a></span>
                     </div>
                   }
                 </div>
@@ -201,6 +316,81 @@ import { SellerWorkspaceNavComponent } from '../seller/seller-workspace-nav.comp
           </div>
 
           <aside class="admin-actions">
+            <div class="route-card admin-action-card seller-report-schedule-card">
+              <h2>Scheduled reports</h2>
+              <p>Opt into transactional analytics digests. Emails use your seller notification preferences and link back to this workspace.</p>
+
+              @if (scheduleErrorMessage()) {
+                <p class="auth-alert error" role="alert">{{ scheduleErrorMessage() }}</p>
+              }
+              @if (scheduleSuccessMessage()) {
+                <p class="auth-alert success" role="status">{{ scheduleSuccessMessage() }}</p>
+              }
+
+              <form [formGroup]="scheduleForm" (ngSubmit)="saveSchedule()" class="seller-report-schedule-form" novalidate>
+                <mat-checkbox formControlName="isEnabled">Enable scheduled digest</mat-checkbox>
+
+                <mat-form-field appearance="outline" class="swyftly-field">
+                  <mat-label>Frequency</mat-label>
+                  <mat-select formControlName="frequency">
+                    <mat-option value="Weekly">Weekly</mat-option>
+                    <mat-option value="Monthly">Monthly</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="swyftly-field">
+                  <mat-label>Report range</mat-label>
+                  <mat-select formControlName="reportRange">
+                    <mat-option value="Last7Days">Last 7 days</mat-option>
+                    <mat-option value="Last30Days">Last 30 days</mat-option>
+                    <mat-option value="MonthToDate">Month to date</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                @if (scheduleForm.controls.frequency.value === 'Weekly') {
+                  <mat-form-field appearance="outline" class="swyftly-field">
+                    <mat-label>Send day</mat-label>
+                    <mat-select formControlName="sendDayOfWeek">
+                      @for (day of daysOfWeek; track day) {
+                        <mat-option [value]="day">{{ day }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                } @else {
+                  <mat-form-field appearance="outline" class="swyftly-field">
+                    <mat-label>Send day of month</mat-label>
+                    <input matInput type="number" min="1" max="28" formControlName="sendDayOfMonth">
+                  </mat-form-field>
+                }
+
+                <mat-form-field appearance="outline" class="swyftly-field">
+                  <mat-label>Send time</mat-label>
+                  <input matInput type="time" formControlName="sendTimeLocal">
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="swyftly-field">
+                  <mat-label>Time zone</mat-label>
+                  <input matInput formControlName="timeZoneId">
+                </mat-form-field>
+
+                @if (schedule(); as currentSchedule) {
+                  <dl class="admin-facts">
+                    <div><dt>Next send</dt><dd>{{ currentSchedule.nextRunAtUtc ? (currentSchedule.nextRunAtUtc | date:'medium') : 'Not scheduled' }}</dd></div>
+                    <div><dt>Last sent</dt><dd>{{ currentSchedule.lastSentAtUtc ? (currentSchedule.lastSentAtUtc | date:'medium') : 'Never' }}</dd></div>
+                    <div><dt>Last period</dt><dd>{{ currentSchedule.lastReportPeriodStartUtc ? (currentSchedule.lastReportPeriodStartUtc | date:'mediumDate') + ' to ' + (currentSchedule.lastReportPeriodEndUtc | date:'mediumDate') : 'None' }}</dd></div>
+                  </dl>
+                  @if (currentSchedule.lastFailureReason) {
+                    <p class="auth-alert error">Last failure: {{ currentSchedule.lastFailureReason }}</p>
+                  }
+                }
+
+                <div class="form-actions">
+                  <button mat-flat-button type="submit" [disabled]="isScheduleSaving()">Save schedule</button>
+                  <button mat-stroked-button type="button" [disabled]="isScheduleSaving()" (click)="sendTestDigest()">Send test digest</button>
+                </div>
+              </form>
+            </div>
+
             <div class="route-card admin-action-card">
               <h2>Customer care</h2>
               <dl class="admin-facts">
@@ -259,14 +449,31 @@ export class SellerAnalyticsPageComponent implements OnInit {
 
   protected readonly summary = signal<SellerAnalyticsSummaryResponse | null>(null);
   protected readonly performance = signal<SellerAnalyticsPerformanceResponse | null>(null);
+  protected readonly schedule = signal<SellerReportScheduleResponse | null>(null);
   protected readonly isLoading = signal(true);
+  protected readonly isScheduleSaving = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
-  protected readonly csvReports: SellerAnalyticsCsvReport[] = ['Sales', 'Products', 'Inventory', 'Ads', 'Returns'];
+  protected readonly scheduleErrorMessage = signal<string | null>(null);
+  protected readonly scheduleSuccessMessage = signal<string | null>(null);
+  protected readonly csvReports: SellerAnalyticsCsvReport[] = ['Sales', 'Products', 'Inventory', 'Ads', 'Returns', 'Funnel'];
+  protected readonly daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  protected readonly sourceCategories: SellerFunnelSourceCategory[] = ['Direct', 'Search', 'Social', 'Email', 'Ads', 'Referral', 'Unknown'];
 
   protected readonly filtersForm = this.formBuilder.group({
     from: [this.toDateTimeLocalInput(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))],
     to: [this.toDateTimeLocalInput(new Date())],
-    bucket: ['Day' as 'Day' | 'Week']
+    bucket: ['Day' as 'Day' | 'Week'],
+    sourceCategory: ['' as SellerFunnelSourceCategory | '']
+  });
+
+  protected readonly scheduleForm = this.formBuilder.group({
+    isEnabled: [false],
+    frequency: ['Weekly' as SellerReportFrequency],
+    reportRange: ['Last30Days' as SellerReportRange],
+    sendDayOfWeek: ['Monday'],
+    sendDayOfMonth: [1],
+    sendTimeLocal: ['08:00'],
+    timeZoneId: ['Africa/Johannesburg']
   });
 
   async ngOnInit(): Promise<void> {
@@ -293,6 +500,9 @@ export class SellerAnalyticsPageComponent implements OnInit {
       ]);
       this.summary.set(summary);
       this.performance.set(performance);
+      if (!this.schedule()) {
+        this.setSchedule(await this.analyticsService.getReportSchedule());
+      }
     } catch (error) {
       this.errorMessage.set(getApiErrorMessage(error));
       this.summary.set(null);
@@ -306,8 +516,58 @@ export class SellerAnalyticsPageComponent implements OnInit {
     return this.analyticsService.getCsvExportUrl(report, this.getPerformanceRequest());
   }
 
+  protected async saveSchedule(): Promise<void> {
+    if (this.isScheduleSaving()) {
+      return;
+    }
+
+    this.isScheduleSaving.set(true);
+    this.scheduleErrorMessage.set(null);
+    this.scheduleSuccessMessage.set(null);
+
+    try {
+      this.setSchedule(await this.analyticsService.updateReportSchedule(this.createScheduleRequest()));
+      this.scheduleSuccessMessage.set('Scheduled report settings saved.');
+    } catch (error) {
+      this.scheduleErrorMessage.set(getApiErrorMessage(error));
+    } finally {
+      this.isScheduleSaving.set(false);
+    }
+  }
+
+  protected async sendTestDigest(): Promise<void> {
+    if (this.isScheduleSaving()) {
+      return;
+    }
+
+    this.isScheduleSaving.set(true);
+    this.scheduleErrorMessage.set(null);
+    this.scheduleSuccessMessage.set(null);
+
+    try {
+      await this.analyticsService.sendTestReportDigest();
+      this.scheduleSuccessMessage.set('Test digest queued using your notification preferences.');
+    } catch (error) {
+      this.scheduleErrorMessage.set(getApiErrorMessage(error));
+    } finally {
+      this.isScheduleSaving.set(false);
+    }
+  }
+
   protected visibleSalesTrend(): SellerSalesTrendBucketResponse[] {
     return this.performance()?.salesTrend.slice(-12) ?? [];
+  }
+
+  protected visibleFunnelTrend(): SellerFunnelTrendBucketResponse[] {
+    return this.performance()?.funnelTrend.slice(-12) ?? [];
+  }
+
+  protected visibleSourceBreakdown(): SellerFunnelSourceBreakdownResponse[] {
+    return this.performance()?.sourceBreakdown.slice(0, 8) ?? [];
+  }
+
+  protected visibleProductFunnel(): SellerProductFunnelResponse[] {
+    return this.performance()?.productFunnel.slice(0, 10) ?? [];
   }
 
   protected visibleProductPerformance(): SellerProductPerformanceResponse[] {
@@ -343,8 +603,35 @@ export class SellerAnalyticsPageComponent implements OnInit {
     return {
       fromUtc: this.toIsoStringOrUndefined(filters.from),
       toUtc: this.toIsoStringOrUndefined(filters.to),
-      bucket: filters.bucket
+      bucket: filters.bucket,
+      sourceCategory: filters.sourceCategory
     };
+  }
+
+  private createScheduleRequest() {
+    const value = this.scheduleForm.getRawValue();
+    return {
+      isEnabled: value.isEnabled,
+      frequency: value.frequency,
+      reportRange: value.reportRange,
+      sendDayOfWeek: value.frequency === 'Weekly' ? value.sendDayOfWeek : null,
+      sendDayOfMonth: value.frequency === 'Monthly' ? Number(value.sendDayOfMonth) : null,
+      sendTimeLocal: value.sendTimeLocal,
+      timeZoneId: value.timeZoneId
+    };
+  }
+
+  private setSchedule(schedule: SellerReportScheduleResponse): void {
+    this.schedule.set(schedule);
+    this.scheduleForm.patchValue({
+      isEnabled: schedule.isEnabled,
+      frequency: schedule.frequency,
+      reportRange: schedule.reportRange,
+      sendDayOfWeek: schedule.sendDayOfWeek ?? 'Monday',
+      sendDayOfMonth: schedule.sendDayOfMonth ?? 1,
+      sendTimeLocal: schedule.sendTimeLocal,
+      timeZoneId: schedule.timeZoneId
+    });
   }
 
   private toIsoStringOrUndefined(value: string): string | undefined {

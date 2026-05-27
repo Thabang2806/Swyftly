@@ -14,4 +14,5 @@ public static class SellerNotificationTypes
     public const string ProductVariantRevisionRejected = "ProductVariantRevisionRejected";
     public const string AdCampaignApproved = "AdCampaignApproved";
     public const string AdCampaignRejected = "AdCampaignRejected";
+    public const string SellerAnalyticsDigestReady = "SellerAnalyticsDigestReady";
 }

@@ -23,6 +23,14 @@ export interface SellerProductSummaryResponse {
   title: string | null;
   slug: string | null;
   status: string;
+  merchandisingLabel?: string | null;
+  primaryImageUrl?: string | null;
+  primaryImageAltText?: string | null;
+  totalStockQuantity?: number;
+  reservedQuantity?: number;
+  availableQuantity?: number;
+  lowStockVariantCount?: number;
+  outOfStockVariantCount?: number;
   updatedAtUtc: string;
 }
 
@@ -35,6 +43,11 @@ export interface SellerProductDetailResponse {
   slug: string | null;
   shortDescription: string | null;
   fullDescription: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  merchandisingLabel?: string | null;
+  careInstructions?: string | null;
+  productDisclaimer?: string | null;
   tags: string[];
   status: string;
   rejectionReason: string | null;
@@ -86,6 +99,11 @@ export interface SellerProductRevisionResponse {
   slug: string | null;
   shortDescription: string | null;
   fullDescription: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  merchandisingLabel?: string | null;
+  careInstructions?: string | null;
+  productDisclaimer?: string | null;
   tags: string[];
   attributes: Record<string, string>;
   images: SellerProductRevisionImageResponse[];
@@ -163,6 +181,11 @@ export interface UpsertSellerProductRequest {
   slug: string | null;
   shortDescription: string | null;
   fullDescription: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  merchandisingLabel?: string | null;
+  careInstructions?: string | null;
+  productDisclaimer?: string | null;
   attributes: Record<string, unknown>;
 }
 
@@ -197,6 +220,43 @@ export interface UpsertSellerProductVariantRevisionItemRequest {
   compareAtPrice: number | null;
   initialStockQuantity: number | null;
   barcode: string | null;
+}
+
+export interface BulkStageSellerProductVariantRevisionRequest {
+  sellerReason: string | null;
+  items: UpsertSellerProductVariantRevisionItemRequest[];
+}
+
+export interface SellerProductVariantRevisionBulkImportResponse {
+  totalRows: number;
+  validRows: number;
+  errorRows: number;
+  changedRows: number;
+  unchangedRows: number;
+  rows: SellerProductVariantRevisionBulkImportRowResponse[];
+  proposedFinalVariants: SellerProductVariantRevisionFinalVariantResponse[];
+}
+
+export interface SellerProductVariantRevisionBulkImportRowResponse {
+  rowNumber: number;
+  operation: 'Add' | 'Update' | 'Deactivate' | string;
+  sourceVariantId: string | null;
+  currentSku: string | null;
+  currentSize: string | null;
+  currentColour: string | null;
+  currentPrice: number | null;
+  currentCompareAtPrice: number | null;
+  currentStatus: string | null;
+  currentBarcode: string | null;
+  proposedSku: string | null;
+  proposedSize: string | null;
+  proposedColour: string | null;
+  proposedPrice: number | null;
+  proposedCompareAtPrice: number | null;
+  proposedInitialStockQuantity: number | null;
+  proposedBarcode: string | null;
+  rowStatus: 'Changed' | 'Unchanged' | 'Error' | string;
+  validationMessages: string[];
 }
 
 export interface AttachSellerProductImageRequest {

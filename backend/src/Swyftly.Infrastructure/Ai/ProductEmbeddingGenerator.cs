@@ -73,6 +73,11 @@ public sealed class ProductEmbeddingGenerator(
             $"Category: {await GetCategoryPathAsync(product.CategoryId, cancellationToken)}",
             $"Tags: {string.Join(", ", ReadStringArray(product.TagsJson))}"
         };
+        AddOptionalPart(parts, "SEO title", product.SeoTitle);
+        AddOptionalPart(parts, "SEO description", product.SeoDescription);
+        AddOptionalPart(parts, "Merchandising label", product.MerchandisingLabel);
+        AddOptionalPart(parts, "Care instructions", product.CareInstructions);
+        AddOptionalPart(parts, "Product disclaimer", product.ProductDisclaimer);
 
         parts.AddRange(attributes.Select(attribute =>
             $"Attribute {attribute.Key}: {ReadSearchValue(attribute.ValueJson)}"));
@@ -134,5 +139,13 @@ public sealed class ProductEmbeddingGenerator(
         return document.RootElement.ValueKind == JsonValueKind.String
             ? document.RootElement.GetString()
             : document.RootElement.GetRawText();
+    }
+
+    private static void AddOptionalPart(List<string?> parts, string label, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            parts.Add($"{label}: {value.Trim()}");
+        }
     }
 }

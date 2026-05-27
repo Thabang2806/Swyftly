@@ -35,6 +35,44 @@ describe('AdminAdCampaignService', () => {
     expect(response[0].status).toBe('PendingReview');
   });
 
+  it('loads all-state ad campaign operational lists with query params', async () => {
+    const promise = service.getCampaigns({
+      view: 'All',
+      status: 'Active',
+      search: 'launch',
+      sellerId: 'seller-id',
+      page: 2,
+      pageSize: 20,
+      sort: 'StartDateAsc'
+    });
+
+    const request = httpTestingController.expectOne(req => req.url === `${environment.apiBaseUrl}/api/admin/ad-campaigns`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('view')).toBe('All');
+    expect(request.request.params.get('status')).toBe('Active');
+    expect(request.request.params.get('search')).toBe('launch');
+    expect(request.request.params.get('sellerId')).toBe('seller-id');
+    expect(request.request.params.get('page')).toBe('2');
+    expect(request.request.params.get('pageSize')).toBe('20');
+    expect(request.request.params.get('sort')).toBe('StartDateAsc');
+    request.flush({
+      items: [{
+        ...createCampaignSummary(),
+        sellerVerificationStatus: 'Verified',
+        status: 'Active',
+        updatedAtUtc: '2026-05-19T12:30:00Z',
+        detailRoute: '/admin/ads/campaign-id'
+      }],
+      totalCount: 1,
+      page: 2,
+      pageSize: 20,
+      statusCounts: [{ status: 'Active', count: 1 }]
+    });
+
+    const response = await promise;
+    expect(response.items[0].detailRoute).toBe('/admin/ads/campaign-id');
+  });
+
   it('loads campaign detail', async () => {
     const promise = service.getCampaign('campaign-id');
 

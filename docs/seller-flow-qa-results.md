@@ -4,58 +4,111 @@ Date: 2026-05-27
 
 ## Scope
 
-Phase 10F checked the seeded seller lifecycle across the existing seller and admin surfaces. This pass was intentionally verification-led: no new routes, backend APIs, database migrations, payment behavior, carrier-provider behavior, or new seller workflows were added.
+Phase 10Q completed the seeded desktop/mobile seller lifecycle browser sign-off after Phase 10P restored the local verification pipeline. This pass was QA-led: no seller workflow, public API, Angular route, payment, payout, carrier-provider, or payout-bank-storage behavior was added.
 
-## Seed Command
+## Tooling And Defects Fixed
 
-Run twice from the repository root to verify idempotency:
+- `scripts/seed-dev-users.ps1` propagates failed `dotnet run` exit codes instead of returning success after a failed build/seed.
+- `scripts/verify-dev-environment.ps1` checks .NET, NuGet source/connectivity, restore assets, PostgreSQL TCP reachability, Node/npm, frontend dependencies, Karma config, and Chrome availability before long QA runs.
+- Fixed a backend compile error in the published variant-revision CSV source resolver caused by local variable shadowing.
+- Fixed seller product integration test setup so verified test sellers publish their storefront before public product visibility assertions.
+- Fixed the variant-revision CSV header test to assert the quoted CSV format emitted by the export/template writer.
+- Fixed checkout/order creation in the seeded browser flow by making `InventoryMovementRecorder.LoadSnapshotAsync` use an EF-translatable variant filter before projecting the inventory movement snapshot.
+- Fixed mobile overflow on `/admin/sellers` and `/admin/products` by adding final mobile overrides for admin review layouts and moderation rows in the lazy admin luxury stylesheet.
+
+## Seed And API Smoke
+
+Seed command run twice successfully:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\seed-dev-users.ps1 -Password "UseYourOwnDevPassword1!" -ApplyMigrations -SeedSampleProducts -SeedSellerFlowDemo
 ```
 
-Result: passed both runs. The seed created or reused the standard admin, buyer, verified seller, and pending seller accounts, seeded the buyer demo catalog, and seeded pending seller/product/ad review records.
+The browser QA pass used deterministic local passwords:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\seed-dev-users.ps1 -Password "UseYourOwnDevPassword1!" -ResetPasswords -ApplyMigrations -SeedSampleProducts -SeedSellerFlowDemo
+```
+
+Authenticated API smoke results with the local API running on `http://localhost:5240`:
+
+| Check | Result |
+| --- | --- |
+| Pending sellers | 1 row from `/api/admin/sellers/pending`. |
+| Pending products | 1 row from `/api/admin/products/pending-review`. |
+| Pending ad campaigns | 1 row from `/api/admin/ad-campaigns/pending`. |
+| Verified seller products | 9 rows from `/api/seller/products`. |
+| Seller dashboard summary | Returned `generatedAtUtc`. |
+| Pending seller onboarding | `UnderReview` from `/api/seller/onboarding`. |
+| Buyer checkout/order smoke | Created an order, initiated fake payment, posted the signed fake webhook, advanced fulfilment to delivered, and created a buyer return request for seller-return QA routes. |
+
+## Browser QA Evidence
+
+Headless Chrome was run against the local API and Angular dev server at desktop `1440px` and mobile `430px`. The sweep covered 48 route/viewport combinations across public seller entry, seller onboarding, seller products, product editor, inventory, orders, returns, ads, analytics, settings, notifications, and admin seller/product/ad review routes.
+
+Evidence files were written under the local temp folder:
+
+- `%TEMP%\swyftly-10q-browser-qa\qa-summary.json`
+- `%TEMP%\swyftly-10q-browser-qa\qa-summary.md`
+- `%TEMP%\swyftly-10q-browser-qa\*.png`
+
+Final sweep summary:
+
+| Viewport | Route checks | Max overflow | HTTP errors | Console errors | Login redirects |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Desktop 1440px | 24 | 0 | 0 | 0 | 0 |
+| Mobile 430px | 24 | 0 | 0 | 0 | 0 |
 
 ## QA Checklist
 
 | Area | Routes | Status | Notes |
 | --- | --- | --- | --- |
-| Seller acquisition | `/sell`, `/register/seller` | Pass by build/spec/static route check | Public seller entry and seller registration route are wired. Human copy/visual review should still be repeated in browser. |
-| Seller onboarding | `/seller` | Pass by tests/static route check | Pending, under-review, rejected, suspended, and verified dashboard states are covered by component tests. Evidence upload remains optional review context. |
-| Seller settings | `/seller/settings/store` | Pass by build/spec/static route check | Store profile, delivery methods, policies, payout change request, and notification preferences are covered by existing services/tests. |
-| Seller products | `/seller/products`, `/seller/products/new`, `/seller/products/:id/edit` | Pass by build/spec/static route check | Product editor, listing revisions, variant/pricing revisions, moderation context, and image flows compile and remain tested. |
-| Seller inventory | `/seller/inventory` | Pass by build/spec/static route check | CSV import/export, SKU/barcode search, movement history, and Phase 10E stock ledger panels compile and remain tested. |
-| Seller ads | `/seller/ads`, `/seller/ads/new`, `/seller/ads/:id` | Pass by build/spec/static route check | Campaign create/detail/review-state flows compile and remain tested. |
-| Seller operations | `/seller/orders`, `/seller/orders/:orderId`, `/seller/returns`, `/seller/returns/:returnRequestId` | Pass by build/spec/static route check | Fulfilment, policy context, carrier context, returns, and stock-ledger context compile and remain tested. |
-| Seller notifications | `/seller/notifications` | Pass by build/spec/static route check | Notification list/read/read-all route is wired and realtime service tests passed. |
-| Admin approval queues | `/admin/sellers`, `/admin/products`, `/admin/ads` | Pass by build/spec/static route check | Seeded pending seller/product/ad rows should be visible after logging in as `admin@swyftly.local`. |
-
-## Defects Fixed
-
-- The verified seller dashboard "What to check next" panel previously combined support tickets, unread notifications, and ad review counts in one support row that linked only to `/seller/support`. The row is now split so support remains support-specific and seller updates route to `/seller/notifications` or `/seller/ads` depending on the live summary.
+| Seller acquisition | `/sell`, `/register/seller` | Pass | Public seller entry and seller registration loaded on desktop/mobile. |
+| Seller onboarding | `/seller` | Pass | Pending seller state is visible and mobile-safe. |
+| Seller settings | `/seller/settings/store` | Pass | Store profile, delivery methods, policies, payout change request, and notification preference surfaces loaded without route failure. |
+| Seller products | `/seller/products`, `/seller/products/new`, `/seller/products/:id/edit` | Pass | Seeded product/editor routes loaded; listing revision, variant revision, and bulk CSV staging remain clearly admin-reviewed. |
+| Seller inventory | `/seller/inventory` | Pass | Inventory adjustment, CSV import/export, scanner-style search, and stock-ledger panels loaded without overflow. |
+| Seller ads | `/seller/ads`, `/seller/ads/new`, `/seller/ads/:id` | Pass | Seeded pending campaign is visible and seller ad routes loaded. |
+| Seller operations | `/seller/orders`, `/seller/orders/:orderId`, `/seller/returns`, `/seller/returns/:returnRequestId` | Pass | Fulfilment, carrier context, policy context, return restock, and stock-ledger panels loaded against a real delivered order/return. |
+| Seller notifications | `/seller/notifications` | Pass | Notification list/read/read-all route and realtime-aware surfaces loaded. |
+| Seller analytics | `/seller/analytics` | Pass | Analytics performance, funnel/source reporting, exports, and scheduled report UI loaded. |
+| Admin approval queues | `/admin/sellers`, `/admin/sellers/:sellerId`, `/admin/products`, `/admin/products/:productId`, `/admin/ads`, `/admin/ads/:adId` | Pass | Seeded pending seller/product/ad rows were reachable; mobile overflow on seller/product queues was fixed and rechecked. |
 
 ## Verification Evidence
 
+Commands run:
+
 ```powershell
+powershell -ExecutionPolicy Bypass -File scripts\verify-dev-environment.ps1
+dotnet restore backend\Swyftly.sln
 dotnet build backend\Swyftly.sln --no-restore
 dotnet test backend\Swyftly.sln --no-build
 dotnet dotnet-ef migrations has-pending-model-changes --project backend\src\Swyftly.Infrastructure --startup-project backend\src\Swyftly.Api --context SwyftlyDbContext --no-build
+powershell -ExecutionPolicy Bypass -File scripts\seed-dev-users.ps1 -Password "UseYourOwnDevPassword1!" -ResetPasswords -ApplyMigrations -SeedSampleProducts -SeedSellerFlowDemo
 cd frontend\swyftly-web
 cmd /c npm run build
 cmd /c npm run test:ci
-rg -n "\x{00C2}|\x{00C3}|\x{00E2}|\x{00F0}|\x{FFFD}" src
 ```
 
-Result: all passed. EF reported no pending model changes. Angular build reported an initial total of `648.94 kB`. The mojibake scan returned no matches.
+Results:
 
-## Manual Browser Follow-Up
-
-This terminal pass did not perform a human visual walkthrough in an interactive browser. Use `docs/seller-flow-test-runbook.md` with the seeded accounts to complete desktop/mobile visual checks for the listed routes, especially approval actions that intentionally mutate seeded records.
+| Check | Result |
+| --- | --- |
+| Preflight | Passed all checks. |
+| Restore | Failed inside sandbox with `NU1301`; passed with approved outside-sandbox network access. |
+| Backend build | Passed: 0 warnings, 0 errors. |
+| Backend tests | Passed: 210 unit tests, 231 integration tests, 3 opt-in PostgreSQL tests skipped. |
+| EF pending model check | Passed: no model changes since the last migration. |
+| Dev seed | Passed with `-ResetPasswords -ApplyMigrations -SeedSampleProducts -SeedSellerFlowDemo`. |
+| Browser QA | Passed 48 desktop/mobile route checks after the two small fixes. |
+| Angular build | Passed. Prerendered 52 static routes. Initial bundle total is `650.84 kB`, over the unchanged `650.00 kB` budget by 842 bytes. |
+| Angular tests | Passed: 290 specs in Chrome Headless. |
+| Frontend source hygiene | Mojibake scan returned no matches in `frontend/swyftly-web/src`. |
 
 ## Deferred Follow-Ups
 
 - Admin queues remain pending-review focused rather than all-state operational lists.
-- Historical stock-ledger backfill for pre-10E orders remains future work.
-- Dedicated restock decisions after return/refund completion remain future work.
-- Hardware barcode scanner integration remains future work.
+- Hardware barcode scanner SDK integration remains future work.
+- Deeper campaign attribution modelling, session-path analysis, and historical funnel backfill remain future work.
 - Real carrier-provider integration and sensitive payout-bank storage remain future work.
+- The existing Angular initial-bundle warning remains at `650.84 kB` and was not materially worsened by this QA pass.

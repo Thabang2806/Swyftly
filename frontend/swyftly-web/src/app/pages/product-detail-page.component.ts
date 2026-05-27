@@ -2,10 +2,12 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Meta, Title } from '@angular/platform-browser';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { getApiErrorMessage } from '../auth/api-error';
+import { StorefrontAnalyticsService } from '../analytics/storefront-analytics.service';
 import { AuthService } from '../auth/auth.service';
 import { PublicProductReviewResponse, PublicProductReviewSummaryResponse } from '../buyer/buyer-engagement.models';
 import { BuyerEngagementService } from '../buyer/buyer-engagement.service';
@@ -84,7 +86,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
               }
             </div>
 
-            <app-status-badge [label]="productDetail()?.product?.categoryPath ?? 'Swyftly product'" tone="accent" />
+            <app-status-badge [label]="productDetail()?.product?.merchandisingLabel ?? productDetail()?.product?.categoryPath ?? 'Swyftly product'" tone="accent" />
             <h1>{{ productDetail()?.product?.title ?? 'Untitled product' }}</h1>
 
             <div class="product-detail-trust-row">
@@ -131,7 +133,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
               <div class="product-section-heading product-section-heading--compact">
                 <span>
                   <h2>Seller policies</h2>
-                  <p>Current seller guidance. Checkout keeps a policy snapshot on your order.</p>
+                  <p>Product-specific notes and current seller guidance. Checkout keeps a policy snapshot on your order.</p>
                 </span>
               </div>
               @if (sellerPolicyEntries().length > 0) {
@@ -321,6 +323,9 @@ export class ProductDetailPageComponent implements OnInit {
   private readonly cartService = inject(CartService);
   private readonly publicCatalogService = inject(PublicCatalogService);
   private readonly router = inject(Router);
+  private readonly storefrontAnalytics = inject(StorefrontAnalyticsService);
+  private readonly titleService = inject(Title);
+  private readonly meta = inject(Meta);
 
   protected readonly productDetail = signal<PublicProductDetailResponse | null>(null);
   protected readonly isLoading = signal(true);
@@ -369,21 +374,34 @@ export class ProductDetailPageComponent implements OnInit {
     }));
   });
   protected readonly sellerPolicyEntries = computed(() => {
-    const policy = this.productDetail()?.sellerPolicy;
-    if (!policy) {
-      return [];
-    }
+    const detail = this.productDetail();
+    const policy = detail?.sellerPolicy;
 
     return [
-      policy.returnWindowDays === null ? null : { label: 'Return window', value: `${policy.returnWindowDays} day${policy.returnWindowDays === 1 ? '' : 's'}` },
-      policy.returnPolicy ? { label: 'Returns', value: policy.returnPolicy } : null,
-      policy.exchangePolicy ? { label: 'Exchanges', value: policy.exchangePolicy } : null,
-      policy.fulfilmentPolicy ? { label: 'Fulfilment', value: policy.fulfilmentPolicy } : null,
-      policy.supportPolicy ? { label: 'Support', value: policy.supportPolicy } : null,
-      policy.careInstructions ? { label: 'Care', value: policy.careInstructions } : null,
-      policy.productDisclaimer ? { label: 'Disclaimer', value: policy.productDisclaimer } : null
+      detail?.careInstructions ? { label: 'Product care', value: detail.careInstructions } : null,
+      detail?.productDisclaimer ? { label: 'Product disclaimer', value: detail.productDisclaimer } : null,
+      !policy || policy.returnWindowDays === null ? null : { label: 'Return window', value: `${policy.returnWindowDays} day${policy.returnWindowDays === 1 ? '' : 's'}` },
+      policy?.returnPolicy ? { label: 'Returns', value: policy.returnPolicy } : null,
+      policy?.exchangePolicy ? { label: 'Exchanges', value: policy.exchangePolicy } : null,
+      policy?.fulfilmentPolicy ? { label: 'Fulfilment', value: policy.fulfilmentPolicy } : null,
+      policy?.supportPolicy ? { label: 'Support', value: policy.supportPolicy } : null,
+      policy?.careInstructions ? { label: 'Store care', value: policy.careInstructions } : null,
+      policy?.productDisclaimer ? { label: 'Store disclaimer', value: policy.productDisclaimer } : null
     ].filter((entry): entry is { label: string; value: string } => entry !== null);
   });
+
+  private updateSeoMetadata(detail: PublicProductDetailResponse): void {
+    const title = detail.seoTitle?.trim()
+      || detail.product.title?.trim()
+      || 'Product';
+    const description = detail.seoDescription?.trim()
+      || detail.product.shortDescription?.trim()
+      || detail.fullDescription?.trim()
+      || 'View this published Swyftly marketplace listing.';
+
+    this.titleService.setTitle(`${title} | Swyftly`);
+    this.meta.updateTag({ name: 'description', content: description.slice(0, 170) });
+  }
 
   async ngOnInit(): Promise<void> {
     const slug = this.route.snapshot.paramMap.get('slug');
@@ -399,11 +417,13 @@ export class ProductDetailPageComponent implements OnInit {
     try {
       const detail = await this.publicCatalogService.getProduct(slug);
       this.productDetail.set(detail);
+      this.updateSeoMetadata(detail);
       const primaryImage = detail.images.find(image => image.isPrimary) ?? detail.images[0] ?? null;
       this.selectedImageId.set(primaryImage?.imageId ?? null);
       this.selectedVariantId.set(detail.variants.find(variant => variant.inStock)?.variantId ?? '');
       await this.initializeWishlistState(detail.product.productId);
       await this.loadReviews(slug);
+      this.storefrontAnalytics.trackProductView(detail.product.productId, this.router.url);
     } catch (error) {
       this.errorMessage.set(getApiErrorMessage(error));
       this.productDetail.set(null);
@@ -478,6 +498,10 @@ export class ProductDetailPageComponent implements OnInit {
         productVariantId: this.selectedVariantId(),
         quantity: this.quantity
       });
+      const productId = this.productDetail()?.product.productId;
+      if (productId) {
+        this.storefrontAnalytics.trackProductAddedToCart(productId, this.router.url);
+      }
       this.addToCartMessage.set('Added to cart.');
     } catch (error) {
       this.addToCartError.set(getApiErrorMessage(error));

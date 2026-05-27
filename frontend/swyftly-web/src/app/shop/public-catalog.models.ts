@@ -19,6 +19,7 @@ export interface ProductSearchItemResponse {
   title: string | null;
   slug: string | null;
   shortDescription: string | null;
+  merchandisingLabel?: string | null;
   primaryImageUrl: string | null;
   primaryImageAltText: string | null;
   priceMin: number;
@@ -48,6 +49,10 @@ export interface ProductSearchRequest {
 export interface PublicProductDetailResponse {
   product: ProductSearchItemResponse;
   fullDescription: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  careInstructions?: string | null;
+  productDisclaimer?: string | null;
   attributes: Record<string, string>;
   images: PublicProductImageResponse[];
   variants: PublicProductVariantResponse[];

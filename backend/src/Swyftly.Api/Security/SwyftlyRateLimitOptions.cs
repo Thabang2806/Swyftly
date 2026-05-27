@@ -18,6 +18,8 @@ public sealed class SwyftlyRateLimitOptions
 
     public RateLimitPolicyOptions AdClick { get; set; } = new() { PermitLimit = 120, WindowSeconds = 60 };
 
+    public RateLimitPolicyOptions StorefrontAnalytics { get; set; } = new() { PermitLimit = 180, WindowSeconds = 60 };
+
     public RateLimitPolicyOptions Search { get; set; } = new() { PermitLimit = 120, WindowSeconds = 60 };
 }
 

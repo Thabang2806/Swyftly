@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Swyftly.Application.Identity;
+using Swyftly.Application.Sellers;
 using Swyftly.Domain.Advertising;
 using Swyftly.Domain.Ai;
 using Swyftly.Domain.Catalog;
@@ -22,6 +23,16 @@ public static class SellerAnalyticsEndpoints
 {
     private const string DefaultCurrency = "ZAR";
     private const int MaxRangeDays = 366;
+    private static readonly string[] FunnelSourceCategories =
+    [
+        "Direct",
+        "Search",
+        "Social",
+        "Email",
+        "Ads",
+        "Referral",
+        "Unknown"
+    ];
 
     public static IEndpointRouteBuilder MapSellerAnalyticsEndpoints(this IEndpointRouteBuilder app)
     {
@@ -50,6 +61,33 @@ public static class SellerAnalyticsEndpoints
             .Produces(StatusCodes.Status200OK, contentType: "text/csv")
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        app.MapGet("/api/seller/analytics/report-schedule", GetReportScheduleAsync)
+            .WithTags("Seller Analytics")
+            .WithName("GetSellerAnalyticsReportSchedule")
+            .WithSummary("Returns the authenticated seller's scheduled analytics report configuration.")
+            .RequireAuthorization(SwyftlyPolicies.SellerOnly)
+            .Produces<SellerReportScheduleResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        app.MapPut("/api/seller/analytics/report-schedule", UpdateReportScheduleAsync)
+            .WithTags("Seller Analytics")
+            .WithName("UpdateSellerAnalyticsReportSchedule")
+            .WithSummary("Updates the authenticated seller's scheduled analytics report configuration.")
+            .RequireAuthorization(SwyftlyPolicies.SellerOnly)
+            .Produces<SellerReportScheduleResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        app.MapPost("/api/seller/analytics/report-schedule/send-test", SendTestReportDigestAsync)
+            .WithTags("Seller Analytics")
+            .WithName("SendSellerAnalyticsTestDigest")
+            .WithSummary("Queues a test seller analytics digest notification and email according to preferences.")
+            .RequireAuthorization(SwyftlyPolicies.SellerOnly)
+            .Produces<SellerReportDigestSendResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
 
         return app;
     }
@@ -105,13 +143,18 @@ public static class SellerAnalyticsEndpoints
         var lowStockProducts = await GetLowStockProductsAsync(seller.Id, dbContext, cancellationToken);
         var adPerformance = await GetAdPerformanceAsync(seller.Id, dbContext, cancellationToken);
         var aiUsage = await GetAiUsageAsync(seller.Id, dbContext, cancellationToken);
+        var funnelEvents = await dbContext.SellerFunnelEvents
+            .AsNoTracking()
+            .Where(funnelEvent => funnelEvent.SellerId == seller.Id)
+            .ToListAsync(cancellationToken);
+        var funnelSummary = BuildFunnelSummary(funnelEvents);
 
         return HttpResults.Ok(new SellerAnalyticsSummaryResponse(
             seller.Id,
             totalSales,
             orderCount,
             orderCount == 0 ? 0 : decimal.Round(totalSales / orderCount, 2),
-            0,
+            funnelSummary.ProductViews == 0 ? 0 : decimal.Round((decimal)funnelSummary.PaidOrderCount / funnelSummary.ProductViews, 4),
             productsSold,
             totalRefunded,
             orderCount == 0 ? 0 : decimal.Round((decimal)refundedOrderCount / orderCount, 4),
@@ -126,6 +169,7 @@ public static class SellerAnalyticsEndpoints
         DateTimeOffset? fromUtc,
         DateTimeOffset? toUtc,
         string? bucket,
+        string? sourceCategory,
         ClaimsPrincipal principal,
         SwyftlyDbContext dbContext,
         TimeProvider timeProvider,
@@ -148,7 +192,19 @@ public static class SellerAnalyticsEndpoints
             return InvalidBucketProblem();
         }
 
-        var report = await BuildPerformanceAsync(seller.Id, range.FromUtc, range.ToUtc, bucketKind, dbContext, cancellationToken);
+        if (!TryResolveSourceCategory(sourceCategory, out var normalizedSourceCategory))
+        {
+            return InvalidSourceCategoryProblem();
+        }
+
+        var report = await BuildPerformanceAsync(
+            seller.Id,
+            range.FromUtc,
+            range.ToUtc,
+            bucketKind,
+            normalizedSourceCategory,
+            dbContext,
+            cancellationToken);
         return HttpResults.Ok(report);
     }
 
@@ -157,6 +213,7 @@ public static class SellerAnalyticsEndpoints
         DateTimeOffset? toUtc,
         string? bucket,
         string? report,
+        string? sourceCategory,
         ClaimsPrincipal principal,
         HttpResponse response,
         SwyftlyDbContext dbContext,
@@ -185,10 +242,111 @@ public static class SellerAnalyticsEndpoints
             return InvalidReportProblem();
         }
 
-        var analytics = await BuildPerformanceAsync(seller.Id, range.FromUtc, range.ToUtc, bucketKind, dbContext, cancellationToken);
+        if (!TryResolveSourceCategory(sourceCategory, out var normalizedSourceCategory))
+        {
+            return InvalidSourceCategoryProblem();
+        }
+
+        var analytics = await BuildPerformanceAsync(
+            seller.Id,
+            range.FromUtc,
+            range.ToUtc,
+            bucketKind,
+            normalizedSourceCategory,
+            dbContext,
+            cancellationToken);
         response.Headers.ContentDisposition = $"attachment; filename=\"swyftly-seller-analytics-{reportKind.ToString().ToLowerInvariant()}.csv\"";
 
         return HttpResults.Text(BuildCsv(analytics, reportKind), "text/csv", Encoding.UTF8);
+    }
+
+    private static async Task<IResult> GetReportScheduleAsync(
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        ISellerScheduledReportService reportService,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var seller = await GetCurrentSellerAsync(principal, dbContext, cancellationToken);
+        if (seller is null)
+        {
+            return SellerNotFound();
+        }
+
+        return HttpResults.Ok(await reportService.GetOrCreateScheduleAsync(
+            seller.Id,
+            timeProvider.GetUtcNow(),
+            cancellationToken));
+    }
+
+    private static async Task<IResult> UpdateReportScheduleAsync(
+        SellerReportScheduleRequest request,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        ISellerScheduledReportService reportService,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var seller = await GetCurrentSellerAsync(principal, dbContext, cancellationToken);
+        if (seller is null)
+        {
+            return SellerNotFound();
+        }
+
+        var result = await reportService.SaveScheduleAsync(
+            seller.Id,
+            seller.VerificationStatus == SellerVerificationStatus.Verified,
+            request,
+            timeProvider.GetUtcNow(),
+            cancellationToken);
+        if (result.IsSuccess)
+        {
+            return HttpResults.Ok(result.Schedule);
+        }
+
+        if (result.ConflictTitle is not null)
+        {
+            return HttpResults.Problem(
+                title: result.ConflictTitle,
+                detail: result.ConflictDetail,
+                statusCode: StatusCodes.Status409Conflict);
+        }
+
+        return HttpResults.ValidationProblem(result.Errors);
+    }
+
+    private static async Task<IResult> SendTestReportDigestAsync(
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        ISellerScheduledReportService reportService,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var seller = await GetCurrentSellerAsync(principal, dbContext, cancellationToken);
+        if (seller is null)
+        {
+            return SellerNotFound();
+        }
+
+        if (seller.VerificationStatus != SellerVerificationStatus.Verified)
+        {
+            return HttpResults.Problem(
+                title: "SellerAnalytics.ScheduleRequiresVerification",
+                detail: "Test analytics digests can be sent only after seller verification is approved.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
+
+        var result = await reportService.SendTestDigestAsync(
+            seller.Id,
+            timeProvider.GetUtcNow(),
+            cancellationToken);
+
+        return result.IsSuccess
+            ? HttpResults.Ok(result)
+            : HttpResults.Problem(
+                title: "SellerAnalytics.TestDigestFailed",
+                detail: result.FailureReason ?? "Test digest could not be sent.",
+                statusCode: StatusCodes.Status500InternalServerError);
     }
 
     private static async Task<SellerAnalyticsPerformanceResponse> BuildPerformanceAsync(
@@ -196,6 +354,7 @@ public static class SellerAnalyticsEndpoints
         DateTimeOffset fromUtc,
         DateTimeOffset toUtc,
         AnalyticsBucketKind bucket,
+        string? sourceCategory,
         SwyftlyDbContext dbContext,
         CancellationToken cancellationToken)
     {
@@ -262,6 +421,20 @@ public static class SellerAnalyticsEndpoints
                     group.Key,
                     group.Max(movement => movement.OccurredAtUtc)))
                 .ToListAsync(cancellationToken);
+        var allFunnelEvents = await dbContext.SellerFunnelEvents
+            .AsNoTracking()
+            .Where(funnelEvent => funnelEvent.SellerId == sellerId
+                && funnelEvent.OccurredAtUtc >= fromUtc
+                && funnelEvent.OccurredAtUtc <= toUtc)
+            .ToListAsync(cancellationToken);
+        var funnelEvents = string.IsNullOrWhiteSpace(sourceCategory)
+            ? allFunnelEvents
+            : allFunnelEvents
+                .Where(funnelEvent => string.Equals(
+                    NormalizeFunnelSourceCategory(funnelEvent.SourceCategory),
+                    sourceCategory,
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
         var salesTrend = BuildSalesTrend(fromUtc, toUtc, bucket, salesOrders, refunds);
         var productPerformance = BuildProductPerformance(products, variants, salesOrders, refunds, returns);
@@ -275,6 +448,10 @@ public static class SellerAnalyticsEndpoints
             returns,
             dbContext,
             cancellationToken);
+        var funnelSummary = BuildFunnelSummary(funnelEvents);
+        var funnelTrend = BuildFunnelTrend(fromUtc, toUtc, bucket, funnelEvents);
+        var productFunnel = BuildProductFunnel(products, funnelEvents, salesOrders);
+        var sourceBreakdown = BuildFunnelSourceBreakdown(allFunnelEvents);
 
         return new SellerAnalyticsPerformanceResponse(
             sellerId,
@@ -285,7 +462,11 @@ public static class SellerAnalyticsEndpoints
             productPerformance,
             inventoryPerformance,
             adPerformance,
-            customerCareSummary);
+            customerCareSummary,
+            funnelSummary,
+            funnelTrend,
+            productFunnel,
+            sourceBreakdown);
     }
 
     private static IReadOnlyCollection<SellerSalesTrendBucketResponse> BuildSalesTrend(
@@ -321,6 +502,163 @@ public static class SellerAnalyticsEndpoints
             })
             .ToArray();
     }
+
+    private static SellerFunnelSummaryResponse BuildFunnelSummary(IReadOnlyCollection<SellerFunnelEvent> funnelEvents)
+    {
+        var storefrontViews = CountFunnelEvents(funnelEvents, SellerFunnelEventType.StorefrontViewed);
+        var productViews = CountFunnelEvents(funnelEvents, SellerFunnelEventType.ProductViewed);
+        var addToCartCount = CountFunnelEvents(funnelEvents, SellerFunnelEventType.ProductAddedToCart);
+        var checkoutStartCount = CountFunnelEvents(funnelEvents, SellerFunnelEventType.CheckoutStarted);
+        var orderCreatedCount = CountFunnelEvents(funnelEvents, SellerFunnelEventType.OrderCreated);
+        var paidOrderCount = CountFunnelEvents(funnelEvents, SellerFunnelEventType.OrderPaid);
+
+        return new SellerFunnelSummaryResponse(
+            storefrontViews,
+            productViews,
+            addToCartCount,
+            checkoutStartCount,
+            orderCreatedCount,
+            paidOrderCount,
+            Rate(addToCartCount, productViews),
+            Rate(paidOrderCount, checkoutStartCount));
+    }
+
+    private static IReadOnlyCollection<SellerFunnelTrendBucketResponse> BuildFunnelTrend(
+        DateTimeOffset fromUtc,
+        DateTimeOffset toUtc,
+        AnalyticsBucketKind bucket,
+        IReadOnlyCollection<SellerFunnelEvent> funnelEvents)
+    {
+        return BuildBuckets(fromUtc, toUtc, bucket)
+            .Select(currentBucket =>
+            {
+                var bucketEvents = funnelEvents
+                    .Where(funnelEvent => IsInBucket(funnelEvent.OccurredAtUtc, currentBucket.PeriodStartUtc, currentBucket.PeriodEndUtc, toUtc))
+                    .ToArray();
+                var productViews = CountFunnelEvents(bucketEvents, SellerFunnelEventType.ProductViewed);
+                var addToCartCount = CountFunnelEvents(bucketEvents, SellerFunnelEventType.ProductAddedToCart);
+                var checkoutStartCount = CountFunnelEvents(bucketEvents, SellerFunnelEventType.CheckoutStarted);
+                var paidOrderCount = CountFunnelEvents(bucketEvents, SellerFunnelEventType.OrderPaid);
+
+                return new SellerFunnelTrendBucketResponse(
+                    currentBucket.PeriodStartUtc,
+                    currentBucket.PeriodEndUtc,
+                    CountFunnelEvents(bucketEvents, SellerFunnelEventType.StorefrontViewed),
+                    productViews,
+                    addToCartCount,
+                    checkoutStartCount,
+                    CountFunnelEvents(bucketEvents, SellerFunnelEventType.OrderCreated),
+                    paidOrderCount,
+                    Rate(addToCartCount, productViews),
+                    Rate(paidOrderCount, checkoutStartCount));
+            })
+            .ToArray();
+    }
+
+    private static IReadOnlyCollection<SellerProductFunnelResponse> BuildProductFunnel(
+        IReadOnlyCollection<ProductAnalyticsProjection> products,
+        IReadOnlyCollection<SellerFunnelEvent> funnelEvents,
+        IReadOnlyCollection<Order> salesOrders)
+    {
+        return products
+            .Select(product =>
+            {
+                var productEvents = funnelEvents
+                    .Where(funnelEvent => funnelEvent.ProductId == product.ProductId)
+                    .ToArray();
+                var productViews = CountFunnelEvents(productEvents, SellerFunnelEventType.ProductViewed);
+                var addToCartCount = CountFunnelEvents(productEvents, SellerFunnelEventType.ProductAddedToCart);
+                var paidOrderItems = salesOrders
+                    .SelectMany(order => order.Items.Select(item => new { Order = order, Item = item }))
+                    .Where(pair => pair.Item.ProductId == product.ProductId)
+                    .ToArray();
+                var paidOrderCount = paidOrderItems
+                    .Select(pair => pair.Order.Id)
+                    .Distinct()
+                    .Count();
+                var revenue = paidOrderItems.Sum(pair => pair.Item.LineTotal);
+                var dominantSourceCategory = productEvents
+                    .GroupBy(funnelEvent => NormalizeFunnelSourceCategory(funnelEvent.SourceCategory))
+                    .OrderByDescending(group => group.Count(item => item.EventType == SellerFunnelEventType.ProductViewed))
+                    .ThenByDescending(group => group.Count())
+                    .Select(group => group.Key)
+                    .FirstOrDefault() ?? "Unknown";
+                var topUtmSource = MostCommon(productEvents.Select(funnelEvent => funnelEvent.UtmSource));
+                var topReferrerHost = MostCommon(productEvents.Select(funnelEvent => funnelEvent.ReferrerHost));
+
+                return new SellerProductFunnelResponse(
+                    product.ProductId,
+                    product.Title,
+                    product.Slug,
+                    productViews,
+                    addToCartCount,
+                    paidOrderCount,
+                    revenue,
+                    Rate(addToCartCount, productViews),
+                    Rate(paidOrderCount, productViews),
+                    dominantSourceCategory,
+                    topUtmSource,
+                    topReferrerHost);
+            })
+            .Where(row => row.ProductViews > 0 || row.AddToCartCount > 0 || row.PaidOrderCount > 0)
+            .OrderByDescending(row => row.ProductViews)
+            .ThenByDescending(row => row.AddToCartCount)
+            .ThenByDescending(row => row.Revenue)
+            .ToArray();
+    }
+
+    private static IReadOnlyCollection<SellerFunnelSourceBreakdownResponse> BuildFunnelSourceBreakdown(
+        IReadOnlyCollection<SellerFunnelEvent> funnelEvents)
+    {
+        return funnelEvents
+            .GroupBy(funnelEvent => NormalizeFunnelSourceCategory(funnelEvent.SourceCategory))
+            .Select(group =>
+            {
+                var events = group.ToArray();
+                var productViews = CountFunnelEvents(events, SellerFunnelEventType.ProductViewed);
+                var addToCartCount = CountFunnelEvents(events, SellerFunnelEventType.ProductAddedToCart);
+                var checkoutStartCount = CountFunnelEvents(events, SellerFunnelEventType.CheckoutStarted);
+                var paidOrderCount = CountFunnelEvents(events, SellerFunnelEventType.OrderPaid);
+
+                return new SellerFunnelSourceBreakdownResponse(
+                    group.Key,
+                    CountFunnelEvents(events, SellerFunnelEventType.StorefrontViewed),
+                    productViews,
+                    addToCartCount,
+                    checkoutStartCount,
+                    CountFunnelEvents(events, SellerFunnelEventType.OrderCreated),
+                    paidOrderCount,
+                    Rate(addToCartCount, productViews),
+                    Rate(paidOrderCount, checkoutStartCount),
+                    MostCommon(events.Select(item => item.UtmSource)),
+                    MostCommon(events.Select(item => item.ReferrerHost)));
+            })
+            .OrderByDescending(source => source.ProductViews)
+            .ThenByDescending(source => source.AddToCartCount)
+            .ThenBy(source => source.SourceCategory)
+            .ToArray();
+    }
+
+    private static int CountFunnelEvents(IReadOnlyCollection<SellerFunnelEvent> events, SellerFunnelEventType eventType) =>
+        events.Count(funnelEvent => funnelEvent.EventType == eventType);
+
+    private static decimal Rate(int numerator, int denominator) =>
+        denominator == 0 ? 0 : decimal.Round((decimal)numerator / denominator, 4);
+
+    private static string NormalizeFunnelSourceCategory(string? sourceCategory)
+    {
+        var match = FunnelSourceCategories.FirstOrDefault(category =>
+            string.Equals(category, sourceCategory?.Trim(), StringComparison.OrdinalIgnoreCase));
+        return match ?? "Unknown";
+    }
+
+    private static string? MostCommon(IEnumerable<string?> values) =>
+        values
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .GroupBy(value => value)
+            .OrderByDescending(group => group.Count())
+            .Select(group => group.Key)
+            .FirstOrDefault();
 
     private static IReadOnlyCollection<SellerProductPerformanceResponse> BuildProductPerformance(
         IReadOnlyCollection<ProductAnalyticsProjection> products,
@@ -728,6 +1066,19 @@ public static class SellerAnalyticsEndpoints
             && Enum.IsDefined(reportKind);
     }
 
+    private static bool TryResolveSourceCategory(string? sourceCategory, out string? normalizedSourceCategory)
+    {
+        normalizedSourceCategory = null;
+        if (string.IsNullOrWhiteSpace(sourceCategory))
+        {
+            return true;
+        }
+
+        normalizedSourceCategory = FunnelSourceCategories.FirstOrDefault(category =>
+            string.Equals(category, sourceCategory.Trim(), StringComparison.OrdinalIgnoreCase));
+        return normalizedSourceCategory is not null;
+    }
+
     private static bool IsSalesOrderStatus(OrderStatus status) =>
         status is OrderStatus.Paid
             or OrderStatus.Processing
@@ -779,7 +1130,13 @@ public static class SellerAnalyticsEndpoints
     private static IResult InvalidReportProblem() =>
         HttpResults.Problem(
             title: "SellerAnalytics.InvalidReport",
-            detail: "report must be Sales, Products, Inventory, Ads, or Returns.",
+            detail: "report must be Sales, Products, Inventory, Ads, Returns, or Funnel.",
+            statusCode: StatusCodes.Status400BadRequest);
+
+    private static IResult InvalidSourceCategoryProblem() =>
+        HttpResults.Problem(
+            title: "SellerAnalytics.InvalidSourceCategory",
+            detail: "sourceCategory must be Direct, Search, Social, Email, Ads, Referral, or Unknown.",
             statusCode: StatusCodes.Status400BadRequest);
 
     private static string BuildCsv(SellerAnalyticsPerformanceResponse analytics, SellerAnalyticsCsvReport report) =>
@@ -790,6 +1147,7 @@ public static class SellerAnalyticsEndpoints
             SellerAnalyticsCsvReport.Inventory => BuildInventoryCsv(analytics.InventoryPerformance),
             SellerAnalyticsCsvReport.Ads => BuildAdsCsv(analytics.AdPerformance),
             SellerAnalyticsCsvReport.Returns => BuildReturnsCsv(analytics.CustomerCareSummary),
+            SellerAnalyticsCsvReport.Funnel => BuildFunnelCsv(analytics.ProductFunnel),
             _ => string.Empty
         };
 
@@ -909,6 +1267,32 @@ public static class SellerAnalyticsEndpoints
         return builder.ToString();
     }
 
+    private static string BuildFunnelCsv(IReadOnlyCollection<SellerProductFunnelResponse> rows)
+    {
+        var builder = new StringBuilder();
+        AppendCsvLine(builder, "productId", "productTitle", "productSlug", "dominantSourceCategory", "topUtmSource", "topReferrerHost", "productViews", "addToCartCount", "paidOrderCount", "revenue", "productViewToCartRate", "productViewToPaidRate", "currency");
+        foreach (var row in rows)
+        {
+            AppendCsvLine(
+                builder,
+                row.ProductId.ToString(),
+                row.ProductTitle ?? string.Empty,
+                row.ProductSlug ?? string.Empty,
+                row.DominantSourceCategory,
+                row.TopUtmSource ?? string.Empty,
+                row.TopReferrerHost ?? string.Empty,
+                row.ProductViews.ToString(CultureInfo.InvariantCulture),
+                row.AddToCartCount.ToString(CultureInfo.InvariantCulture),
+                row.PaidOrderCount.ToString(CultureInfo.InvariantCulture),
+                row.Revenue.ToString(CultureInfo.InvariantCulture),
+                row.ProductViewToCartRate.ToString(CultureInfo.InvariantCulture),
+                row.ProductViewToPaidRate.ToString(CultureInfo.InvariantCulture),
+                DefaultCurrency);
+        }
+
+        return builder.ToString();
+    }
+
     private static void AppendCsvLine(StringBuilder builder, params string[] values)
     {
         builder.AppendLine(string.Join(",", values.Select(Csv)));
@@ -932,7 +1316,8 @@ public static class SellerAnalyticsEndpoints
         Products,
         Inventory,
         Ads,
-        Returns
+        Returns,
+        Funnel
     }
 
     private sealed record ReportDateRange(DateTimeOffset FromUtc, DateTimeOffset ToUtc, bool IsValid);
@@ -1037,7 +1422,11 @@ public sealed record SellerAnalyticsPerformanceResponse(
     IReadOnlyCollection<SellerProductPerformanceResponse> ProductPerformance,
     IReadOnlyCollection<SellerInventoryPerformanceResponse> InventoryPerformance,
     IReadOnlyCollection<SellerAdPerformanceDetailResponse> AdPerformance,
-    SellerCustomerCareSummaryResponse CustomerCareSummary);
+    SellerCustomerCareSummaryResponse CustomerCareSummary,
+    SellerFunnelSummaryResponse FunnelSummary,
+    IReadOnlyCollection<SellerFunnelTrendBucketResponse> FunnelTrend,
+    IReadOnlyCollection<SellerProductFunnelResponse> ProductFunnel,
+    IReadOnlyCollection<SellerFunnelSourceBreakdownResponse> SourceBreakdown);
 
 public sealed record SellerSalesTrendBucketResponse(
     DateTimeOffset PeriodStartUtc,
@@ -1099,3 +1488,52 @@ public sealed record SellerCustomerCareSummaryResponse(
     int OpenSupportTicketCount,
     int DisputeCount,
     int ActiveDisputeCount);
+
+public sealed record SellerFunnelSummaryResponse(
+    int StorefrontViews,
+    int ProductViews,
+    int AddToCartCount,
+    int CheckoutStartCount,
+    int OrderCreatedCount,
+    int PaidOrderCount,
+    decimal ProductViewToCartRate,
+    decimal CheckoutToPaidRate);
+
+public sealed record SellerFunnelTrendBucketResponse(
+    DateTimeOffset PeriodStartUtc,
+    DateTimeOffset PeriodEndUtc,
+    int StorefrontViews,
+    int ProductViews,
+    int AddToCartCount,
+    int CheckoutStartCount,
+    int OrderCreatedCount,
+    int PaidOrderCount,
+    decimal ProductViewToCartRate,
+    decimal CheckoutToPaidRate);
+
+public sealed record SellerProductFunnelResponse(
+    Guid ProductId,
+    string? ProductTitle,
+    string? ProductSlug,
+    int ProductViews,
+    int AddToCartCount,
+    int PaidOrderCount,
+    decimal Revenue,
+    decimal ProductViewToCartRate,
+    decimal ProductViewToPaidRate,
+    string DominantSourceCategory,
+    string? TopUtmSource,
+    string? TopReferrerHost);
+
+public sealed record SellerFunnelSourceBreakdownResponse(
+    string SourceCategory,
+    int StorefrontViews,
+    int ProductViews,
+    int AddToCartCount,
+    int CheckoutStartCount,
+    int OrderCreatedCount,
+    int PaidOrderCount,
+    decimal ProductViewToCartRate,
+    decimal CheckoutToPaidRate,
+    string? TopUtmSource,
+    string? TopReferrerHost);

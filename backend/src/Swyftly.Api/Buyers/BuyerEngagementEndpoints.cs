@@ -753,6 +753,7 @@ public static class BuyerEngagementEndpoints
             product.Title,
             product.Slug,
             product.ShortDescription,
+            product.MerchandisingLabel,
             primaryImage?.Url,
             primaryImage?.AltText,
             variants.Min(variant => variant.Price),

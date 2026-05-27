@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using SkiaSharp;
 using Swyftly.Api.Authentication;
+using Swyftly.Api.Catalog;
 using Swyftly.Api.Sellers;
 using Swyftly.Application.Identity;
 using Swyftly.Domain.Ai;
@@ -43,6 +44,51 @@ public sealed class SellerProductDraftTests
         Assert.Single(withVariant.Variants);
         Assert.Single(withImage.Images);
         Assert.True(withImage.Images.Single().IsPrimary);
+    }
+
+    [Fact]
+    public async Task SellerProduct_MerchandisingAndSeoFields_PersistAndReachPublicResponses()
+    {
+        using var factory = new SellerProductDraftTestFactory();
+        using var client = factory.CreateClient();
+        var seller = await RegisterAndLoginSellerAsync(client, "product-merchandising-seller@example.test");
+        await MarkSellerVerifiedAsync(factory, seller.UserId);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.AccessToken);
+
+        var product = await CreateProductAsync(
+            client,
+            title: "Rose Linen Midi Dress",
+            seoTitle: "Rose linen midi dress",
+            seoDescription: "A breathable rose linen dress for polished warm-weather styling.",
+            merchandisingLabel: "Seller pick",
+            careInstructions: "Cold hand wash and dry flat.",
+            productDisclaimer: "Colour may vary slightly by screen.");
+        await AddVariantAsync(client, product.ProductId);
+        await AddImageAsync(client, product.ProductId, isPrimary: true);
+        await SubmitAndPublishProductAsync(client, factory, product.ProductId);
+
+        using var listResponse = await client.GetAsync("/api/seller/products");
+        listResponse.EnsureSuccessStatusCode();
+        var products = await listResponse.Content.ReadFromJsonAsync<IReadOnlyCollection<SellerProductSummaryResponse>>();
+        var summary = Assert.Single(products!);
+
+        Assert.Equal("Seller pick", product.MerchandisingLabel);
+        Assert.Equal("Seller pick", summary.MerchandisingLabel);
+        Assert.Equal(10, summary.TotalStockQuantity);
+        Assert.Equal(10, summary.AvailableQuantity);
+        Assert.Equal("https://example.test/summer-dress.jpg", summary.PrimaryImageUrl);
+
+        using var publicResponse = await client.GetAsync($"/api/products/{product.Slug}");
+        publicResponse.EnsureSuccessStatusCode();
+        var detail = await publicResponse.Content.ReadFromJsonAsync<PublicProductDetailResponse>();
+
+        Assert.NotNull(detail);
+        Assert.Equal("Seller pick", detail!.Product.MerchandisingLabel);
+        Assert.Equal("Rose linen midi dress", detail.SeoTitle);
+        Assert.Equal("A breathable rose linen dress for polished warm-weather styling.", detail.SeoDescription);
+        Assert.Equal("Cold hand wash and dry flat.", detail.CareInstructions);
+        Assert.Equal("Colour may vary slightly by screen.", detail.ProductDisclaimer);
     }
 
     [Fact]
@@ -92,6 +138,11 @@ public sealed class SellerProductDraftTests
                 $"proposed-{Guid.NewGuid():N}",
                 "Updated short description",
                 "Updated full description for the product revision.",
+                null,
+                null,
+                null,
+                null,
+                null,
                 ["proposed"],
                 new Dictionary<string, JsonElement>
                 {
@@ -177,6 +228,203 @@ public sealed class SellerProductDraftTests
         var persistedLiveVariant = Assert.Single(liveVariants);
         Assert.Equal("LIVE-SKU-M-BLACK", persistedLiveVariant.Sku);
         Assert.Equal(499.99m, persistedLiveVariant.Price);
+    }
+
+    [Fact]
+    public async Task PublishedVariantRevision_CsvExportAndTemplate_ReturnStableHeaders()
+    {
+        using var factory = new SellerProductDraftTestFactory();
+        using var client = factory.CreateClient();
+        var seller = await RegisterAndLoginSellerAsync(client, "variant-revision-export-seller@example.test");
+        await MarkSellerVerifiedAsync(factory, seller.UserId);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.AccessToken);
+        var product = await CreateProductAsync(client, title: "Variant Export Product");
+        await AddVariantAsync(client, product.ProductId, sku: "EXPORT-SKU-M-BLACK", barcode: "6000000000001");
+        await AddImageAsync(client, product.ProductId, isPrimary: true);
+        await SubmitAndPublishProductAsync(client, factory, product.ProductId);
+
+        using var exportResponse = await client.GetAsync($"/api/seller/products/{product.ProductId}/variant-revision/export.csv");
+        exportResponse.EnsureSuccessStatusCode();
+        var exportCsv = await exportResponse.Content.ReadAsStringAsync();
+
+        const string variantRevisionCsvHeader = "\"operation\",\"sourceVariantId\",\"sku\",\"size\",\"colour\",\"price\",\"compareAtPrice\",\"initialStockQuantity\",\"barcode\"";
+        Assert.Contains(variantRevisionCsvHeader, exportCsv);
+        Assert.Contains("EXPORT-SKU-M-BLACK", exportCsv);
+        Assert.Contains("6000000000001", exportCsv);
+
+        using var templateResponse = await client.GetAsync($"/api/seller/products/{product.ProductId}/variant-revision/import-template.csv");
+        templateResponse.EnsureSuccessStatusCode();
+        var templateCsv = (await templateResponse.Content.ReadAsStringAsync()).Trim();
+
+        Assert.Equal(variantRevisionCsvHeader, templateCsv);
+    }
+
+    [Fact]
+    public async Task PublishedVariantRevision_ImportPreview_DoesNotPersistRevisionData()
+    {
+        using var factory = new SellerProductDraftTestFactory();
+        using var client = factory.CreateClient();
+        var seller = await RegisterAndLoginSellerAsync(client, "variant-revision-import-preview@example.test");
+        await MarkSellerVerifiedAsync(factory, seller.UserId);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.AccessToken);
+        var product = await CreateProductAsync(client, title: "Variant Import Preview Product");
+        var productWithVariant = await AddVariantAsync(client, product.ProductId, sku: "PREVIEW-SKU-M-BLACK", barcode: "6000000000002");
+        await AddImageAsync(client, product.ProductId, isPrimary: true);
+        await SubmitAndPublishProductAsync(client, factory, product.ProductId);
+        var liveVariant = productWithVariant.Variants.Single();
+        var csv = string.Join(
+            "\n",
+            "operation,sourceVariantId,sku,size,colour,price,compareAtPrice,initialStockQuantity,barcode",
+            $"Update,{liveVariant.VariantId},PREVIEW-SKU-M-BLACK,M,Black,599.99,799.99,,6000000000003",
+            "Add,,PREVIEW-SKU-L-BLACK,L,Black,649.99,849.99,5,6000000000004");
+
+        using var response = await PostInventoryCsvAsync(
+            client,
+            $"/api/seller/products/{product.ProductId}/variant-revision/import/preview",
+            csv);
+        response.EnsureSuccessStatusCode();
+        var preview = await response.Content.ReadFromJsonAsync<SellerProductVariantRevisionBulkImportResponse>();
+
+        Assert.NotNull(preview);
+        Assert.Equal(2, preview!.TotalRows);
+        Assert.Equal(2, preview.ChangedRows);
+        Assert.Equal(0, preview.ErrorRows);
+        Assert.Contains(preview.ProposedFinalVariants, variant => variant.Sku == "PREVIEW-SKU-M-BLACK" && variant.Price == 599.99m);
+        Assert.Contains(preview.ProposedFinalVariants, variant => variant.Sku == "PREVIEW-SKU-L-BLACK" && variant.StockQuantity == 5);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SwyftlyDbContext>();
+        var revisionCount = await dbContext.ProductVariantRevisions.CountAsync(revision => revision.ProductId == product.ProductId);
+
+        Assert.Equal(0, revisionCount);
+    }
+
+    [Fact]
+    public async Task PublishedVariantRevision_BulkStage_ReplacesCurrentDraftItems()
+    {
+        using var factory = new SellerProductDraftTestFactory();
+        using var client = factory.CreateClient();
+        var seller = await RegisterAndLoginSellerAsync(client, "variant-revision-bulk-stage@example.test");
+        await MarkSellerVerifiedAsync(factory, seller.UserId);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.AccessToken);
+        var product = await CreateProductAsync(client, title: "Variant Bulk Stage Product");
+        var productWithVariant = await AddVariantAsync(client, product.ProductId, sku: "BULK-SKU-M-BLACK", barcode: "6000000000005");
+        await AddImageAsync(client, product.ProductId, isPrimary: true);
+        await SubmitAndPublishProductAsync(client, factory, product.ProductId);
+        var liveVariant = productWithVariant.Variants.Single();
+
+        using var initialStageResponse = await client.PutAsJsonAsync(
+            $"/api/seller/products/{product.ProductId}/variant-revision",
+            new UpsertSellerProductVariantRevisionRequest(
+                "Initial manual draft.",
+                [
+                    new UpsertSellerProductVariantRevisionItemRequest(
+                        "Add",
+                        null,
+                        "BULK-SKU-L-BLACK",
+                        "L",
+                        "Black",
+                        649.99m,
+                        849.99m,
+                        5,
+                        "6000000000006")
+                ]));
+        initialStageResponse.EnsureSuccessStatusCode();
+
+        using var bulkResponse = await client.PostAsJsonAsync(
+            $"/api/seller/products/{product.ProductId}/variant-revision/bulk-stage",
+            new BulkStageSellerProductVariantRevisionRequest(
+                "Seasonal CSV pricing update.",
+                [
+                    new UpsertSellerProductVariantRevisionItemRequest(
+                        "Update",
+                        liveVariant.VariantId,
+                        "BULK-SKU-M-BLACK",
+                        null,
+                        null,
+                        579.99m,
+                        699.99m,
+                        null,
+                        "6000000000007")
+                ]));
+        bulkResponse.EnsureSuccessStatusCode();
+        var preview = await bulkResponse.Content.ReadFromJsonAsync<SellerProductVariantRevisionBulkImportResponse>();
+
+        Assert.NotNull(preview);
+        Assert.Equal(1, preview!.ChangedRows);
+        Assert.Equal(0, preview.ErrorRows);
+
+        using var revisionResponse = await client.GetAsync($"/api/seller/products/{product.ProductId}/variant-revision");
+        revisionResponse.EnsureSuccessStatusCode();
+        var revision = await revisionResponse.Content.ReadFromJsonAsync<SellerProductVariantRevisionResponse>();
+
+        Assert.NotNull(revision);
+        var item = Assert.Single(revision!.Items);
+        Assert.Equal("Update", item.Operation);
+        Assert.Equal("BULK-SKU-M-BLACK", item.Sku);
+        Assert.Equal(579.99m, item.Price);
+        Assert.Equal("6000000000007", item.Barcode);
+    }
+
+    [Fact]
+    public async Task PublishedVariantRevision_BulkStage_RejectsPendingReviewRevision()
+    {
+        using var factory = new SellerProductDraftTestFactory();
+        using var client = factory.CreateClient();
+        var seller = await RegisterAndLoginSellerAsync(client, "variant-revision-bulk-pending@example.test");
+        await MarkSellerVerifiedAsync(factory, seller.UserId);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.AccessToken);
+        var product = await CreateProductAsync(client, title: "Variant Bulk Pending Product");
+        var productWithVariant = await AddVariantAsync(client, product.ProductId, sku: "PENDING-SKU-M-BLACK", barcode: "6000000000008");
+        await AddImageAsync(client, product.ProductId, isPrimary: true);
+        await SubmitAndPublishProductAsync(client, factory, product.ProductId);
+        var liveVariant = productWithVariant.Variants.Single();
+
+        using var stageResponse = await client.PutAsJsonAsync(
+            $"/api/seller/products/{product.ProductId}/variant-revision",
+            new UpsertSellerProductVariantRevisionRequest(
+                "Submit current revision.",
+                [
+                    new UpsertSellerProductVariantRevisionItemRequest(
+                        "Update",
+                        liveVariant.VariantId,
+                        "PENDING-SKU-M-BLACK",
+                        "M",
+                        "Black",
+                        529.99m,
+                        699.99m,
+                        null,
+                        "6000000000008")
+                ]));
+        stageResponse.EnsureSuccessStatusCode();
+
+        using var submitResponse = await client.PostAsync(
+            $"/api/seller/products/{product.ProductId}/variant-revision/submit-review",
+            null);
+        submitResponse.EnsureSuccessStatusCode();
+
+        using var bulkResponse = await client.PostAsJsonAsync(
+            $"/api/seller/products/{product.ProductId}/variant-revision/bulk-stage",
+            new BulkStageSellerProductVariantRevisionRequest(
+                "Attempt to mutate pending revision.",
+                [
+                    new UpsertSellerProductVariantRevisionItemRequest(
+                        "Update",
+                        liveVariant.VariantId,
+                        "PENDING-SKU-M-BLACK",
+                        null,
+                        null,
+                        549.99m,
+                        699.99m,
+                        null,
+                        "6000000000008")
+                ]));
+
+        Assert.Equal(HttpStatusCode.BadRequest, bulkResponse.StatusCode);
     }
 
     [Fact]
@@ -1001,7 +1249,12 @@ public sealed class SellerProductDraftTests
         Guid? categoryId = null,
         string title = "Summer Dress",
         string fullDescription = "A lightweight summer dress with a relaxed fit.",
-        IReadOnlyDictionary<string, object?>? attributes = null)
+        IReadOnlyDictionary<string, object?>? attributes = null,
+        string? seoTitle = null,
+        string? seoDescription = null,
+        string? merchandisingLabel = null,
+        string? careInstructions = null,
+        string? productDisclaimer = null)
     {
         using var response = await client.PostAsJsonAsync(
             "/api/seller/products",
@@ -1013,6 +1266,11 @@ public sealed class SellerProductDraftTests
                 slug = $"product-{Guid.NewGuid():N}",
                 shortDescription = "A lightweight summer dress.",
                 fullDescription,
+                seoTitle,
+                seoDescription,
+                merchandisingLabel,
+                careInstructions,
+                productDisclaimer,
                 attributes = attributes ?? new Dictionary<string, object?>
                 {
                     ["size"] = "M",
@@ -1139,6 +1397,8 @@ public sealed class SellerProductDraftTests
             "Verified Trading");
 
         var storefront = new SellerStorefront(seller.Id, "Verified Seller", $"verified-{seller.Id:N}");
+        storefront.Publish();
+
         var address = new SellerAddress(
             seller.Id,
             "1 Market Street",

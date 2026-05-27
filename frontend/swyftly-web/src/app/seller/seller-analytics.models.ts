@@ -74,9 +74,40 @@ export interface SellerAnalyticsPerformanceRequest {
   fromUtc?: string;
   toUtc?: string;
   bucket?: 'Day' | 'Week';
+  sourceCategory?: SellerFunnelSourceCategory | '';
 }
 
-export type SellerAnalyticsCsvReport = 'Sales' | 'Products' | 'Inventory' | 'Ads' | 'Returns';
+export type SellerAnalyticsCsvReport = 'Sales' | 'Products' | 'Inventory' | 'Ads' | 'Returns' | 'Funnel';
+export type SellerFunnelSourceCategory = 'Direct' | 'Search' | 'Social' | 'Email' | 'Ads' | 'Referral' | 'Unknown';
+
+export type SellerReportFrequency = 'Weekly' | 'Monthly';
+export type SellerReportRange = 'Last7Days' | 'Last30Days' | 'MonthToDate';
+
+export interface SellerReportScheduleRequest {
+  isEnabled: boolean;
+  frequency: SellerReportFrequency;
+  reportRange: SellerReportRange;
+  sendDayOfWeek: string | null;
+  sendDayOfMonth: number | null;
+  sendTimeLocal: string;
+  timeZoneId: string;
+}
+
+export interface SellerReportScheduleResponse extends SellerReportScheduleRequest {
+  scheduleId: string | null;
+  nextRunAtUtc: string | null;
+  lastSentAtUtc: string | null;
+  lastReportPeriodStartUtc: string | null;
+  lastReportPeriodEndUtc: string | null;
+  lastFailureReason: string | null;
+  lastFailedAtUtc: string | null;
+}
+
+export interface SellerReportDigestSendResult {
+  isSuccess: boolean;
+  notificationId: string | null;
+  failureReason: string | null;
+}
 
 export interface SellerAnalyticsPerformanceResponse {
   sellerId: string;
@@ -88,6 +119,10 @@ export interface SellerAnalyticsPerformanceResponse {
   inventoryPerformance: SellerInventoryPerformanceResponse[];
   adPerformance: SellerAdPerformanceDetailResponse[];
   customerCareSummary: SellerCustomerCareSummaryResponse;
+  funnelSummary: SellerFunnelSummaryResponse;
+  funnelTrend: SellerFunnelTrendBucketResponse[];
+  productFunnel: SellerProductFunnelResponse[];
+  sourceBreakdown: SellerFunnelSourceBreakdownResponse[];
 }
 
 export interface SellerSalesTrendBucketResponse {
@@ -154,4 +189,41 @@ export interface SellerCustomerCareSummaryResponse {
   openSupportTicketCount: number;
   disputeCount: number;
   activeDisputeCount: number;
+}
+
+export interface SellerFunnelSummaryResponse {
+  storefrontViews: number;
+  productViews: number;
+  addToCartCount: number;
+  checkoutStartCount: number;
+  orderCreatedCount: number;
+  paidOrderCount: number;
+  productViewToCartRate: number;
+  checkoutToPaidRate: number;
+}
+
+export interface SellerFunnelTrendBucketResponse extends SellerFunnelSummaryResponse {
+  periodStartUtc: string;
+  periodEndUtc: string;
+}
+
+export interface SellerProductFunnelResponse {
+  productId: string;
+  productTitle: string | null;
+  productSlug: string | null;
+  productViews: number;
+  addToCartCount: number;
+  paidOrderCount: number;
+  revenue: number;
+  productViewToCartRate: number;
+  productViewToPaidRate: number;
+  dominantSourceCategory: SellerFunnelSourceCategory;
+  topUtmSource: string | null;
+  topReferrerHost: string | null;
+}
+
+export interface SellerFunnelSourceBreakdownResponse extends SellerFunnelSummaryResponse {
+  sourceCategory: SellerFunnelSourceCategory;
+  topUtmSource: string | null;
+  topReferrerHost: string | null;
 }

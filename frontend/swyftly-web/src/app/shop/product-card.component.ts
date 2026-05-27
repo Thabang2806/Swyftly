@@ -28,7 +28,7 @@ import { ProductSearchItemResponse } from './public-catalog.models';
 
       <div class="product-card-body">
         <div class="product-card-heading">
-          <app-status-badge [label]="product().categoryPath ?? 'Marketplace'" tone="accent" />
+          <app-status-badge [label]="product().merchandisingLabel ?? product().categoryPath ?? 'Marketplace'" tone="accent" />
           <a class="product-card-title" [routerLink]="['/product', product().slug]">{{ product().title ?? 'Untitled product' }}</a>
           @if (product().sellerStoreSlug) {
             <a class="product-card-seller" [routerLink]="['/seller', product().sellerStoreSlug]">{{ product().sellerStoreName ?? 'Seller' }}</a>

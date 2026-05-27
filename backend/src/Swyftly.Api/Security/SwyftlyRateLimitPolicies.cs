@@ -9,5 +9,6 @@ public static class SwyftlyRateLimitPolicies
     public const string Webhook = "webhook";
     public const string AdImpression = "ad-impression";
     public const string AdClick = "ad-click";
+    public const string StorefrontAnalytics = "storefront-analytics";
     public const string Search = "search";
 }

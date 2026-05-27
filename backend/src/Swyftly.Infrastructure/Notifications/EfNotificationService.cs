@@ -47,7 +47,8 @@ public sealed class EfNotificationService(
             [SellerNotificationTypes.ProductVariantRevisionApproved] = SellerNotificationCategory.Revisions,
             [SellerNotificationTypes.ProductVariantRevisionRejected] = SellerNotificationCategory.Revisions,
             [SellerNotificationTypes.AdCampaignApproved] = SellerNotificationCategory.Ads,
-            [SellerNotificationTypes.AdCampaignRejected] = SellerNotificationCategory.Ads
+            [SellerNotificationTypes.AdCampaignRejected] = SellerNotificationCategory.Ads,
+            [SellerNotificationTypes.SellerAnalyticsDigestReady] = SellerNotificationCategory.Reports
         };
 
     public async Task<NotificationResult?> CreateAsync(
@@ -243,6 +244,7 @@ public sealed class EfNotificationService(
             "SupportTicket" when notification.RelatedEntityId.HasValue => $"/account/support/{notification.RelatedEntityId.Value}",
             "ProductReview" => "/account/reviews",
             "SellerProfile" => "/seller",
+            "SellerAnalytics" => "/seller/analytics",
             "Product" when notification.RelatedEntityId.HasValue => $"/seller/products/{notification.RelatedEntityId.Value}/edit",
             "AdCampaign" when notification.RelatedEntityId.HasValue => $"/seller/ads/{notification.RelatedEntityId.Value}",
             _ when SellerTypeCategories.ContainsKey(notification.Type) => "/seller/notifications",

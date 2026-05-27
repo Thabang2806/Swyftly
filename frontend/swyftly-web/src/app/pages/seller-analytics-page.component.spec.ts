@@ -13,11 +13,21 @@ describe('SellerAnalyticsPageComponent', () => {
     analyticsService = jasmine.createSpyObj<SellerAnalyticsService>('SellerAnalyticsService', [
       'getSummary',
       'getPerformance',
-      'getCsvExportUrl'
+      'getCsvExportUrl',
+      'getReportSchedule',
+      'updateReportSchedule',
+      'sendTestReportDigest'
     ]);
     analyticsService.getSummary.and.resolveTo(createSummary());
     analyticsService.getPerformance.and.resolveTo(createPerformance());
     analyticsService.getCsvExportUrl.and.callFake(report => `/api/seller/analytics/export.csv?report=${report}`);
+    analyticsService.getReportSchedule.and.resolveTo(createSchedule());
+    analyticsService.updateReportSchedule.and.resolveTo(createSchedule());
+    analyticsService.sendTestReportDigest.and.resolveTo({
+      isSuccess: true,
+      notificationId: 'notification-id',
+      failureReason: null
+    });
 
     await TestBed.configureTestingModule({
       imports: [SellerAnalyticsPageComponent],
@@ -39,11 +49,17 @@ describe('SellerAnalyticsPageComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Total sales');
     expect(compiled.textContent).toContain('Product performance');
+    expect(compiled.textContent).toContain('Conversion funnel');
+    expect(compiled.textContent).toContain('Source breakdown');
+    expect(compiled.textContent).toContain('Email');
+    expect(compiled.textContent).toContain('Product funnel');
     expect(compiled.textContent).toContain('Sales trend');
     expect(compiled.textContent).toContain('Seller One Product');
     expect(compiled.textContent).toContain('Customer care');
     expect(compiled.textContent).toContain('AI usage');
+    expect(compiled.textContent).toContain('Scheduled reports');
     expect(compiled.querySelector('a[href*="report=Products"]')).not.toBeNull();
+    expect(compiled.querySelector('a[href*="report=Funnel"]')).not.toBeNull();
   });
 
   it('reloads performance data when filters are applied', async () => {
@@ -55,6 +71,26 @@ describe('SellerAnalyticsPageComponent', () => {
     await fixture.whenStable();
 
     expect(analyticsService.getPerformance).toHaveBeenCalled();
+  });
+
+  it('saves scheduled report settings and sends a test digest', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const scheduleForm = compiled.querySelector('.seller-report-schedule-form') as HTMLFormElement;
+    scheduleForm.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+
+    expect(analyticsService.updateReportSchedule).toHaveBeenCalled();
+
+    const testButton = Array.from(compiled.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('Send test digest')) as HTMLButtonElement;
+    testButton.click();
+    await fixture.whenStable();
+
+    expect(analyticsService.sendTestReportDigest).toHaveBeenCalled();
   });
 });
 
@@ -188,6 +224,74 @@ function createPerformance() {
       openSupportTicketCount: 1,
       disputeCount: 1,
       activeDisputeCount: 1
-    }
+    },
+    funnelSummary: {
+      storefrontViews: 3,
+      productViews: 10,
+      addToCartCount: 2,
+      checkoutStartCount: 1,
+      orderCreatedCount: 1,
+      paidOrderCount: 1,
+      productViewToCartRate: 0.2,
+      checkoutToPaidRate: 1
+    },
+    funnelTrend: [{
+      periodStartUtc: '2026-05-01T00:00:00.000Z',
+      periodEndUtc: '2026-05-02T00:00:00.000Z',
+      storefrontViews: 3,
+      productViews: 10,
+      addToCartCount: 2,
+      checkoutStartCount: 1,
+      orderCreatedCount: 1,
+      paidOrderCount: 1,
+      productViewToCartRate: 0.2,
+      checkoutToPaidRate: 1
+    }],
+    productFunnel: [{
+      productId: 'product-id',
+      productTitle: 'Seller One Product',
+      productSlug: 'seller-one-product',
+      productViews: 10,
+      addToCartCount: 2,
+      paidOrderCount: 1,
+      revenue: 998,
+      productViewToCartRate: 0.2,
+      productViewToPaidRate: 0.1,
+      dominantSourceCategory: 'Email' as const,
+      topUtmSource: 'newsletter',
+      topReferrerHost: null
+    }],
+    sourceBreakdown: [{
+      sourceCategory: 'Email' as const,
+      storefrontViews: 3,
+      productViews: 10,
+      addToCartCount: 2,
+      checkoutStartCount: 1,
+      orderCreatedCount: 1,
+      paidOrderCount: 1,
+      productViewToCartRate: 0.2,
+      checkoutToPaidRate: 1,
+      topUtmSource: 'newsletter',
+      topReferrerHost: null
+    }]
+  };
+}
+
+function createSchedule() {
+  return {
+    scheduleId: 'schedule-id',
+    isEnabled: true,
+    frequency: 'Weekly' as const,
+    reportRange: 'Last30Days' as const,
+    sendDayOfWeek: 'Monday',
+    sendDayOfMonth: null,
+    sendTimeLocal: '08:00',
+    timeZoneId: 'Africa/Johannesburg',
+    nextRunAtUtc: '2026-05-04T06:00:00.000Z',
+    lastSentAtUtc: null,
+    lastReportPeriodStartUtc: null,
+    lastReportPeriodEndUtc: null,
+    lastFailureReason: null,
+    lastFailedAtUtc: null
   };
 }

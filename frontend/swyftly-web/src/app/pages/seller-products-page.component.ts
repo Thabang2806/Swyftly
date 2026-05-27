@@ -10,6 +10,7 @@ import { SellerProductSummaryResponse } from '../seller/seller-product.models';
 import { SellerProductService } from '../seller/seller-product.service';
 import { SellerWorkspaceNavComponent } from '../seller/seller-workspace-nav.component';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
+import { ProductVisualFallbackComponent } from '../shared/ui/product-visual-fallback.component';
 import { StatusBadgeComponent, StatusBadgeTone } from '../shared/ui/status-badge.component';
 import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 
@@ -22,6 +23,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    ProductVisualFallbackComponent,
     RouterLink,
     SellerWorkspaceNavComponent,
     StatusBadgeComponent,
@@ -79,11 +81,11 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
             message="Adjust the search or status filter to find another listing."
           />
         } @else {
-          <div class="admin-table seller-ops-table seller-products-table" role="table" aria-label="Seller products">
+          <div class="admin-table seller-ops-table seller-products-table seller-products-table--visual" role="table" aria-label="Seller products">
             <div class="admin-table-row heading seller-ops-table-row" role="row">
               <span role="columnheader">Product</span>
-              <span role="columnheader">Slug</span>
-              <span role="columnheader">Updated</span>
+              <span role="columnheader">Inventory</span>
+              <span role="columnheader">Preview</span>
               <span role="columnheader">Status</span>
               <span role="columnheader">Action</span>
             </div>
@@ -91,11 +93,38 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
             @for (product of filteredProducts(); track product.productId) {
               <div class="admin-table-row seller-ops-table-row" role="row">
                 <span role="cell">
-                  <strong>{{ product.title ?? 'Untitled product' }}</strong>
-                  <small>{{ product.productId }}</small>
+                  <div class="seller-product-identity">
+                    <div class="seller-product-thumb">
+                      @if (product.primaryImageUrl) {
+                        <img [src]="product.primaryImageUrl" [alt]="product.primaryImageAltText ?? product.title ?? 'Product image'" loading="lazy">
+                      } @else {
+                        <app-product-visual-fallback [title]="product.title ?? 'Draft product'" label="Product" tone="dress" />
+                      }
+                    </div>
+                    <span>
+                      @if (product.merchandisingLabel) {
+                        <app-status-badge [label]="product.merchandisingLabel" tone="accent" />
+                      }
+                      <strong>{{ product.title ?? 'Untitled product' }}</strong>
+                      <small>{{ product.slug ?? product.productId }}</small>
+                    </span>
+                  </div>
                 </span>
-                <span role="cell">{{ product.slug ?? 'No slug' }}</span>
-                <span role="cell">{{ product.updatedAtUtc | date:'medium' }}</span>
+                <span role="cell">
+                  <strong>{{ product.availableQuantity ?? 0 }} available</strong>
+                  <small>{{ product.reservedQuantity ?? 0 }} reserved / {{ product.totalStockQuantity ?? 0 }} stock</small>
+                  @if ((product.lowStockVariantCount ?? 0) > 0 || (product.outOfStockVariantCount ?? 0) > 0) {
+                    <small>{{ product.lowStockVariantCount ?? 0 }} low, {{ product.outOfStockVariantCount ?? 0 }} out</small>
+                  }
+                </span>
+                <span role="cell">
+                  @if (product.status === 'Published' && product.slug) {
+                    <a [routerLink]="['/product', product.slug]">Public preview</a>
+                  } @else {
+                    <small>Preview appears after publishing.</small>
+                  }
+                  <small>Updated {{ product.updatedAtUtc | date:'mediumDate' }}</small>
+                </span>
                 <span role="cell"><app-status-badge [label]="product.status" [tone]="statusTone(product.status)" /></span>
                 <span role="cell">
                   <a mat-stroked-button [routerLink]="['/seller/products', product.productId, 'edit']">Edit</a>

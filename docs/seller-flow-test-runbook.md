@@ -4,6 +4,10 @@ Use this runbook to test the seller lifecycle locally from onboarding through ad
 
 For the latest verification evidence and deferred QA notes, see `docs/seller-flow-qa-results.md`.
 
+## Phase 10Q QA Note
+
+Phase 10Q completed the seeded desktop/mobile seller lifecycle browser sign-off after Phase 10P restored the local verification path. The preflight helper, backend restore, build, tests, EF model-drift check, seeded seller-flow data, API smoke checks, Angular build, Angular specs, source hygiene scan, and 48 route/viewport browser checks passed. In this Codex environment, `dotnet restore` still needs approved outside-sandbox network access to reach `api.nuget.org`.
+
 ## Seed Data
 
 Run from the repository root:
@@ -13,6 +17,12 @@ powershell -ExecutionPolicy Bypass -File scripts\seed-dev-users.ps1 -Password "U
 ```
 
 The command is idempotent for repeated local setup runs. It creates the standard dev accounts, published sample catalog data, and seller-flow review records.
+
+If your local database already has the seed users with a different password, run the same command with `-ResetPasswords` so the accounts match the password used for QA:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\seed-dev-users.ps1 -Password "UseYourOwnDevPassword1!" -ResetPasswords -ApplyMigrations -SeedSampleProducts -SeedSellerFlowDemo
+```
 
 ## Accounts
 
@@ -41,7 +51,7 @@ Expected seeded state: `seller.pending@swyftly.local` appears in `/admin/sellers
 ## Admin Seller Approval
 
 1. Login as `admin@swyftly.local`.
-2. Open `/admin/sellers`.
+2. Open `/admin/sellers` in the default `Needs attention` view.
 3. Find `Demo Pending Seller` / `Demo Pending Atelier`.
 4. Open the detail page and review profile, storefront, address, payout placeholder data, store policy, and optional verification evidence.
 5. Download any attached evidence from the admin evidence panel and confirm the file is served through the API rather than a public URL.
@@ -62,7 +72,7 @@ Expected seeded state: `Demo Review Satin Slip Skirt` appears in `/admin/product
 ## Admin Product Approval
 
 1. Login as `admin@swyftly.local`.
-2. Open `/admin/products`.
+2. Open `/admin/products` in the default `Needs attention` view.
 3. Find `Demo Review Satin Slip Skirt`.
 4. Open the detail page and review listing copy, images, attributes, variants, seller context, and moderation flags.
 5. Approve, reject, or request changes.
@@ -83,7 +93,7 @@ Expected seeded state: the seeded campaign appears in `/admin/ads` and is eligib
 ## Admin Ad Approval
 
 1. Login as `admin@swyftly.local`.
-2. Open `/admin/ads`.
+2. Open `/admin/ads` in the default `Needs attention` view.
 3. Find `Demo Review Campaign - Rose Linen Dress`.
 4. Open the detail page and review seller verification, attached products, budget, eligibility, and audit trail.
 5. Approve or reject the campaign.
@@ -116,15 +126,19 @@ Expected result: backfill writes seller-visible traceability rows and an audit l
 1. Login as `seller@swyftly.local`.
 2. Open `/seller/analytics`.
 3. Apply a date range that includes seeded or manually-created order/ad/return activity and switch between daily and weekly buckets.
-4. Confirm the page shows sales trend rows, product performance, inventory/barcode stock signals, ad performance, and customer-care summary cards without exposing buyer personal details.
-5. Use the Sales, Products, Inventory, Ads, and Returns CSV export links and confirm each download is scoped to the seller account.
+4. Browse a seller storefront/product detail as a buyer with and without UTM query strings, add a product to cart, start checkout, and complete the local fake-payment flow so first-party funnel and source-attribution events can populate.
+5. Confirm the page shows sales trend rows, product performance, inventory/barcode stock signals, ad performance, customer-care summary cards, storefront conversion funnel cards/tables, source breakdowns, and source-category funnel filtering without exposing buyer personal details.
+6. Use the Sales, Products, Inventory, Ads, Returns, and Funnel CSV export links and confirm each download is scoped to the seller account. Funnel CSV should include product-level source columns.
+7. In the Scheduled reports panel, enable a weekly `Last30Days` digest for Monday 08:00 in `Africa/Johannesburg`, save it, and confirm a next-send timestamp appears.
+8. Click Send test digest and confirm `/seller/notifications` receives a seller analytics digest notification. If email is enabled, confirm the local email outbox/log-only provider processes the transactional digest without attachments.
 
-Expected result: analytics remain read-only. Exports provide operational evidence but do not mutate orders, payments, payouts, ads, inventory, returns, refunds, or support tickets.
+Expected result: analytics remain read-only. Exports and scheduled digests provide operational evidence but do not mutate orders, payments, payouts, ads, inventory, returns, refunds, or support tickets.
 
 ## Known Gaps
 
-- Phase 10F automated/static QA passed, but a human desktop/mobile browser walkthrough is still useful before considering the seller lifecycle visually signed off.
-- Admin queues remain pending-review focused rather than all-state operational lists.
-- Historical backfill for orders created before Phase 10E and hardware barcode scanner integration remain future work.
-- Storefront/session conversion tracking and scheduled seller report delivery remain future work.
+- Phase 10Q signed off the seeded desktop/mobile browser walkthrough. Future QA should rerun the same checklist after larger seller/admin UI changes.
+- Admin seller, product, and ad queues now default to `Needs attention` and also expose all-state filters, status counts, pagination, assignment/priority/note/SLA filters, saved views, SLA age chips, claim/unclaim, internal notes, bulk claim/high-priority triage, and read-only workload summaries through Phase 10R/10S/10T operational endpoints.
+- Admin support operations now expose support-specific saved views, CSV export, workload metrics, and safe customer context on support/admin ticket detail pages. Support saved views remain per user and internal only.
+- Hardware barcode scanner SDK integration remains future work.
+- Deeper campaign attribution modelling, session-path analysis, and historical funnel backfill remain future work.
 - Real carrier-provider integration and sensitive payout-bank storage remain future work.

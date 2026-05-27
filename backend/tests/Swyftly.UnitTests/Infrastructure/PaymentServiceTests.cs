@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 using System.Text;
+using Swyftly.Application.Analytics;
 using Swyftly.Application.Common.Results;
 using Swyftly.Application.Ledger;
 using Swyftly.Application.Payments;
@@ -401,7 +402,14 @@ public class PaymentServiceTests
     {
         var ledger = new EfLedgerService(dbContext, Options.Create(new LedgerOptions()));
         var adTracking = new EfAdTrackingService(dbContext, TimeProvider.System);
-        return new EfPaymentService(dbContext, provider, ledger, adTracking, Options.Create(paymentOptions), TimeProvider.System);
+        return new EfPaymentService(
+            dbContext,
+            provider,
+            ledger,
+            adTracking,
+            new NoOpStorefrontAnalyticsService(),
+            Options.Create(paymentOptions),
+            TimeProvider.System);
     }
 
     private static PaymentProviderOptions SignedWebhookOptions() =>
@@ -421,6 +429,20 @@ public class PaymentServiceTests
         using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    private sealed class NoOpStorefrontAnalyticsService : IStorefrontAnalyticsService
+    {
+        public Task<Result<StorefrontFunnelEventResult>> RecordClientEventAsync(
+            StorefrontFunnelEventRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result<StorefrontFunnelEventResult>.Success(new StorefrontFunnelEventResult(false, null, "Skipped")));
+
+        public Task RecordOrderCreatedAsync(Guid orderId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task RecordOrderPaidAsync(Guid orderId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 
     private static async Task<(BuyerProfile Buyer, ProductVariant Variant, Order Order)> SeedOrderWithReservationAsync(SwyftlyDbContext dbContext)

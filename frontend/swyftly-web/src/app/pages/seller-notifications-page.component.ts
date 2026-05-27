@@ -215,6 +215,10 @@ export class SellerNotificationsPageComponent implements OnInit {
       return '/seller';
     }
 
+    if (notification.relatedEntityType === 'SellerAnalytics') {
+      return '/seller/analytics';
+    }
+
     return null;
   }
 

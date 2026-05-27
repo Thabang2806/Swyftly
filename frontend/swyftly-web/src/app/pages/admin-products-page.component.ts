@@ -3,15 +3,18 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { AdminWorkspaceNavComponent } from '../admin/admin-workspace-nav.component';
-import {
-  AdminProductRevisionSummaryResponse,
-  AdminProductSummaryResponse,
-  AdminProductVariantRevisionSummaryResponse
-} from '../admin/admin-product.models';
+import { MatSelectModule } from '@angular/material/select';
+import { AdminModerationQueueService } from '../admin/admin-moderation-queue.service';
+import { AdminQueueSavedViewResponse, AdminQueueSummaryResponse } from '../admin/admin-moderation-queue.models';
+import { AdminOperationalView, AdminStatusCountResponse } from '../admin/admin-operational-list.models';
+import { AdminProductModerationItemResponse } from '../admin/admin-product.models';
 import { AdminProductService } from '../admin/admin-product.service';
+import { AdminQueueTriagePanelComponent } from '../admin/admin-queue-triage-panel.component';
+import { AdminQueueTriageService } from '../admin/admin-queue-triage.service';
+import { AdminWorkspaceNavComponent } from '../admin/admin-workspace-nav.component';
 import { getApiErrorMessage } from '../auth/api-error';
 import { EmptyStateComponent } from '../shared/ui/empty-state.component';
 import { MetricTileComponent } from '../shared/ui/metric-tile.component';
@@ -24,12 +27,15 @@ import { WorkspaceShellComponent } from '../shared/ui/workspace-shell.component'
 @Component({
   selector: 'app-admin-products-page',
   imports: [
+    AdminQueueTriagePanelComponent,
     AdminWorkspaceNavComponent,
     DatePipe,
     EmptyStateComponent,
     MatButtonModule,
+    MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MetricTileComponent,
     PageHeaderComponent,
     ProductVisualFallbackComponent,
@@ -46,8 +52,8 @@ import { WorkspaceShellComponent } from '../shared/ui/workspace-shell.component'
 
         <app-page-header
           eyebrow="Admin console"
-          heading="Product moderation queue"
-          description="Triage submitted products and AI-flagged listings before marketplace publication."
+          heading="Product moderation operations"
+          description="Review submitted products, published listing revisions, and variant pricing revisions from one operational queue."
         >
           <div pageHeaderActions>
             <a mat-stroked-button routerLink="/admin/sellers">Seller queue</a>
@@ -66,216 +72,240 @@ import { WorkspaceShellComponent } from '../shared/ui/workspace-shell.component'
           }
         </div>
 
-        @if (pendingRevisions().length > 0) {
-          <article class="route-card admin-detail-card">
-            <div class="hf-admin-card-heading">
-              <div>
-                <span>Published listing edits</span>
-                <h2>Pending revisions</h2>
-              </div>
-              <app-status-badge [label]="pendingRevisions().length + ' pending'" tone="warning" />
-            </div>
-            <div class="admin-table" role="table" aria-label="Pending product revisions">
-              <div class="admin-table-row heading" role="row">
-                <span role="columnheader">Listing</span>
-                <span role="columnheader">Seller</span>
-                <span role="columnheader">Submitted</span>
-                <span role="columnheader">Action</span>
-              </div>
-              @for (revision of pendingRevisions(); track revision.revisionId) {
-                <div class="admin-table-row" role="row">
-                  <span role="cell">
-                    <strong>{{ revision.proposedTitle ?? revision.currentTitle ?? 'Untitled listing' }}</strong>
-                    <small>Current: {{ revision.currentTitle ?? 'Untitled listing' }}</small>
-                  </span>
-                  <span role="cell">
-                    <strong>{{ revision.sellerDisplayName ?? 'Unnamed seller' }}</strong>
-                    <small>{{ revision.sellerVerificationStatus ?? 'Unknown seller status' }}</small>
-                  </span>
-                  <span role="cell">
-                    <strong>{{ revision.submittedAtUtc ? (revision.submittedAtUtc | date:'mediumDate') : 'Not submitted' }}</strong>
-                    <small>{{ revision.status }}</small>
-                  </span>
-                  <span role="cell">
-                    <a mat-stroked-button [routerLink]="['/admin/products/revisions', revision.revisionId]">Review revision</a>
-                  </span>
-                </div>
-              }
-            </div>
-          </article>
+        @if (queueSummary()) {
+          <div class="admin-audit-actions">
+            <app-status-badge [label]="slaCountLabel('Overdue')" [tone]="slaTone('Overdue')" />
+            <app-status-badge [label]="slaCountLabel('DueSoon')" [tone]="slaTone('DueSoon')" />
+            <span class="audit-count">Reviewed today: {{ queueSummary()!.reviewedToday }} / Last 7 days: {{ queueSummary()!.reviewedLast7Days }}</span>
+          </div>
         }
-
-        @if (pendingVariantRevisions().length > 0) {
-          <article class="route-card admin-detail-card">
-            <div class="hf-admin-card-heading">
-              <div>
-                <span>Variant and pricing edits</span>
-                <h2>Pending variant revisions</h2>
-              </div>
-              <app-status-badge [label]="pendingVariantRevisions().length + ' pending'" tone="warning" />
-            </div>
-            <div class="admin-table" role="table" aria-label="Pending product variant revisions">
-              <div class="admin-table-row heading" role="row">
-                <span role="columnheader">Product</span>
-                <span role="columnheader">Seller</span>
-                <span role="columnheader">Changes</span>
-                <span role="columnheader">Action</span>
-              </div>
-              @for (revision of pendingVariantRevisions(); track revision.revisionId) {
-                <div class="admin-table-row" role="row">
-                  <span role="cell">
-                    <strong>{{ revision.productTitle ?? 'Untitled product' }}</strong>
-                    <small>{{ revision.status }}</small>
-                  </span>
-                  <span role="cell">
-                    <strong>{{ revision.sellerDisplayName ?? 'Unnamed seller' }}</strong>
-                    <small>{{ revision.sellerVerificationStatus ?? 'Unknown seller status' }}</small>
-                  </span>
-                  <span role="cell">
-                    <strong>{{ revision.itemCount }} staged change{{ revision.itemCount === 1 ? '' : 's' }}</strong>
-                    <small>{{ revision.submittedAtUtc ? (revision.submittedAtUtc | date:'mediumDate') : 'Not submitted' }}</small>
-                  </span>
-                  <span role="cell">
-                    <a mat-stroked-button [routerLink]="['/admin/products/variant-revisions', revision.revisionId]">Review variants</a>
-                  </span>
-                </div>
-              }
-            </div>
-          </article>
-        }
-
-      <form [formGroup]="filtersForm" (ngSubmit)="applyFilters()" class="route-card admin-moderation-filters" novalidate>
-        <mat-form-field appearance="outline">
-          <mat-label>Search products</mat-label>
-          <input matInput formControlName="search" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Status</mat-label>
-          <input matInput formControlName="status" placeholder="PendingReview" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Seller</mat-label>
-          <input matInput formControlName="seller" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Risk</mat-label>
-          <input matInput formControlName="risk" placeholder="high, none" />
-        </mat-form-field>
 
         <div class="admin-audit-actions">
-          <button mat-flat-button type="submit">Apply filters</button>
-          <button mat-stroked-button type="button" (click)="clearFilters()">Clear</button>
+          <button mat-flat-button type="button" [disabled]="view() === 'NeedsAttention'" (click)="setView('NeedsAttention')">Needs attention</button>
+          <button mat-stroked-button type="button" [disabled]="view() === 'All'" (click)="setView('All')">All moderation items</button>
         </div>
-      </form>
 
-      @if (isLoading()) {
-        <div class="route-card">Loading product reviews...</div>
-      } @else {
-        @if (errorMessage()) {
-          <app-ui-alert tone="error">{{ errorMessage() }}</app-ui-alert>
-        }
+        <form [formGroup]="filtersForm" (ngSubmit)="applyFilters()" class="route-card admin-moderation-filters" novalidate>
+          <mat-form-field appearance="outline">
+            <mat-label>Search items</mat-label>
+            <input matInput formControlName="search" />
+          </mat-form-field>
 
-        @if (filteredProducts().length === 0 && !errorMessage()) {
-          <app-empty-state
-            eyebrow="Clear"
-            heading="No products pending review"
-            message="Submitted products and AI-flagged listings will appear here."
-          />
-        } @else {
-          <div class="hf-admin-review-layout">
-            <div class="hf-admin-queue-card">
-              <div class="hf-admin-card-heading">
-                <div>
-                  <span>Review list</span>
-                  <h2>Submitted listings</h2>
-                </div>
-                <app-status-badge [label]="filteredProducts().length + ' visible'" tone="accent" />
-              </div>
+          <mat-form-field appearance="outline">
+            <mat-label>Status</mat-label>
+            <input matInput formControlName="status" placeholder="PendingReview, Published, Rejected" />
+          </mat-form-field>
 
-              <div class="admin-table admin-moderation-table" role="table" aria-label="Pending product reviews">
-                <div class="admin-table-row heading admin-moderation-table-row" role="row">
-                  <span role="columnheader">Product</span>
-                  <span role="columnheader">Seller</span>
-                  <span role="columnheader">Updated</span>
-                  <span role="columnheader">Status</span>
-                  <span role="columnheader">Action</span>
-                </div>
+          <mat-form-field appearance="outline">
+            <mat-label>Seller ID</mat-label>
+            <input matInput formControlName="sellerId" />
+          </mat-form-field>
 
-                @for (product of filteredProducts(); track product.productId) {
-                  <div
-                    class="admin-table-row admin-moderation-table-row hf-admin-select-row"
-                    role="row"
-                    [class.active]="selectedProduct()?.productId === product.productId"
-                    (click)="selectProduct(product)"
-                  >
-                    <span role="cell">
-                      <strong>{{ product.title ?? 'Untitled product' }}</strong>
-                      <small>{{ product.categoryPath ?? 'No category' }}</small>
-                    </span>
-                    <span role="cell">
-                      <strong>{{ product.sellerDisplayName ?? 'Unnamed seller' }}</strong>
-                      <small>{{ product.sellerVerificationStatus ?? 'Unknown seller status' }}</small>
-                    </span>
-                    <span role="cell">
-                      <strong>{{ product.updatedAtUtc | date:'mediumDate' }}</strong>
-                      <small>{{ product.updatedAtUtc | date:'shortTime' }}</small>
-                    </span>
-                    <span role="cell">
-                      <app-status-badge [label]="product.status" [tone]="productStatusTone(product.status)" />
-                      @if (product.highRiskFlagCount > 0) {
-                        <small>{{ product.highRiskFlagCount }} high-risk flag{{ product.highRiskFlagCount === 1 ? '' : 's' }}</small>
-                      } @else {
-                        <small>No high-risk flags</small>
-                      }
-                    </span>
-                    <span role="cell">
-                      <a mat-stroked-button [routerLink]="['/admin/products', product.productId]" (click)="$event.stopPropagation()">Review</a>
-                    </span>
-                  </div>
-                }
-              </div>
+          <mat-form-field appearance="outline">
+            <mat-label>Assignment</mat-label>
+            <mat-select formControlName="assigned">
+              <mat-option value="Any">Any</mat-option>
+              <mat-option value="Mine">Mine</mat-option>
+              <mat-option value="Unassigned">Unassigned</mat-option>
+            </mat-select>
+          </mat-form-field>
 
-              <p class="audit-count">{{ filteredProducts().length }} of {{ pendingProducts().length }} product{{ pendingProducts().length === 1 ? '' : 's' }}</p>
-            </div>
+          <mat-form-field appearance="outline">
+            <mat-label>Priority</mat-label>
+            <mat-select formControlName="priority">
+              <mat-option value="">Any</mat-option>
+              <mat-option value="Normal">Normal</mat-option>
+              <mat-option value="High">High</mat-option>
+              <mat-option value="Urgent">Urgent</mat-option>
+            </mat-select>
+          </mat-form-field>
 
-            @if (selectedProduct()) {
-              <aside class="hf-admin-evidence-panel">
-                <div class="hf-admin-card-heading">
-                  <div>
-                    <span>Selected review</span>
-                    <h2>{{ selectedProduct()!.title ?? 'Untitled product' }}</h2>
-                  </div>
-                  <app-status-badge
-                    [label]="selectedProduct()!.highRiskFlagCount > 0 ? 'Risk' : 'Clear'"
-                    [tone]="selectedProduct()!.highRiskFlagCount > 0 ? 'danger' : 'success'"
-                  />
-                </div>
+          <mat-form-field appearance="outline">
+            <mat-label>SLA</mat-label>
+            <mat-select formControlName="sla">
+              <mat-option value="">Any</mat-option>
+              <mat-option value="OnTrack">On track</mat-option>
+              <mat-option value="DueSoon">Due soon</mat-option>
+              <mat-option value="Overdue">Overdue</mat-option>
+            </mat-select>
+          </mat-form-field>
 
-                <app-product-visual-fallback
-                  [title]="selectedProduct()!.title ?? 'Submitted listing'"
-                  label="Submitted image"
-                  [tone]="productVisualTone(selectedProduct()!)"
-                />
+          <mat-form-field appearance="outline">
+            <mat-label>Notes</mat-label>
+            <mat-select formControlName="hasNotes">
+              <mat-option value="">Any</mat-option>
+              <mat-option value="true">Has notes</mat-option>
+              <mat-option value="false">No notes</mat-option>
+            </mat-select>
+          </mat-form-field>
 
-                <div class="hf-admin-summary-panel">
-                  <strong>Review summary</strong>
-                  <span>{{ selectedProduct()!.categoryPath ?? 'No category provided' }}</span>
-                  <span>{{ selectedProduct()!.sellerDisplayName ?? 'Unnamed seller' }} - {{ selectedProduct()!.sellerVerificationStatus ?? 'Unknown seller status' }}</span>
-                  <span>{{ selectedProduct()!.highRiskFlagCount }} high-risk flag{{ selectedProduct()!.highRiskFlagCount === 1 ? '' : 's' }}</span>
-                </div>
+          <mat-form-field appearance="outline">
+            <mat-label>Saved view</mat-label>
+            <mat-select formControlName="savedViewId" (selectionChange)="applySavedView($event.value)">
+              <mat-option value="">Manual filters</mat-option>
+              @for (view of savedViews(); track view.viewId) {
+                <mat-option [value]="view.viewId">{{ view.name }}{{ view.isDefault ? ' / default' : '' }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
 
-                <div class="hf-admin-action-strip">
-                  <a mat-flat-button [routerLink]="['/admin/products', selectedProduct()!.productId]">Open review</a>
-                  <a mat-stroked-button routerLink="/admin/audit-logs">Audit trail</a>
-                </div>
-              </aside>
+          <mat-form-field appearance="outline">
+            <mat-label>View name</mat-label>
+            <input matInput formControlName="savedViewName" />
+          </mat-form-field>
+
+          <div class="admin-audit-actions">
+            <button mat-flat-button type="submit">Apply filters</button>
+            <button mat-stroked-button type="button" (click)="clearFilters()">Clear</button>
+            <button mat-stroked-button type="button" [disabled]="isSavingView()" (click)="saveView()">Save view</button>
+            <button mat-stroked-button type="button" [disabled]="!filtersForm.controls.savedViewId.value || isSavingView()" (click)="updateView()">Update view</button>
+            <button mat-stroked-button type="button" [disabled]="!filtersForm.controls.savedViewId.value || isSavingView()" (click)="makeDefaultView()">Make default</button>
+            <button mat-stroked-button type="button" [disabled]="!filtersForm.controls.savedViewId.value || isSavingView()" (click)="deleteView()">Delete view</button>
+          </div>
+        </form>
+
+        @if (statusCounts().length > 0) {
+          <div class="admin-audit-actions">
+            @for (count of statusCounts(); track count.status) {
+              <button mat-stroked-button type="button" (click)="filterByStatus(count.status)">
+                {{ count.status }} ({{ count.count }})
+              </button>
             }
           </div>
         }
-      }
+
+        @if (isLoading()) {
+          <div class="route-card">Loading product moderation items...</div>
+        } @else {
+          @if (errorMessage()) {
+            <app-ui-alert tone="error">{{ errorMessage() }}</app-ui-alert>
+          }
+
+          @if (items().length === 0 && !errorMessage()) {
+            <app-empty-state
+              eyebrow="Clear"
+              heading="No product moderation items found"
+              message="Adjust the view or filters to inspect submitted products, listing revisions, and variant pricing revisions."
+            />
+          } @else {
+            <div class="hf-admin-review-layout">
+              <div class="hf-admin-queue-card">
+                <div class="hf-admin-card-heading">
+                  <div>
+                    <span>{{ view() === 'NeedsAttention' ? 'Needs attention' : 'All-state view' }}</span>
+                    <h2>Product moderation records</h2>
+                  </div>
+                  <app-status-badge [label]="totalCount() + ' total'" tone="accent" />
+                </div>
+
+                <div class="admin-audit-actions">
+                  <button mat-stroked-button type="button" [disabled]="selectedQueueItemKeys().length === 0 || isBulkSaving()" (click)="bulkClaim()">Claim selected</button>
+                  <button mat-stroked-button type="button" [disabled]="selectedQueueItemKeys().length === 0 || isBulkSaving()" (click)="bulkPriority('High')">Mark high</button>
+                  <span class="audit-count">{{ selectedQueueItemKeys().length }} selected</span>
+                </div>
+
+                <div class="admin-table admin-moderation-table" role="table" aria-label="Product moderation queue">
+                  <div class="admin-table-row heading admin-moderation-table-row" role="row">
+                    <span role="columnheader">Item</span>
+                    <span role="columnheader">Seller</span>
+                    <span role="columnheader">Submitted</span>
+                    <span role="columnheader">Status</span>
+                    <span role="columnheader">Action</span>
+                  </div>
+
+                  @for (item of items(); track item.itemType + item.id) {
+                    <div
+                      class="admin-table-row admin-moderation-table-row hf-admin-select-row"
+                      role="row"
+                      [class.active]="selectedItem()?.id === item.id"
+                      (click)="selectItem(item)"
+                    >
+                      <span role="cell">
+                        <mat-checkbox
+                          [checked]="isQueueItemSelected(item)"
+                          (click)="$event.stopPropagation()"
+                          (change)="toggleQueueItem(item, $event.checked)"
+                        />
+                        <strong>{{ item.title ?? 'Untitled product' }}</strong>
+                        <small>{{ itemTypeLabel(item.itemType) }} / {{ item.categoryPath ?? 'No category' }}</small>
+                      </span>
+                      <span role="cell">
+                        <strong>{{ item.sellerDisplayName ?? 'Unnamed seller' }}</strong>
+                        <small>{{ item.sellerVerificationStatus ?? item.sellerId }}</small>
+                      </span>
+                      <span role="cell">
+                        <strong>{{ item.submittedAtUtc ? (item.submittedAtUtc | date:'mediumDate') : 'Not submitted' }}</strong>
+                        <small>Updated {{ item.updatedAtUtc | date:'short' }}</small>
+                      </span>
+                      <span role="cell">
+                        <app-status-badge [label]="item.status" [tone]="productStatusTone(item.status)" />
+                        <app-status-badge [label]="slaLabel(item.slaStatus)" [tone]="slaTone(item.slaStatus)" />
+                        <small>{{ item.priority }} / {{ item.assignedToDisplayName ?? 'Unassigned' }}</small>
+                        <small>Age {{ item.ageHours ?? 0 }}h / due {{ item.slaDueAtUtc | date:'short' }}</small>
+                        @if (item.riskFlagCount > 0) {
+                          <small>{{ item.riskFlagCount }} risk flag{{ item.riskFlagCount === 1 ? '' : 's' }}</small>
+                        } @else if (item.itemCount > 0) {
+                          <small>{{ item.itemCount }} staged item{{ item.itemCount === 1 ? '' : 's' }}</small>
+                        } @else {
+                          <small>No risk flags</small>
+                        }
+                      </span>
+                      <span role="cell">
+                        <a mat-stroked-button [routerLink]="item.detailRoute" (click)="$event.stopPropagation()">{{ reviewLabel(item) }}</a>
+                      </span>
+                    </div>
+                  }
+                </div>
+
+                <div class="admin-audit-actions">
+                  <button mat-stroked-button type="button" [disabled]="page() <= 1 || isLoading()" (click)="previousPage()">Previous</button>
+                  <span class="audit-count">Page {{ page() }} / {{ totalPages() }}</span>
+                  <button mat-stroked-button type="button" [disabled]="page() >= totalPages() || isLoading()" (click)="nextPage()">Next</button>
+                </div>
+              </div>
+
+              @if (selectedItem()) {
+                <aside class="hf-admin-evidence-panel">
+                  <div class="hf-admin-card-heading">
+                    <div>
+                      <span>Selected moderation item</span>
+                      <h2>{{ selectedItem()!.title ?? 'Product review' }}</h2>
+                    </div>
+                    <app-status-badge [label]="itemTypeLabel(selectedItem()!.itemType)" tone="accent" />
+                  </div>
+
+                  <app-product-visual-fallback
+                    [title]="selectedItem()!.title ?? 'Submitted listing'"
+                    label="Review image"
+                    [tone]="productVisualTone(selectedItem()!)"
+                  />
+
+                  <div class="hf-admin-summary-panel">
+                    <strong>Review context</strong>
+                    <span>Status: {{ selectedItem()!.status }}</span>
+                    <span>{{ selectedItem()!.sellerDisplayName ?? 'Unnamed seller' }} / {{ selectedItem()!.sellerVerificationStatus ?? 'Unknown seller status' }}</span>
+                    <span>{{ selectedItem()!.riskFlagCount }} risk flag{{ selectedItem()!.riskFlagCount === 1 ? '' : 's' }}</span>
+                    @if (selectedItem()!.itemCount > 0) {
+                      <span>{{ selectedItem()!.itemCount }} staged change{{ selectedItem()!.itemCount === 1 ? '' : 's' }}</span>
+                    }
+                  </div>
+
+                  <div class="hf-admin-action-strip">
+                    <a mat-flat-button [routerLink]="selectedItem()!.detailRoute">{{ reviewLabel(selectedItem()!) }}</a>
+                    <a mat-stroked-button routerLink="/admin/audit-logs">Audit trail</a>
+                  </div>
+
+                  <app-admin-queue-triage-panel
+                    [itemType]="selectedItem()!.itemType"
+                    [itemId]="selectedItem()!.id"
+                    [summary]="selectedItem()!"
+                    (triageChanged)="loadModerationItems()"
+                  />
+                </aside>
+              }
+            </div>
+          }
+        }
       </app-workspace-shell>
     </section>
   `
@@ -283,111 +313,210 @@ import { WorkspaceShellComponent } from '../shared/ui/workspace-shell.component'
 export class AdminProductsPageComponent implements OnInit {
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly adminProductService = inject(AdminProductService);
+  private readonly adminQueueTriageService = inject(AdminQueueTriageService);
+  private readonly adminModerationQueueService = inject(AdminModerationQueueService);
 
-  protected readonly pendingProducts = signal<AdminProductSummaryResponse[]>([]);
-  protected readonly pendingRevisions = signal<AdminProductRevisionSummaryResponse[]>([]);
-  protected readonly pendingVariantRevisions = signal<AdminProductVariantRevisionSummaryResponse[]>([]);
-  protected readonly selectedProductId = signal<string | null>(null);
-  protected readonly filters = signal({ search: '', status: '', seller: '', risk: '' });
+  protected readonly items = signal<AdminProductModerationItemResponse[]>([]);
+  protected readonly statusCounts = signal<AdminStatusCountResponse[]>([]);
+  protected readonly savedViews = signal<AdminQueueSavedViewResponse[]>([]);
+  protected readonly queueSummary = signal<AdminQueueSummaryResponse | null>(null);
+  protected readonly selectedItemId = signal<string | null>(null);
+  protected readonly view = signal<AdminOperationalView>('NeedsAttention');
+  protected readonly page = signal(1);
+  protected readonly pageSize = signal(25);
+  protected readonly totalCount = signal(0);
+  protected readonly selectedQueueItemKeys = signal<string[]>([]);
+  protected readonly isBulkSaving = signal(false);
+  protected readonly isSavingView = signal(false);
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
 
   protected readonly filtersForm = this.formBuilder.group({
     search: [''],
     status: [''],
-    seller: [''],
-    risk: ['']
+    sellerId: [''],
+    assigned: ['Any'],
+    priority: [''],
+    sla: [''],
+    hasNotes: [''],
+    savedViewId: [''],
+    savedViewName: ['']
   });
 
-  protected readonly filteredProducts = computed(() => {
-    const { search, status, seller, risk } = this.filters();
-    const normalizedSearch = search.trim().toLowerCase();
-    const normalizedStatus = status.trim().toLowerCase();
-    const normalizedSeller = seller.trim().toLowerCase();
-    const normalizedRisk = risk.trim().toLowerCase();
-
-    return this.pendingProducts().filter(product => {
-      const haystack = [
-        product.title,
-        product.categoryPath,
-        product.sellerDisplayName,
-        product.sellerVerificationStatus,
-        product.status
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      const sellerText = [product.sellerDisplayName, product.sellerVerificationStatus, product.sellerId]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      const riskText = product.highRiskFlagCount > 0 ? 'high risk flagged' : 'none no risk clear';
-
-      return (normalizedSearch.length === 0 || haystack.includes(normalizedSearch)) &&
-        (normalizedStatus.length === 0 || product.status.toLowerCase().includes(normalizedStatus)) &&
-        (normalizedSeller.length === 0 || sellerText.includes(normalizedSeller)) &&
-        (normalizedRisk.length === 0 || riskText.includes(normalizedRisk));
-    });
-  });
-
-  protected readonly selectedProduct = computed(() => {
-    const filteredProducts = this.filteredProducts();
-    if (filteredProducts.length === 0) {
+  protected readonly selectedItem = computed(() => {
+    const items = this.items();
+    if (items.length === 0) {
       return null;
     }
 
-    const selectedProductId = this.selectedProductId();
-    return filteredProducts.find(product => product.productId === selectedProductId) ?? filteredProducts[0];
+    const selectedItemId = this.selectedItemId();
+    return items.find(item => item.id === selectedItemId) ?? items[0];
   });
 
+  protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.totalCount() / this.pageSize())));
+
   protected readonly productMetrics = computed(() => {
-    const products = this.pendingProducts();
-    const highRiskCount = products.filter(product => product.highRiskFlagCount > 0).length;
-    const sellerCount = new Set(products.map(product => product.sellerId)).size;
+    const pendingReview = this.statusCounts().find(count => count.status === 'PendingReview')?.count ?? 0;
+    const needsAdminReview = this.statusCounts().find(count => count.status === 'NeedsAdminReview')?.count ?? 0;
+    const revisionCount = this.items().filter(item => item.itemType !== 'Product').length;
+    const riskCount = this.items().filter(item => item.riskFlagCount > 0).length;
 
     return [
-      {
-        label: 'Pending products',
-        value: products.length.toString(),
-        badge: 'Review',
-        tone: 'warning' as StatusBadgeTone
-      },
-      {
-        label: 'AI flagged',
-        value: highRiskCount.toString(),
-        badge: highRiskCount > 0 ? 'Risk' : 'Clear',
-        tone: highRiskCount > 0 ? 'danger' as StatusBadgeTone : 'success' as StatusBadgeTone
-      },
-      {
-        label: 'Pending revisions',
-        value: (this.pendingRevisions().length + this.pendingVariantRevisions().length).toString(),
-        badge: 'Published edits',
-        tone: (this.pendingRevisions().length + this.pendingVariantRevisions().length) > 0 ? 'warning' as StatusBadgeTone : 'success' as StatusBadgeTone
-      },
-      {
-        label: 'Seller count',
-        value: sellerCount.toString(),
-        badge: 'Queue',
-        tone: 'accent' as StatusBadgeTone
-      },
+      { label: 'Pending review', value: pendingReview.toString(), badge: 'Queue', tone: pendingReview > 0 ? 'warning' as StatusBadgeTone : 'success' as StatusBadgeTone },
+      { label: 'Needs admin review', value: needsAdminReview.toString(), badge: needsAdminReview > 0 ? 'Risk' : 'Clear', tone: needsAdminReview > 0 ? 'danger' as StatusBadgeTone : 'success' as StatusBadgeTone },
+      { label: 'Published revisions', value: revisionCount.toString(), badge: 'Staged edits', tone: revisionCount > 0 ? 'warning' as StatusBadgeTone : 'neutral' as StatusBadgeTone },
+      { label: 'Risk flags', value: riskCount.toString(), badge: riskCount > 0 ? 'Review' : 'Clear', tone: riskCount > 0 ? 'danger' as StatusBadgeTone : 'success' as StatusBadgeTone }
     ];
   });
 
   async ngOnInit(): Promise<void> {
-    await this.loadPendingProducts();
+    await Promise.all([this.loadSavedViews(), this.loadQueueSummary()]);
+    await this.loadModerationItems();
   }
 
-  protected applyFilters(): void {
-    this.filters.set(this.filtersForm.getRawValue());
+  protected async applyFilters(): Promise<void> {
+    this.page.set(1);
+    await this.loadModerationItems();
   }
 
-  protected clearFilters(): void {
-    this.filtersForm.reset({ search: '', status: '', seller: '', risk: '' });
-    this.applyFilters();
+  protected async clearFilters(): Promise<void> {
+    this.filtersForm.reset({ search: '', status: '', sellerId: '', assigned: 'Any', priority: '', sla: '', hasNotes: '', savedViewId: '', savedViewName: '' });
+    this.page.set(1);
+    await this.loadModerationItems();
   }
 
-  protected selectProduct(product: AdminProductSummaryResponse): void {
-    this.selectedProductId.set(product.productId);
+  protected async applySavedView(viewId: string): Promise<void> {
+    const view = this.savedViews().find(item => item.viewId === viewId);
+    if (!view) {
+      return;
+    }
+
+    this.filtersForm.patchValue({
+      search: view.filters.search ?? '',
+      status: view.filters.status ?? '',
+      sellerId: view.filters.sellerId ?? '',
+      assigned: view.filters.assigned ?? 'Any',
+      priority: view.filters.priority ?? '',
+      sla: view.filters.sla ?? '',
+      hasNotes: view.filters.hasNotes === null || view.filters.hasNotes === undefined ? '' : String(view.filters.hasNotes),
+      savedViewId: view.viewId,
+      savedViewName: view.name
+    });
+    this.view.set(view.filters.view === 'All' ? 'All' : 'NeedsAttention');
+    this.pageSize.set(view.filters.pageSize ?? 25);
+    await this.applyFilters();
+  }
+
+  protected async saveView(): Promise<void> {
+    await this.persistView(false);
+  }
+
+  protected async updateView(): Promise<void> {
+    await this.persistView(true);
+  }
+
+  protected async makeDefaultView(): Promise<void> {
+    const viewId = this.filtersForm.controls.savedViewId.value;
+    if (!viewId) {
+      return;
+    }
+
+    this.isSavingView.set(true);
+    try {
+      await this.adminModerationQueueService.makeDefault(viewId);
+      await this.loadSavedViews();
+    } catch (error) {
+      this.errorMessage.set(getApiErrorMessage(error));
+    } finally {
+      this.isSavingView.set(false);
+    }
+  }
+
+  protected async deleteView(): Promise<void> {
+    const viewId = this.filtersForm.controls.savedViewId.value;
+    if (!viewId) {
+      return;
+    }
+
+    this.isSavingView.set(true);
+    try {
+      await this.adminModerationQueueService.deleteSavedView(viewId);
+      await this.loadSavedViews();
+      this.filtersForm.patchValue({ savedViewId: '', savedViewName: '' });
+    } catch (error) {
+      this.errorMessage.set(getApiErrorMessage(error));
+    } finally {
+      this.isSavingView.set(false);
+    }
+  }
+
+  protected async filterByStatus(status: string): Promise<void> {
+    this.filtersForm.patchValue({ status });
+    await this.applyFilters();
+  }
+
+  protected async setView(view: AdminOperationalView): Promise<void> {
+    this.view.set(view);
+    this.page.set(1);
+    await this.loadModerationItems();
+  }
+
+  protected selectItem(item: AdminProductModerationItemResponse): void {
+    this.selectedItemId.set(item.id);
+  }
+
+  protected isQueueItemSelected(item: AdminProductModerationItemResponse): boolean {
+    return this.selectedQueueItemKeys().includes(this.queueItemKey(item));
+  }
+
+  protected toggleQueueItem(item: AdminProductModerationItemResponse, isSelected: boolean): void {
+    const key = this.queueItemKey(item);
+    const current = this.selectedQueueItemKeys();
+    this.selectedQueueItemKeys.set(isSelected
+      ? Array.from(new Set([...current, key]))
+      : current.filter(itemKey => itemKey !== key));
+  }
+
+  protected async bulkClaim(): Promise<void> {
+    await this.bulkTriage('Claim');
+  }
+
+  protected async bulkPriority(priority: 'High'): Promise<void> {
+    await this.bulkTriage('SetPriority', priority);
+  }
+
+  protected async previousPage(): Promise<void> {
+    this.page.set(Math.max(1, this.page() - 1));
+    await this.loadModerationItems();
+  }
+
+  protected async nextPage(): Promise<void> {
+    this.page.set(Math.min(this.totalPages(), this.page() + 1));
+    await this.loadModerationItems();
+  }
+
+  protected itemTypeLabel(itemType: string): string {
+    if (itemType === 'ListingRevision') {
+      return 'Listing revision';
+    }
+
+    if (itemType === 'VariantRevision') {
+      return 'Variant revision';
+    }
+
+    return 'Product';
+  }
+
+  protected reviewLabel(item: AdminProductModerationItemResponse): string {
+    if (item.itemType === 'ListingRevision') {
+      return 'Review revision';
+    }
+
+    if (item.itemType === 'VariantRevision') {
+      return 'Review variants';
+    }
+
+    return 'Review product';
   }
 
   protected productStatusTone(status: string): StatusBadgeTone {
@@ -399,11 +528,36 @@ export class AdminProductsPageComponent implements OnInit {
       return 'danger';
     }
 
+    if (['Draft', 'Cancelled', 'Archived'].includes(status)) {
+      return 'neutral';
+    }
+
     return 'warning';
   }
 
-  protected productVisualTone(product: AdminProductSummaryResponse): ProductVisualTone {
-    const text = `${product.title ?? ''} ${product.categoryPath ?? ''}`.toLowerCase();
+  protected slaTone(status: string | undefined): StatusBadgeTone {
+    if (status === 'Overdue') {
+      return 'danger';
+    }
+
+    if (status === 'DueSoon') {
+      return 'warning';
+    }
+
+    return 'success';
+  }
+
+  protected slaLabel(status: string | undefined): string {
+    return status === 'DueSoon' ? 'Due soon' : status === 'Overdue' ? 'Overdue' : 'On track';
+  }
+
+  protected slaCountLabel(status: 'DueSoon' | 'Overdue'): string {
+    const count = this.queueSummary()?.slaCounts.find(item => item.key === status)?.count ?? 0;
+    return `${this.slaLabel(status)}: ${count}`;
+  }
+
+  protected productVisualTone(item: AdminProductModerationItemResponse): ProductVisualTone {
+    const text = `${item.title ?? ''} ${item.categoryPath ?? ''}`.toLowerCase();
 
     if (text.includes('jewel') || text.includes('earring') || text.includes('ring')) {
       return 'jewel';
@@ -428,24 +582,130 @@ export class AdminProductsPageComponent implements OnInit {
     return 'neutral';
   }
 
-  private async loadPendingProducts(): Promise<void> {
+  protected async loadModerationItems(): Promise<void> {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
     try {
-      const [products, revisions, variantRevisions] = await Promise.all([
-        this.adminProductService.getPendingReviewProducts(),
-        this.adminProductService.getPendingRevisions(),
-        this.adminProductService.getPendingVariantRevisions()
-      ]);
-      this.pendingProducts.set(products);
-      this.pendingRevisions.set(revisions);
-      this.pendingVariantRevisions.set(variantRevisions);
-      this.selectedProductId.set(products[0]?.productId ?? null);
+      const filters = this.filtersForm.getRawValue();
+      const response = await this.adminProductService.getModerationItems({
+        view: this.view(),
+        search: filters.search.trim(),
+        status: filters.status.trim(),
+        sellerId: filters.sellerId.trim(),
+        assigned: filters.assigned,
+        priority: filters.priority,
+        hasNotes: this.parseBooleanFilter(filters.hasNotes),
+        sla: filters.sla,
+        page: this.page(),
+        pageSize: this.pageSize(),
+        sort: 'UpdatedDesc'
+      });
+      this.items.set(response.items);
+      this.statusCounts.set(response.statusCounts);
+      this.totalCount.set(response.totalCount);
+      this.selectedItemId.set(response.items[0]?.id ?? null);
+      const visibleKeys = response.items.map(item => this.queueItemKey(item));
+      this.selectedQueueItemKeys.set(this.selectedQueueItemKeys().filter(key => visibleKeys.includes(key)));
     } catch (error) {
       this.errorMessage.set(getApiErrorMessage(error));
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  private async bulkTriage(action: 'Claim' | 'SetPriority', priority?: 'High'): Promise<void> {
+    const items = this.items().filter(item => this.selectedQueueItemKeys().includes(this.queueItemKey(item)));
+    if (items.length === 0) {
+      return;
+    }
+
+    this.isBulkSaving.set(true);
+    this.errorMessage.set(null);
+    try {
+      await this.adminQueueTriageService.bulkTriage({
+        action,
+        priority,
+        items: items.map(item => ({ itemType: item.itemType, itemId: item.id }))
+      });
+      await this.loadModerationItems();
+    } catch (error) {
+      this.errorMessage.set(getApiErrorMessage(error));
+    } finally {
+      this.isBulkSaving.set(false);
+    }
+  }
+
+  private queueItemKey(item: AdminProductModerationItemResponse): string {
+    return `${item.itemType}:${item.id}`;
+  }
+
+  private async loadSavedViews(): Promise<void> {
+    const views = await this.adminModerationQueueService.getSavedViews('Products');
+    this.savedViews.set(views);
+    const defaultView = views.find(view => view.isDefault);
+    if (defaultView && !this.filtersForm.controls.savedViewId.value) {
+      this.filtersForm.patchValue({ savedViewId: defaultView.viewId, savedViewName: defaultView.name });
+      await this.applySavedView(defaultView.viewId);
+    }
+  }
+
+  private async loadQueueSummary(): Promise<void> {
+    try {
+      this.queueSummary.set(await this.adminModerationQueueService.getSummary());
+    } catch {
+      this.queueSummary.set(null);
+    }
+  }
+
+  private async persistView(updateExisting: boolean): Promise<void> {
+    const filters = this.filtersForm.getRawValue();
+    const name = filters.savedViewName.trim();
+    if (!name) {
+      this.errorMessage.set('Enter a saved view name before saving.');
+      return;
+    }
+
+    this.isSavingView.set(true);
+    try {
+      const request = {
+        queue: 'Products',
+        name,
+        isDefault: false,
+        filters: {
+          view: this.view(),
+          search: filters.search.trim(),
+          status: filters.status.trim(),
+          sellerId: filters.sellerId.trim() || null,
+          assigned: filters.assigned,
+          priority: filters.priority,
+          hasNotes: this.parseBooleanFilter(filters.hasNotes),
+          sla: filters.sla,
+          sort: 'UpdatedDesc',
+          pageSize: this.pageSize()
+        }
+      };
+      const response = updateExisting && filters.savedViewId
+        ? await this.adminModerationQueueService.updateSavedView(filters.savedViewId, request)
+        : await this.adminModerationQueueService.createSavedView(request);
+      await this.loadSavedViews();
+      this.filtersForm.patchValue({ savedViewId: response.viewId, savedViewName: response.name });
+    } catch (error) {
+      this.errorMessage.set(getApiErrorMessage(error));
+    } finally {
+      this.isSavingView.set(false);
+    }
+  }
+
+  private parseBooleanFilter(value: string): boolean | null {
+    if (value === 'true') {
+      return true;
+    }
+
+    if (value === 'false') {
+      return false;
+    }
+
+    return null;
   }
 }

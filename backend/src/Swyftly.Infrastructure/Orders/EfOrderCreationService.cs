@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Swyftly.Application.Analytics;
 using Swyftly.Application.Common.Errors;
 using Swyftly.Application.Common.Results;
 using Swyftly.Application.Common.Validation;
@@ -18,7 +19,8 @@ namespace Swyftly.Infrastructure.Orders;
 public sealed class EfOrderCreationService(
     SwyftlyDbContext dbContext,
     IInventoryReservationService inventoryReservationService,
-    IAddressVerificationService addressVerificationService) : IOrderCreationService
+    IAddressVerificationService addressVerificationService,
+    IStorefrontAnalyticsService storefrontAnalyticsService) : IOrderCreationService
 {
     public async Task<Result<OrderResult>> CreateFromCartAsync(
         CreateOrderFromCartRequest request,
@@ -160,6 +162,7 @@ public sealed class EfOrderCreationService(
 
         dbContext.Orders.Add(order);
         await dbContext.SaveChangesAsync(cancellationToken);
+        await storefrontAnalyticsService.RecordOrderCreatedAsync(order.Id, cancellationToken);
         return Result<OrderResult>.Success(Map(order));
     }
 

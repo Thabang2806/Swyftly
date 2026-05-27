@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { StorefrontAnalyticsService } from '../analytics/storefront-analytics.service';
 import { getApiErrorMessage } from '../auth/api-error';
 import { BuyerPaymentRedirectService, BuyerPaymentService } from '../buyer/buyer-payment.service';
 import { BuyerDeliveryAddressResponse } from '../buyer/buyer-settings.models';
@@ -410,6 +411,7 @@ export class CheckoutPageComponent implements OnInit {
   private readonly paymentService = inject(BuyerPaymentService);
   private readonly router = inject(Router);
   private readonly settingsService = inject(BuyerSettingsService);
+  private readonly storefrontAnalytics = inject(StorefrontAnalyticsService);
 
   protected readonly cart = signal<CartResponse | null>(null);
   protected readonly savedAddresses = signal<BuyerDeliveryAddressResponse[]>([]);
@@ -484,8 +486,12 @@ export class CheckoutPageComponent implements OnInit {
     this.errorMessage.set(null);
     let orderId: string | null = null;
     try {
+      const cartId = this.cart()?.cartId ?? null;
+      if (cartId) {
+        this.storefrontAnalytics.trackCheckoutStarted(cartId, this.router.url);
+      }
       const order = await this.cartService.createOrderFromCart({
-        cartId: this.cart()?.cartId ?? null,
+        cartId,
         reservationMinutes: null,
         deliveryAddressId,
         deliveryAddress: deliveryAddressId ? null : this.createManualDeliveryAddress(),

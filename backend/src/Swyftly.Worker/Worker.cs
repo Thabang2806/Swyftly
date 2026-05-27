@@ -5,6 +5,7 @@ using Swyftly.Application.Media;
 using Swyftly.Application.Notifications;
 using Swyftly.Application.Orders;
 using Swyftly.Application.Payments;
+using Swyftly.Application.Sellers;
 
 public class Worker(
     ILogger<Worker> logger,
@@ -26,6 +27,7 @@ public class Worker(
             await RedactExpiredPaymentWebhookPayloadsAsync(stoppingToken);
             await CleanupMediaAsync(stoppingToken);
             await ProcessNotificationEmailsAsync(stoppingToken);
+            await ProcessSellerScheduledReportsAsync(stoppingToken);
             await SyncCarrierTrackingAsync(stoppingToken);
             await Task.Delay(IdleDelay, stoppingToken);
         }
@@ -153,6 +155,33 @@ public class Worker(
         catch (Exception exception)
         {
             logger.LogError(exception, "Carrier tracking sync failed.");
+        }
+    }
+
+    private async Task ProcessSellerScheduledReportsAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var reportService = scope.ServiceProvider.GetRequiredService<ISellerScheduledReportService>();
+            var result = await reportService.ProcessDueReportsAsync(timeProvider.GetUtcNow(), stoppingToken);
+
+            if (result.ProcessedCount > 0)
+            {
+                logger.LogInformation(
+                    "Processed {ProcessedCount} seller scheduled reports; sent {SentCount}, failed {FailedCount}, skipped duplicates {SkippedDuplicateCount}.",
+                    result.ProcessedCount,
+                    result.SentCount,
+                    result.FailedCount,
+                    result.SkippedDuplicateCount);
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Seller scheduled analytics report processing failed.");
         }
     }
 }

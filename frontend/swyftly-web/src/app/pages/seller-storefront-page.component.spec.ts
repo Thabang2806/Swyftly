@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { StorefrontAnalyticsService } from '../analytics/storefront-analytics.service';
 import { PublicCatalogService } from '../shop/public-catalog.service';
 import { SellerStorefrontPageComponent } from './seller-storefront-page.component';
 import { createProduct, createSellerPolicy } from './shop-page.component.spec';
@@ -7,9 +8,11 @@ import { createProduct, createSellerPolicy } from './shop-page.component.spec';
 describe('SellerStorefrontPageComponent', () => {
   let fixture: ComponentFixture<SellerStorefrontPageComponent>;
   let publicCatalogService: jasmine.SpyObj<PublicCatalogService>;
+  let storefrontAnalytics: jasmine.SpyObj<StorefrontAnalyticsService>;
 
   beforeEach(async () => {
     publicCatalogService = jasmine.createSpyObj<PublicCatalogService>('PublicCatalogService', ['getSellerStorefront']);
+    storefrontAnalytics = jasmine.createSpyObj<StorefrontAnalyticsService>('StorefrontAnalyticsService', ['trackStorefrontView']);
     publicCatalogService.getSellerStorefront.and.resolveTo({
       sellerId: 'seller-id',
       storeName: 'Seller Store',
@@ -33,7 +36,8 @@ describe('SellerStorefrontPageComponent', () => {
             }
           }
         },
-        { provide: PublicCatalogService, useValue: publicCatalogService }
+        { provide: PublicCatalogService, useValue: publicCatalogService },
+        { provide: StorefrontAnalyticsService, useValue: storefrontAnalytics }
       ]
     }).compileComponents();
 
@@ -46,6 +50,7 @@ describe('SellerStorefrontPageComponent', () => {
     fixture.detectChanges();
 
     expect(publicCatalogService.getSellerStorefront).toHaveBeenCalledWith('seller-store');
+    expect(storefrontAnalytics.trackStorefrontView).toHaveBeenCalledWith('seller-store', jasmine.any(String));
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Seller Store');
     expect(compiled.textContent).toContain('Curated dresses.');

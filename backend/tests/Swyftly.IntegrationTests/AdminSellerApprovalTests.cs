@@ -32,8 +32,96 @@ public sealed class AdminSellerApprovalTests
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
 
         using var response = await client.GetAsync("/api/admin/sellers/pending");
+        using var allResponse = await client.GetAsync("/api/admin/sellers");
+        using var triageResponse = await client.GetAsync($"/api/admin/moderation-queue/items/Seller/{Guid.NewGuid()}/triage");
+        using var viewsResponse = await client.GetAsync("/api/admin/moderation-queue/views");
+        using var summaryResponse = await client.GetAsync("/api/admin/moderation-queue/summary");
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, allResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, triageResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, viewsResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, summaryResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_CanClaimAndTriageSellerQueueItem()
+    {
+        using var factory = new AdminSellerApprovalTestFactory();
+        using var client = factory.CreateClient();
+        var seller = await RegisterLoginAndSubmitSellerAsync(client);
+        var adminToken = await CreateAndLoginAdminAsync(factory, client);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        using var claimResponse = await client.PostAsync($"/api/admin/moderation-queue/items/Seller/{seller.SellerId}/claim", null);
+        claimResponse.EnsureSuccessStatusCode();
+        var claimed = await claimResponse.Content.ReadFromJsonAsync<AdminQueueTriageResponse>();
+        Assert.NotNull(claimed);
+        Assert.Equal("Normal", claimed!.Priority);
+        Assert.NotNull(claimed.AssignedToUserId);
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            $"/api/admin/moderation-queue/items/Seller/{seller.SellerId}/triage",
+            new AdminQueueTriageUpdateRequest("High", "Review evidence before final approval.", null, null));
+        updateResponse.EnsureSuccessStatusCode();
+
+        using var filteredResponse = await client.GetAsync("/api/admin/sellers?assigned=Mine&priority=High&hasNotes=true");
+        filteredResponse.EnsureSuccessStatusCode();
+        var filtered = await filteredResponse.Content.ReadFromJsonAsync<AdminPagedResponse<AdminSellerOperationalSummaryResponse>>();
+        Assert.NotNull(filtered);
+        var item = Assert.Single(filtered!.Items, row => row.SellerId == seller.SellerId);
+        Assert.Equal("High", item.Priority);
+        Assert.Equal(1, item.TriageNoteCount);
+        Assert.Equal("Review evidence before final approval.", item.LatestTriageNote);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SwyftlyDbContext>();
+        Assert.True(await dbContext.AuditLogs.AnyAsync(log => log.ActionType == "AdminQueueItemClaimed"));
+        Assert.True(await dbContext.AuditLogs.AnyAsync(log => log.ActionType == "AdminQueueTriageUpdated"));
+    }
+
+    [Fact]
+    public async Task Admin_CanSaveQueueView_AndUseSlaFiltersAndSummary()
+    {
+        using var factory = new AdminSellerApprovalTestFactory();
+        using var client = factory.CreateClient();
+        var seller = await RegisterLoginAndSubmitSellerAsync(client);
+        var adminToken = await CreateAndLoginAdminAsync(factory, client);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        using var createResponse = await client.PostAsJsonAsync(
+            "/api/admin/moderation-queue/views",
+            new AdminQueueSavedViewRequest(
+                "Sellers",
+                "My urgent seller queue",
+                true,
+                new AdminQueueSavedViewFiltersRequest("NeedsAttention", "UnderReview", null, "Seller Store", null, "Any", "Normal", false, "OnTrack", "UpdatedDesc", 10)));
+        createResponse.EnsureSuccessStatusCode();
+        var savedView = await createResponse.Content.ReadFromJsonAsync<AdminQueueSavedViewResponse>();
+        Assert.NotNull(savedView);
+        Assert.True(savedView!.IsDefault);
+
+        using var listResponse = await client.GetAsync($"/api/admin/sellers?savedViewId={savedView.ViewId}");
+        listResponse.EnsureSuccessStatusCode();
+        var list = await listResponse.Content.ReadFromJsonAsync<AdminPagedResponse<AdminSellerOperationalSummaryResponse>>();
+        Assert.NotNull(list);
+        var row = Assert.Single(list!.Items, item => item.SellerId == seller.SellerId);
+        Assert.Equal("OnTrack", row.SlaStatus);
+        Assert.True(row.SlaDueAtUtc.HasValue);
+
+        using var viewsResponse = await client.GetAsync("/api/admin/moderation-queue/views?queue=Sellers");
+        viewsResponse.EnsureSuccessStatusCode();
+        var views = await viewsResponse.Content.ReadFromJsonAsync<AdminQueueSavedViewResponse[]>();
+        Assert.Contains(views!, item => item.ViewId == savedView.ViewId && item.IsDefault);
+
+        using var summaryResponse = await client.GetAsync("/api/admin/moderation-queue/summary");
+        summaryResponse.EnsureSuccessStatusCode();
+        var summary = await summaryResponse.Content.ReadFromJsonAsync<AdminQueueSummaryResponse>();
+        Assert.NotNull(summary);
+        Assert.Contains(summary!.ItemTypeCounts, item => item.Key == "Seller" && item.Count >= 1);
+        Assert.Contains(summary.SlaCounts, item => item.Key == "OnTrack" && item.Count >= 1);
     }
 
     [Fact]
@@ -53,6 +141,36 @@ public sealed class AdminSellerApprovalTests
         Assert.NotNull(sellers);
         var pendingSeller = Assert.Single(sellers!, s => s.SellerId == seller.SellerId);
         Assert.Equal("UnderReview", pendingSeller.VerificationStatus);
+    }
+
+    [Fact]
+    public async Task Admin_CanListOperationalSellers_WithAllStateFilters()
+    {
+        using var factory = new AdminSellerApprovalTestFactory();
+        using var client = factory.CreateClient();
+        var seller = await RegisterLoginAndSubmitSellerAsync(client);
+        var adminToken = await CreateAndLoginAdminAsync(factory, client);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        using var needsAttentionResponse = await client.GetAsync("/api/admin/sellers");
+        needsAttentionResponse.EnsureSuccessStatusCode();
+        var needsAttention = await needsAttentionResponse.Content.ReadFromJsonAsync<AdminPagedResponse<AdminSellerOperationalSummaryResponse>>();
+        Assert.NotNull(needsAttention);
+        var pendingSeller = Assert.Single(needsAttention!.Items, item => item.SellerId == seller.SellerId);
+        Assert.Equal("UnderReview", pendingSeller.VerificationStatus);
+        Assert.Equal($"/admin/sellers/{seller.SellerId}", pendingSeller.DetailRoute);
+
+        using var approveResponse = await client.PostAsJsonAsync($"/api/admin/sellers/{seller.SellerId}/approve", new { });
+        approveResponse.EnsureSuccessStatusCode();
+
+        using var allStateResponse = await client.GetAsync("/api/admin/sellers?view=All&status=Verified&search=Seller%20Store&page=1&pageSize=10&sort=UpdatedDesc");
+        allStateResponse.EnsureSuccessStatusCode();
+        var allState = await allStateResponse.Content.ReadFromJsonAsync<AdminPagedResponse<AdminSellerOperationalSummaryResponse>>();
+        Assert.NotNull(allState);
+        var verifiedSeller = Assert.Single(allState!.Items, item => item.SellerId == seller.SellerId);
+        Assert.Equal("Verified", verifiedSeller.VerificationStatus);
+        Assert.Contains(allState.StatusCounts, count => count.Status == "Verified" && count.Count >= 1);
     }
 
     [Fact]

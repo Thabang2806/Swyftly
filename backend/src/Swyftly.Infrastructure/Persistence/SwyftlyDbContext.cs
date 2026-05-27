@@ -41,6 +41,12 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
 
     public DbSet<SellerNotificationPreference> SellerNotificationPreferences => Set<SellerNotificationPreference>();
 
+    public DbSet<SellerReportSchedule> SellerReportSchedules => Set<SellerReportSchedule>();
+
+    public DbSet<SellerReportScheduleRun> SellerReportScheduleRuns => Set<SellerReportScheduleRun>();
+
+    public DbSet<SellerFunnelEvent> SellerFunnelEvents => Set<SellerFunnelEvent>();
+
     public DbSet<SellerStorefront> SellerStorefronts => Set<SellerStorefront>();
 
     public DbSet<SellerStorePolicy> SellerStorePolicies => Set<SellerStorePolicy>();
@@ -62,6 +68,12 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+    public DbSet<AdminQueueTriage> AdminQueueTriages => Set<AdminQueueTriage>();
+
+    public DbSet<AdminQueueTriageNote> AdminQueueTriageNotes => Set<AdminQueueTriageNote>();
+
+    public DbSet<AdminQueueSavedView> AdminQueueSavedViews => Set<AdminQueueSavedView>();
 
     public DbSet<Category> Categories => Set<Category>();
 
@@ -235,6 +247,88 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
                 .WithMany()
                 .HasForeignKey(preference => preference.SellerId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SellerReportSchedule>(builder =>
+        {
+            builder.ToTable("seller_report_schedules");
+            builder.HasKey(schedule => schedule.Id);
+            builder.HasIndex(schedule => schedule.SellerId).IsUnique();
+            builder.HasIndex(schedule => schedule.NextRunAtUtc);
+            builder.Property(schedule => schedule.Frequency).HasConversion<string>().HasMaxLength(40).IsRequired();
+            builder.Property(schedule => schedule.ReportRange).HasConversion<string>().HasMaxLength(40).IsRequired();
+            builder.Property(schedule => schedule.SendDayOfWeek).HasConversion<string>().HasMaxLength(20);
+            builder.Property(schedule => schedule.SendTimeLocal).HasMaxLength(SellerReportSchedule.SendTimeLocalMaxLength).IsRequired();
+            builder.Property(schedule => schedule.TimeZoneId).HasMaxLength(SellerReportSchedule.TimeZoneIdMaxLength).IsRequired();
+            builder.Property(schedule => schedule.LastFailureReason).HasMaxLength(SellerReportSchedule.ErrorMaxLength);
+            builder.Property(schedule => schedule.CreatedAtUtc).IsRequired();
+            builder.Property(schedule => schedule.UpdatedAtUtc).IsRequired();
+            builder.HasOne<SellerProfile>()
+                .WithMany()
+                .HasForeignKey(schedule => schedule.SellerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SellerReportScheduleRun>(builder =>
+        {
+            builder.ToTable("seller_report_schedule_runs");
+            builder.HasKey(run => run.Id);
+            builder.HasIndex(run => new
+            {
+                run.SellerReportScheduleId,
+                run.ReportPeriodStartUtc,
+                run.ReportPeriodEndUtc
+            }).IsUnique();
+            builder.Property(run => run.FailureReason).HasMaxLength(SellerReportScheduleRun.FailureReasonMaxLength);
+            builder.Property(run => run.CreatedAtUtc).IsRequired();
+            builder.HasOne<SellerReportSchedule>()
+                .WithMany()
+                .HasForeignKey(run => run.SellerReportScheduleId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne<SellerProfile>()
+                .WithMany()
+                .HasForeignKey(run => run.SellerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SellerFunnelEvent>(builder =>
+        {
+            builder.ToTable("seller_funnel_events");
+            builder.Property(item => item.EventType).HasConversion<string>().HasMaxLength(40);
+            builder.Property(item => item.HashedAnonymousVisitorId).HasMaxLength(SellerFunnelEvent.HashedVisitorIdMaxLength);
+            builder.Property(item => item.SourceRoute).HasMaxLength(SellerFunnelEvent.SourceRouteMaxLength);
+            builder.Property(item => item.IdempotencyKey).HasMaxLength(SellerFunnelEvent.IdempotencyKeyMaxLength);
+            builder.Property(item => item.UtmSource).HasMaxLength(SellerFunnelEvent.UtmSourceMaxLength);
+            builder.Property(item => item.UtmMedium).HasMaxLength(SellerFunnelEvent.UtmMediumMaxLength);
+            builder.Property(item => item.UtmCampaign).HasMaxLength(SellerFunnelEvent.UtmCampaignMaxLength);
+            builder.Property(item => item.ReferrerHost).HasMaxLength(SellerFunnelEvent.ReferrerHostMaxLength);
+            builder.Property(item => item.SourceCategory).HasMaxLength(SellerFunnelEvent.SourceCategoryMaxLength);
+            builder.HasIndex(item => new { item.SellerId, item.EventType, item.OccurredAtUtc });
+            builder.HasIndex(item => new { item.SellerId, item.ProductId, item.EventType, item.OccurredAtUtc });
+            builder.HasIndex(item => new { item.SellerId, item.SourceCategory, item.OccurredAtUtc });
+            builder.HasIndex(item => new { item.SellerId, item.EventType, item.IdempotencyKey })
+                .IsUnique()
+                .HasFilter("\"IdempotencyKey\" IS NOT NULL");
+            builder.HasOne<SellerProfile>()
+                .WithMany()
+                .HasForeignKey(item => item.SellerId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne<Product>()
+                .WithMany()
+                .HasForeignKey(item => item.ProductId)
+                .OnDelete(DeleteBehavior.SetNull);
+            builder.HasOne<Cart>()
+                .WithMany()
+                .HasForeignKey(item => item.CartId)
+                .OnDelete(DeleteBehavior.SetNull);
+            builder.HasOne<Order>()
+                .WithMany()
+                .HasForeignKey(item => item.OrderId)
+                .OnDelete(DeleteBehavior.SetNull);
+            builder.HasOne<BuyerProfile>()
+                .WithMany()
+                .HasForeignKey(item => item.BuyerId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<BuyerDeliveryAddress>(builder =>
@@ -569,6 +663,68 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
             builder.Property(auditLog => auditLog.CreatedAtUtc).IsRequired();
         });
 
+        modelBuilder.Entity<AdminQueueTriage>(builder =>
+        {
+            builder.ToTable("admin_queue_triage");
+            builder.HasKey(triage => triage.Id);
+            builder.HasIndex(triage => new { triage.ItemType, triage.ItemId }).IsUnique();
+            builder.HasIndex(triage => triage.AssignedToUserId);
+            builder.HasIndex(triage => triage.Priority);
+            builder.Property(triage => triage.ItemType).HasConversion<string>().HasMaxLength(40).IsRequired();
+            builder.Property(triage => triage.Priority).HasConversion<string>().HasMaxLength(40).IsRequired();
+            builder.Property(triage => triage.LatestNote).HasMaxLength(AdminQueueTriage.LatestNoteMaxLength);
+            builder.Property(triage => triage.CreatedAtUtc).IsRequired();
+            builder.Property(triage => triage.UpdatedAtUtc).IsRequired();
+            builder.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(triage => triage.AssignedToUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            builder.HasMany(triage => triage.Notes)
+                .WithOne()
+                .HasForeignKey(note => note.TriageId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AdminQueueTriageNote>(builder =>
+        {
+            builder.ToTable("admin_queue_triage_notes");
+            builder.HasKey(note => note.Id);
+            builder.HasIndex(note => note.TriageId);
+            builder.HasIndex(note => note.CreatedAtUtc);
+            builder.Property(note => note.Note).HasMaxLength(AdminQueueTriageNote.NoteMaxLength).IsRequired();
+            builder.Property(note => note.CreatedAtUtc).IsRequired();
+            builder.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(note => note.ActorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AdminQueueSavedView>(builder =>
+        {
+            builder.ToTable("admin_queue_saved_views");
+            builder.HasKey(view => view.Id);
+            builder.HasIndex(view => new { view.AdminUserId, view.Queue, view.Name }).IsUnique();
+            builder.HasIndex(view => new { view.AdminUserId, view.Queue, view.IsDefault });
+            builder.Property(view => view.Queue).HasMaxLength(AdminQueueSavedView.QueueMaxLength).IsRequired();
+            builder.Property(view => view.Name).HasMaxLength(AdminQueueSavedView.NameMaxLength).IsRequired();
+            builder.Property(view => view.IsDefault).IsRequired();
+            builder.Property(view => view.View).HasMaxLength(AdminQueueSavedView.ShortFilterMaxLength);
+            builder.Property(view => view.Status).HasMaxLength(AdminQueueSavedView.ShortFilterMaxLength);
+            builder.Property(view => view.Category).HasMaxLength(AdminQueueSavedView.ShortFilterMaxLength);
+            builder.Property(view => view.Search).HasMaxLength(AdminQueueSavedView.SearchMaxLength);
+            builder.Property(view => view.Assigned).HasMaxLength(AdminQueueSavedView.ShortFilterMaxLength);
+            builder.Property(view => view.Priority).HasMaxLength(AdminQueueSavedView.ShortFilterMaxLength);
+            builder.Property(view => view.Sla).HasMaxLength(AdminQueueSavedView.ShortFilterMaxLength);
+            builder.Property(view => view.Sort).HasMaxLength(AdminQueueSavedView.SortMaxLength);
+            builder.Property(view => view.PageSize).IsRequired();
+            builder.Property(view => view.CreatedAtUtc).IsRequired();
+            builder.Property(view => view.UpdatedAtUtc).IsRequired();
+            builder.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(view => view.AdminUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<Category>(builder =>
         {
             builder.ToTable("categories");
@@ -625,6 +781,11 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
             builder.Property(product => product.Slug).HasMaxLength(220);
             builder.Property(product => product.ShortDescription).HasMaxLength(500);
             builder.Property(product => product.FullDescription).HasMaxLength(5000);
+            builder.Property(product => product.SeoTitle).HasMaxLength(Product.SeoTitleMaxLength);
+            builder.Property(product => product.SeoDescription).HasMaxLength(Product.SeoDescriptionMaxLength);
+            builder.Property(product => product.MerchandisingLabel).HasMaxLength(Product.MerchandisingLabelMaxLength);
+            builder.Property(product => product.CareInstructions).HasMaxLength(Product.CareInstructionsMaxLength);
+            builder.Property(product => product.ProductDisclaimer).HasMaxLength(Product.ProductDisclaimerMaxLength);
             builder.Property(product => product.TagsJson)
                 .HasColumnName("tags_json")
                 .HasColumnType("jsonb")
@@ -721,6 +882,11 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
             builder.Property(revision => revision.Slug).HasMaxLength(220);
             builder.Property(revision => revision.ShortDescription).HasMaxLength(500);
             builder.Property(revision => revision.FullDescription).HasMaxLength(5000);
+            builder.Property(revision => revision.SeoTitle).HasMaxLength(Product.SeoTitleMaxLength);
+            builder.Property(revision => revision.SeoDescription).HasMaxLength(Product.SeoDescriptionMaxLength);
+            builder.Property(revision => revision.MerchandisingLabel).HasMaxLength(Product.MerchandisingLabelMaxLength);
+            builder.Property(revision => revision.CareInstructions).HasMaxLength(Product.CareInstructionsMaxLength);
+            builder.Property(revision => revision.ProductDisclaimer).HasMaxLength(Product.ProductDisclaimerMaxLength);
             builder.Property(revision => revision.TagsJson)
                 .HasColumnName("tags_json")
                 .HasColumnType("jsonb")
@@ -1767,6 +1933,12 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
                 .HasConversion<string>()
                 .HasMaxLength(80)
                 .IsRequired();
+            builder.Property(ticket => ticket.Priority)
+                .HasConversion<string>()
+                .HasMaxLength(80)
+                .HasDefaultValue(SupportTicketPriority.Normal)
+                .IsRequired();
+            builder.Property(ticket => ticket.EscalationReason).HasMaxLength(1000);
             builder.Property(ticket => ticket.Subject).HasMaxLength(200).IsRequired();
             builder.Property(ticket => ticket.Description).HasMaxLength(4000).IsRequired();
             builder.Property(ticket => ticket.OpenedAtUtc).IsRequired();

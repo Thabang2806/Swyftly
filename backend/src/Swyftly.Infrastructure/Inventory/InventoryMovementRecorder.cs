@@ -21,6 +21,7 @@ internal static class InventoryMovementRecorder
         CancellationToken cancellationToken) =>
         await dbContext.ProductVariants
             .AsNoTracking()
+            .Where(variant => variant.Id == productVariantId)
             .Join(
                 dbContext.Products.AsNoTracking(),
                 variant => variant.ProductId,
@@ -32,7 +33,7 @@ internal static class InventoryMovementRecorder
                     variant.StockQuantity,
                     variant.ReservedQuantity,
                     variant.Status))
-            .SingleOrDefaultAsync(snapshot => snapshot.ProductVariantId == productVariantId, cancellationToken);
+            .SingleOrDefaultAsync(cancellationToken);
 
     public static InventoryMovement Create(
         VariantSnapshot before,

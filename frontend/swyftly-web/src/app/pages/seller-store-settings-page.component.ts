@@ -647,6 +647,11 @@ export class SellerStoreSettingsPageComponent implements OnInit {
       category: 'Ads',
       label: 'Ads',
       description: 'Ad campaign approval and rejection decisions.'
+    },
+    {
+      category: 'Reports',
+      label: 'Reports',
+      description: 'Scheduled analytics digest and report delivery updates.'
     }
   ];
 
@@ -664,6 +669,10 @@ export class SellerStoreSettingsPageComponent implements OnInit {
       emailEnabled: true
     }),
     Ads: this.formBuilder.group({
+      isEnabled: true,
+      emailEnabled: true
+    }),
+    Reports: this.formBuilder.group({
       isEnabled: true,
       emailEnabled: true
     })

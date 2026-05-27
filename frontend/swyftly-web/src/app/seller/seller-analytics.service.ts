@@ -6,7 +6,10 @@ import {
   SellerAnalyticsCsvReport,
   SellerAnalyticsPerformanceRequest,
   SellerAnalyticsPerformanceResponse,
-  SellerAnalyticsSummaryResponse
+  SellerAnalyticsSummaryResponse,
+  SellerReportDigestSendResult,
+  SellerReportScheduleRequest,
+  SellerReportScheduleResponse
 } from './seller-analytics.models';
 
 @Injectable({ providedIn: 'root' })
@@ -27,6 +30,20 @@ export class SellerAnalyticsService {
   getCsvExportUrl(report: SellerAnalyticsCsvReport, request: SellerAnalyticsPerformanceRequest = {}): string {
     const params = this.createParams({ ...request, report }).toString();
     return params ? `${this.baseUrl}/export.csv?${params}` : `${this.baseUrl}/export.csv`;
+  }
+
+  getReportSchedule(): Promise<SellerReportScheduleResponse> {
+    return firstValueFrom(this.http.get<SellerReportScheduleResponse>(`${this.baseUrl}/report-schedule`));
+  }
+
+  updateReportSchedule(request: SellerReportScheduleRequest): Promise<SellerReportScheduleResponse> {
+    return firstValueFrom(this.http.put<SellerReportScheduleResponse>(`${this.baseUrl}/report-schedule`, request));
+  }
+
+  sendTestReportDigest(): Promise<SellerReportDigestSendResult> {
+    return firstValueFrom(this.http.post<SellerReportDigestSendResult>(
+      `${this.baseUrl}/report-schedule/send-test`,
+      {}));
   }
 
   private createParams(request: SellerAnalyticsPerformanceRequest & { report?: SellerAnalyticsCsvReport }): HttpParams {

@@ -155,6 +155,169 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", "swyftly");
                 });
 
+            modelBuilder.Entity("Swyftly.Domain.Admin.AdminQueueSavedView", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AdminUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Assigned")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool?>("HasNotes")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<int>("PageSize")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Priority")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Queue")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Search")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("SellerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Sla")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Sort")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("View")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminUserId", "Queue", "IsDefault");
+
+                    b.HasIndex("AdminUserId", "Queue", "Name")
+                        .IsUnique();
+
+                    b.ToTable("admin_queue_saved_views", "swyftly");
+                });
+
+            modelBuilder.Entity("Swyftly.Domain.Admin.AdminQueueTriage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AssignedToUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ItemType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("LatestNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("LatestNoteAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LatestNoteByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedToUserId");
+
+                    b.HasIndex("Priority");
+
+                    b.HasIndex("ItemType", "ItemId")
+                        .IsUnique();
+
+                    b.ToTable("admin_queue_triage", "swyftly");
+                });
+
+            modelBuilder.Entity("Swyftly.Domain.Admin.AdminQueueTriageNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("TriageId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("TriageId");
+
+                    b.ToTable("admin_queue_triage_notes", "swyftly");
+                });
+
             modelBuilder.Entity("Swyftly.Domain.Admin.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1664,6 +1827,10 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("BrandId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CareInstructions")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<Guid?>("CategoryId")
                         .HasColumnType("uuid");
 
@@ -1674,6 +1841,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                         .HasMaxLength(5000)
                         .HasColumnType("character varying(5000)");
 
+                    b.Property<string>("MerchandisingLabel")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("ProductDisclaimer")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<DateTimeOffset?>("PublishedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -1683,6 +1858,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("SellerId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("SeoDescription")
+                        .HasMaxLength(170)
+                        .HasColumnType("character varying(170)");
+
+                    b.Property<string>("SeoTitle")
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
 
                     b.Property<string>("ShortDescription")
                         .HasMaxLength(500)
@@ -1811,6 +1994,10 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("BrandId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CareInstructions")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<Guid?>("CategoryId")
                         .HasColumnType("uuid");
 
@@ -1820,6 +2007,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     b.Property<string>("FullDescription")
                         .HasMaxLength(5000)
                         .HasColumnType("character varying(5000)");
+
+                    b.Property<string>("MerchandisingLabel")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("ProductDisclaimer")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uuid");
@@ -1836,6 +2031,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("SellerId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("SeoDescription")
+                        .HasMaxLength(170)
+                        .HasColumnType("character varying(170)");
+
+                    b.Property<string>("SeoTitle")
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
 
                     b.Property<string>("ShortDescription")
                         .HasMaxLength(500)
@@ -4354,6 +4557,90 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     b.ToTable("seller_delivery_methods", "swyftly");
                 });
 
+            modelBuilder.Entity("Swyftly.Domain.Sellers.SellerFunnelEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BuyerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CartId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("HashedAnonymousVisitorId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReferrerHost")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("SellerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceCategory")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("SourceRoute")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("UtmCampaign")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("UtmMedium")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("UtmSource")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuyerId");
+
+                    b.HasIndex("CartId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SellerId", "EventType", "IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("\"IdempotencyKey\" IS NOT NULL");
+
+                    b.HasIndex("SellerId", "EventType", "OccurredAtUtc");
+
+                    b.HasIndex("SellerId", "SourceCategory", "OccurredAtUtc");
+
+                    b.HasIndex("SellerId", "ProductId", "EventType", "OccurredAtUtc");
+
+                    b.ToTable("seller_funnel_events", "swyftly");
+                });
+
             modelBuilder.Entity("Swyftly.Domain.Sellers.SellerNotificationPreference", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4536,6 +4823,124 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("seller_profiles", "swyftly");
+                });
+
+            modelBuilder.Entity("Swyftly.Domain.Sellers.SellerReportSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Frequency")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("LastFailedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastFailureReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("LastReportPeriodEndUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("LastReportPeriodStartUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("LastSentAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("NextRunAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReportRange")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid>("SellerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("SendDayOfMonth")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SendDayOfWeek")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("SendTimeLocal")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextRunAtUtc");
+
+                    b.HasIndex("SellerId")
+                        .IsUnique();
+
+                    b.ToTable("seller_report_schedules", "swyftly");
+                });
+
+            modelBuilder.Entity("Swyftly.Domain.Sellers.SellerReportScheduleRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("NotificationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ReportPeriodEndUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ReportPeriodStartUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SellerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SellerReportScheduleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SellerId");
+
+                    b.HasIndex("SellerReportScheduleId", "ReportPeriodStartUtc", "ReportPeriodEndUtc")
+                        .IsUnique();
+
+                    b.ToTable("seller_report_schedule_runs", "swyftly");
                 });
 
             modelBuilder.Entity("Swyftly.Domain.Sellers.SellerStorePolicy", b =>
@@ -4831,6 +5236,16 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
 
+                    b.Property<DateTimeOffset?>("EscalatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EscalatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EscalationReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<Guid?>("LinkedOrderId")
                         .HasColumnType("uuid");
 
@@ -4845,6 +5260,13 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("OpenedAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasDefaultValue("Normal");
 
                     b.Property<DateTimeOffset?>("ResolvedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -5056,6 +5478,38 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     b.HasOne("Swyftly.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Swyftly.Domain.Admin.AdminQueueSavedView", b =>
+                {
+                    b.HasOne("Swyftly.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("AdminUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Swyftly.Domain.Admin.AdminQueueTriage", b =>
+                {
+                    b.HasOne("Swyftly.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedToUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Swyftly.Domain.Admin.AdminQueueTriageNote", b =>
+                {
+                    b.HasOne("Swyftly.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Swyftly.Domain.Admin.AdminQueueTriage", null)
+                        .WithMany("Notes")
+                        .HasForeignKey("TriageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -5953,6 +6407,35 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Swyftly.Domain.Sellers.SellerFunnelEvent", b =>
+                {
+                    b.HasOne("Swyftly.Domain.Buyers.BuyerProfile", null)
+                        .WithMany()
+                        .HasForeignKey("BuyerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Swyftly.Domain.Carts.Cart", null)
+                        .WithMany()
+                        .HasForeignKey("CartId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Swyftly.Domain.Orders.Order", null)
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Swyftly.Domain.Catalog.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Swyftly.Domain.Sellers.SellerProfile", null)
+                        .WithMany()
+                        .HasForeignKey("SellerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Swyftly.Domain.Sellers.SellerNotificationPreference", b =>
                 {
                     b.HasOne("Swyftly.Domain.Sellers.SellerProfile", null)
@@ -5985,6 +6468,30 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     b.HasOne("Swyftly.Infrastructure.Identity.ApplicationUser", null)
                         .WithOne()
                         .HasForeignKey("Swyftly.Domain.Sellers.SellerProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Swyftly.Domain.Sellers.SellerReportSchedule", b =>
+                {
+                    b.HasOne("Swyftly.Domain.Sellers.SellerProfile", null)
+                        .WithMany()
+                        .HasForeignKey("SellerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Swyftly.Domain.Sellers.SellerReportScheduleRun", b =>
+                {
+                    b.HasOne("Swyftly.Domain.Sellers.SellerProfile", null)
+                        .WithMany()
+                        .HasForeignKey("SellerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Swyftly.Domain.Sellers.SellerReportSchedule", null)
+                        .WithMany()
+                        .HasForeignKey("SellerReportScheduleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -6076,6 +6583,11 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Swyftly.Domain.Admin.AdminQueueTriage", b =>
+                {
+                    b.Navigation("Notes");
                 });
 
             modelBuilder.Entity("Swyftly.Domain.Advertising.AdCampaign", b =>

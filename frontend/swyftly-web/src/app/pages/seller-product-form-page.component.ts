@@ -26,6 +26,7 @@ import {
   SellerProductImageResponse,
   SellerProductRevisionImageResponse,
   SellerProductRevisionResponse,
+  SellerProductVariantRevisionBulkImportResponse,
   SellerProductVariantRevisionItemResponse,
   SellerProductVariantRevisionResponse,
   SellerProductVariantResponse,
@@ -363,6 +364,68 @@ type ProductEditorImage = (SellerProductImageResponse | SellerProductRevisionIma
                     }
                   </mat-form-field>
 
+                  <div class="product-editor-context">
+                    <strong>Merchandising and SEO</strong>
+                    <span>These buyer-facing fields support presentation and metadata. They do not guarantee search ranking.</span>
+                  </div>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Merchandising label</mat-label>
+                    <input matInput formControlName="merchandisingLabel" maxlength="60" />
+                    <mat-hint>Optional short badge such as New season, Limited edit, or Seller pick.</mat-hint>
+                    @if (basicForm.controls.merchandisingLabel.hasError('maxlength')) {
+                      <mat-error>Use 60 characters or fewer.</mat-error>
+                    }
+                  </mat-form-field>
+
+                  <div class="form-grid">
+                    <mat-form-field appearance="outline">
+                      <mat-label>SEO title</mat-label>
+                      <input matInput formControlName="seoTitle" maxlength="70" />
+                      <mat-hint>{{ basicForm.controls.seoTitle.value.length }}/70</mat-hint>
+                      @if (basicForm.controls.seoTitle.hasError('maxlength')) {
+                        <mat-error>Use 70 characters or fewer.</mat-error>
+                      }
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>SEO description</mat-label>
+                      <textarea matInput rows="3" formControlName="seoDescription" maxlength="170"></textarea>
+                      <mat-hint>{{ basicForm.controls.seoDescription.value.length }}/170</mat-hint>
+                      @if (basicForm.controls.seoDescription.hasError('maxlength')) {
+                        <mat-error>Use 170 characters or fewer.</mat-error>
+                      }
+                    </mat-form-field>
+                  </div>
+
+                  <div class="product-editor-preview-card product-editor-search-preview">
+                    <div>
+                      <span class="status-pill">Search preview</span>
+                      <h3>{{ seoPreviewTitle() }}</h3>
+                      <p>{{ seoPreviewDescription() }}</p>
+                    </div>
+                  </div>
+
+                  <div class="form-grid">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Product care instructions</mat-label>
+                      <textarea matInput rows="3" formControlName="careInstructions" maxlength="1000"></textarea>
+                      <mat-hint>Optional product-specific care. Store policies remain in Store settings.</mat-hint>
+                      @if (basicForm.controls.careInstructions.hasError('maxlength')) {
+                        <mat-error>Use 1000 characters or fewer.</mat-error>
+                      }
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Product disclaimer</mat-label>
+                      <textarea matInput rows="3" formControlName="productDisclaimer" maxlength="1000"></textarea>
+                      <mat-hint>Optional buyer-facing context such as colour, sizing, or material variation.</mat-hint>
+                      @if (basicForm.controls.productDisclaimer.hasError('maxlength')) {
+                        <mat-error>Use 1000 characters or fewer.</mat-error>
+                      }
+                    </mat-form-field>
+                  </div>
+
                   <button mat-flat-button type="submit" [disabled]="!isListingEditable() || isSaving()">{{ isRevisionMode() ? 'Save revision' : 'Save draft' }}</button>
                 </form>
               }
@@ -439,6 +502,22 @@ type ProductEditorImage = (SellerProductImageResponse | SellerProductRevisionIma
                       </mat-form-field>
                     } @empty {
                       <p class="form-helper">This category does not currently require additional attributes.</p>
+                    }
+                  </div>
+
+                  <div class="product-editor-context product-editor-context--stacked">
+                    <strong>Buyer-facing attribute preview</strong>
+                    @if (attributePreviewEntries().length > 0) {
+                      <div class="settings-summary-list">
+                        @for (entry of attributePreviewEntries(); track entry.label) {
+                          <div>
+                            <span>{{ entry.label }}</span>
+                            <strong>{{ entry.value }}</strong>
+                          </div>
+                        }
+                      </div>
+                    } @else {
+                      <span>Complete category attributes to preview the details buyers and reviewers will see.</span>
                     }
                   </div>
 
@@ -653,6 +732,94 @@ type ProductEditorImage = (SellerProductImageResponse | SellerProductRevisionIma
                       <p class="auth-alert error">Rejected: {{ variantRevision()!.rejectionReason }}</p>
                     }
 
+                    <div class="product-editor-context variant-revision-import-panel">
+                      <div class="admin-section-heading">
+                        <div>
+                          <span class="eyebrow">CSV staging</span>
+                          <h3>Bulk variant import</h3>
+                          <p class="form-helper">Export the current variants, edit the template, preview validation, then replace the current staged rows. This does not submit the revision for admin review.</p>
+                        </div>
+                      </div>
+                      <div class="buyer-action-row">
+                        <button mat-stroked-button type="button" [disabled]="isVariantRevisionDownloading()" (click)="downloadVariantRevisionExport()">Export current variants</button>
+                        <button mat-stroked-button type="button" [disabled]="isVariantRevisionDownloading()" (click)="downloadVariantRevisionTemplate()">Download template</button>
+                      </div>
+                      <div class="form-grid">
+                        <label class="support-upload-control">
+                          <span>Variant revision CSV</span>
+                          <input type="file" accept=".csv,text/csv" [disabled]="!variantRevision()!.canEdit || isVariantRevisionImporting()" (change)="onVariantRevisionImportFileSelected($event)" />
+                        </label>
+                        <div class="product-editor-context">
+                          <strong>{{ selectedVariantRevisionImportFile()?.name ?? 'No file selected' }}</strong>
+                          <span>Columns: operation, sourceVariantId, sku, size, colour, price, compareAtPrice, initialStockQuantity, barcode.</span>
+                        </div>
+                      </div>
+                      <div class="buyer-action-row">
+                        <button mat-flat-button type="button" [disabled]="!variantRevision()!.canEdit || !selectedVariantRevisionImportFile() || isVariantRevisionImporting()" (click)="previewVariantRevisionImport()">Preview CSV</button>
+                        <button mat-stroked-button type="button" [disabled]="!variantRevision()!.canEdit || !variantRevisionImportPreview() || variantRevisionImportPreview()!.errorRows > 0 || variantRevisionImportPreview()!.changedRows === 0 || isVariantRevisionImporting()" (click)="bulkStageVariantRevisionImport()">Bulk-stage changed rows</button>
+                      </div>
+
+                      @if (variantRevisionImportPreview(); as preview) {
+                        <div class="seller-metric-grid">
+                          <article><span>Total rows</span><strong>{{ preview.totalRows }}</strong></article>
+                          <article><span>Changed</span><strong>{{ preview.changedRows }}</strong></article>
+                          <article><span>Unchanged</span><strong>{{ preview.unchangedRows }}</strong></article>
+                          <article><span>Errors</span><strong>{{ preview.errorRows }}</strong></article>
+                        </div>
+
+                        <div class="admin-table" role="table" aria-label="Variant revision import preview">
+                          <div class="admin-table-row heading" role="row">
+                            <span role="columnheader">Row</span>
+                            <span role="columnheader">Operation</span>
+                            <span role="columnheader">Current</span>
+                            <span role="columnheader">Proposed</span>
+                            <span role="columnheader">Status</span>
+                          </div>
+                          @for (row of preview.rows; track row.rowNumber) {
+                            <div class="admin-table-row" role="row">
+                              <span role="cell"><strong>#{{ row.rowNumber }}</strong></span>
+                              <span role="cell"><strong>{{ row.operation }}</strong><small>{{ row.sourceVariantId || 'New variant' }}</small></span>
+                              <span role="cell">
+                                <strong>{{ row.currentSku || 'No current variant' }}</strong>
+                                <small>{{ row.currentSize || '-' }} / {{ row.currentColour || '-' }} / {{ row.currentPrice !== null ? formatCurrency(row.currentPrice) : '-' }}</small>
+                              </span>
+                              <span role="cell">
+                                <strong>{{ row.proposedSku || '-' }}</strong>
+                                <small>{{ row.proposedSize || '-' }} / {{ row.proposedColour || '-' }} / {{ row.proposedPrice !== null ? formatCurrency(row.proposedPrice) : '-' }}</small>
+                              </span>
+                              <span role="cell">
+                                <span class="status-pill">{{ row.rowStatus }}</span>
+                                @if (row.validationMessages.length > 0) {
+                                  <small>{{ row.validationMessages.join(' ') }}</small>
+                                } @else if (row.proposedBarcode) {
+                                  <small>Barcode {{ row.proposedBarcode }}</small>
+                                }
+                              </span>
+                            </div>
+                          }
+                        </div>
+
+                        @if (preview.proposedFinalVariants.length > 0) {
+                          <div class="admin-table" role="table" aria-label="Proposed final variant set">
+                            <div class="admin-table-row heading" role="row">
+                              <span role="columnheader">Final variant</span>
+                              <span role="columnheader">Price</span>
+                              <span role="columnheader">Stock context</span>
+                              <span role="columnheader">Change</span>
+                            </div>
+                            @for (variant of preview.proposedFinalVariants; track variant.sourceVariantId || variant.sku) {
+                              <div class="admin-table-row" role="row">
+                                <span role="cell"><strong>{{ variant.sku }}</strong><small>{{ variant.size }} / {{ variant.colour }}</small></span>
+                                <span role="cell"><strong>{{ formatCurrency(variant.price) }}</strong><small>{{ variant.compareAtPrice ? 'Was ' + formatCurrency(variant.compareAtPrice) : 'No compare price' }}</small></span>
+                                <span role="cell"><strong>{{ variant.status }}</strong><small>{{ variant.availableQuantity }} available, {{ variant.reservedQuantity }} reserved</small></span>
+                                <span role="cell"><span class="status-pill">{{ variant.changeType }}</span></span>
+                              </div>
+                            }
+                          </div>
+                        }
+                      }
+                    </div>
+
                     <form [formGroup]="variantRevisionForm" (ngSubmit)="addVariantRevisionItem()" class="wizard-form" novalidate>
                       <mat-form-field appearance="outline">
                         <mat-label>Seller reason</mat-label>
@@ -814,6 +981,8 @@ export class SellerProductFormPageComponent implements OnInit {
   protected readonly product = signal<SellerProductDetailResponse | null>(null);
   protected readonly revision = signal<SellerProductRevisionResponse | null>(null);
   protected readonly variantRevision = signal<SellerProductVariantRevisionResponse | null>(null);
+  protected readonly variantRevisionImportPreview = signal<SellerProductVariantRevisionBulkImportResponse | null>(null);
+  protected readonly selectedVariantRevisionImportFile = signal<File | null>(null);
   protected readonly selectedCategoryId = signal<string | null>(null);
   protected readonly editingImageId = signal<string | null>(null);
   protected readonly editingVariantId = signal<string | null>(null);
@@ -823,6 +992,8 @@ export class SellerProductFormPageComponent implements OnInit {
   protected readonly isSaving = signal(false);
   protected readonly isAiGenerating = signal(false);
   protected readonly isAiApplying = signal(false);
+  protected readonly isVariantRevisionImporting = signal(false);
+  protected readonly isVariantRevisionDownloading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly aiErrorMessage = signal<string | null>(null);
   protected readonly successMessage = signal<string | null>(null);
@@ -866,7 +1037,12 @@ export class SellerProductFormPageComponent implements OnInit {
     title: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     slug: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.pattern(/^[a-z0-9-]+$/)] }),
     shortDescription: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    fullDescription: new FormControl('', { nonNullable: true, validators: [Validators.required] })
+    fullDescription: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    seoTitle: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(70)] }),
+    seoDescription: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(170)] }),
+    merchandisingLabel: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(60)] }),
+    careInstructions: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(1000)] }),
+    productDisclaimer: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(1000)] })
   });
 
   protected readonly attributeForm = new FormRecord<FormControl<unknown>>({});
@@ -1246,6 +1422,7 @@ export class SellerProductFormPageComponent implements OnInit {
         items: [...existingItems, nextItem]
       }),
       'Variant revision staged.');
+    this.variantRevisionImportPreview.set(null);
     this.startVariantRevisionAdd();
   }
 
@@ -1277,6 +1454,7 @@ export class SellerProductFormPageComponent implements OnInit {
         ]
       }),
       'Variant deactivation staged.');
+    this.variantRevisionImportPreview.set(null);
   }
 
   protected async removeVariantRevisionItem(item: SellerProductVariantRevisionItemResponse): Promise<void> {
@@ -1294,6 +1472,7 @@ export class SellerProductFormPageComponent implements OnInit {
           .filter(existingItem => !sameVariantRevisionTarget(existingItem, target))
       }),
       'Staged variant change removed.');
+    this.variantRevisionImportPreview.set(null);
   }
 
   protected async submitVariantRevision(): Promise<void> {
@@ -1316,6 +1495,100 @@ export class SellerProductFormPageComponent implements OnInit {
     await this.runVariantRevisionAction(
       () => this.productService.cancelVariantRevision(product.productId),
       'Variant revision cancelled.');
+    this.variantRevisionImportPreview.set(null);
+  }
+
+  protected onVariantRevisionImportFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.selectedVariantRevisionImportFile.set(input.files?.[0] ?? null);
+    this.variantRevisionImportPreview.set(null);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+  }
+
+  protected async downloadVariantRevisionExport(): Promise<void> {
+    const product = this.product();
+    if (!product) {
+      return;
+    }
+
+    await this.downloadVariantRevisionCsv(
+      () => this.productService.exportVariantRevisionCsv(product.productId),
+      `${product.slug ?? product.productId}-variant-revision-export.csv`);
+  }
+
+  protected async downloadVariantRevisionTemplate(): Promise<void> {
+    const product = this.product();
+    if (!product) {
+      return;
+    }
+
+    await this.downloadVariantRevisionCsv(
+      () => this.productService.downloadVariantRevisionTemplate(product.productId),
+      `${product.slug ?? product.productId}-variant-revision-template.csv`);
+  }
+
+  protected async previewVariantRevisionImport(): Promise<void> {
+    const product = this.product();
+    const file = this.selectedVariantRevisionImportFile();
+    if (!product || !file || this.isVariantRevisionImporting()) {
+      return;
+    }
+
+    this.isVariantRevisionImporting.set(true);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    try {
+      const preview = await this.productService.previewVariantRevisionImport(product.productId, file);
+      this.variantRevisionImportPreview.set(preview);
+      this.successMessage.set(`Preview loaded: ${preview.changedRows} changed, ${preview.errorRows} errors.`);
+    } catch (error) {
+      this.variantRevisionImportPreview.set(null);
+      this.errorMessage.set(getApiErrorMessage(error));
+    } finally {
+      this.isVariantRevisionImporting.set(false);
+    }
+  }
+
+  protected async bulkStageVariantRevisionImport(): Promise<void> {
+    const product = this.product();
+    const preview = this.variantRevisionImportPreview();
+    const revision = this.variantRevision();
+    if (!product || !preview || !revision?.canEdit || preview.errorRows > 0 || preview.changedRows === 0 || this.isVariantRevisionImporting()) {
+      return;
+    }
+
+    this.isVariantRevisionImporting.set(true);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    try {
+      const response = await this.productService.bulkStageVariantRevision(product.productId, {
+        sellerReason: this.variantRevisionForm.controls.sellerReason.value || null,
+        items: preview.rows
+          .filter(row => row.rowStatus === 'Changed')
+          .map(row => ({
+            operation: row.operation as 'Add' | 'Update' | 'Deactivate',
+            sourceVariantId: row.operation === 'Add' ? null : row.sourceVariantId,
+            sku: row.proposedSku,
+            size: row.proposedSize,
+            colour: row.proposedColour,
+            price: row.proposedPrice,
+            compareAtPrice: row.proposedCompareAtPrice,
+            initialStockQuantity: row.operation === 'Add' ? row.proposedInitialStockQuantity : null,
+            barcode: row.proposedBarcode
+          }))
+      });
+      this.variantRevisionImportPreview.set(response);
+      const refreshed = await this.productService.getVariantRevision(product.productId);
+      this.variantRevision.set(refreshed);
+      this.successMessage.set(`Bulk staged ${response.changedRows} variant changes. Submit the revision when ready.`);
+    } catch (error) {
+      this.errorMessage.set(getApiErrorMessage(error));
+    } finally {
+      this.isVariantRevisionImporting.set(false);
+    }
   }
 
   protected async submitForReview(): Promise<void> {
@@ -1514,6 +1787,30 @@ export class SellerProductFormPageComponent implements OnInit {
     return this.formatCurrency(Math.min(...prices));
   }
 
+  protected seoPreviewTitle(): string {
+    return this.basicForm.controls.seoTitle.value.trim()
+      || this.basicForm.controls.title.value.trim()
+      || 'Product title preview';
+  }
+
+  protected seoPreviewDescription(): string {
+    return this.basicForm.controls.seoDescription.value.trim()
+      || this.basicForm.controls.shortDescription.value.trim()
+      || 'A concise product description will appear in marketplace and search contexts.';
+  }
+
+  protected attributePreviewEntries(): readonly { label: string; value: string }[] {
+    return (this.selectedCategory()?.attributes ?? [])
+      .map(attribute => {
+        const value = this.attributeForm.controls[attribute.key]?.value;
+        const formatted = formatPreviewValue(value);
+        return formatted
+          ? { label: `${attribute.name}${attribute.isRequired ? ' (required)' : ''}`, value: formatted }
+          : null;
+      })
+      .filter((entry): entry is { label: string; value: string } => entry !== null);
+  }
+
   protected canSubmitReview(): boolean {
     const product = this.product();
     if (this.isRevisionMode()) {
@@ -1594,7 +1891,12 @@ export class SellerProductFormPageComponent implements OnInit {
       title: product.title ?? '',
       slug: product.slug ?? '',
       shortDescription: product.shortDescription ?? '',
-      fullDescription: product.fullDescription ?? ''
+      fullDescription: product.fullDescription ?? '',
+      seoTitle: product.seoTitle ?? '',
+      seoDescription: product.seoDescription ?? '',
+      merchandisingLabel: product.merchandisingLabel ?? '',
+      careInstructions: product.careInstructions ?? '',
+      productDisclaimer: product.productDisclaimer ?? ''
     });
     this.rebuildAttributeControls(product.attributes);
 
@@ -1612,7 +1914,12 @@ export class SellerProductFormPageComponent implements OnInit {
       title: revision.title ?? '',
       slug: revision.slug ?? '',
       shortDescription: revision.shortDescription ?? '',
-      fullDescription: revision.fullDescription ?? ''
+      fullDescription: revision.fullDescription ?? '',
+      seoTitle: revision.seoTitle ?? '',
+      seoDescription: revision.seoDescription ?? '',
+      merchandisingLabel: revision.merchandisingLabel ?? '',
+      careInstructions: revision.careInstructions ?? '',
+      productDisclaimer: revision.productDisclaimer ?? ''
     });
     this.rebuildAttributeControls(revision.attributes);
   }
@@ -1646,6 +1953,11 @@ export class SellerProductFormPageComponent implements OnInit {
       slug: this.basicForm.controls.slug.value,
       shortDescription: this.basicForm.controls.shortDescription.value,
       fullDescription: this.basicForm.controls.fullDescription.value,
+      seoTitle: emptyToNull(this.basicForm.controls.seoTitle.value),
+      seoDescription: emptyToNull(this.basicForm.controls.seoDescription.value),
+      merchandisingLabel: emptyToNull(this.basicForm.controls.merchandisingLabel.value),
+      careInstructions: emptyToNull(this.basicForm.controls.careInstructions.value),
+      productDisclaimer: emptyToNull(this.basicForm.controls.productDisclaimer.value),
       attributes: this.createAttributesRequest()
     };
   }
@@ -1870,6 +2182,30 @@ export class SellerProductFormPageComponent implements OnInit {
     }
   }
 
+  private async downloadVariantRevisionCsv(loader: () => Promise<Blob>, filename: string): Promise<void> {
+    if (this.isVariantRevisionDownloading()) {
+      return;
+    }
+
+    this.isVariantRevisionDownloading.set(true);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    try {
+      const blob = await loader();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      this.errorMessage.set(getApiErrorMessage(error));
+    } finally {
+      this.isVariantRevisionDownloading.set(false);
+    }
+  }
+
   private ensureValid(control: AbstractControl): boolean {
     if (control.invalid || this.isSaving()) {
       control.markAllAsTouched();
@@ -1929,6 +2265,18 @@ function parseRawAttributeValue(
   } catch {
     return rawValue;
   }
+}
+
+function formatPreviewValue(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length === 0 ? null : value.join(', ');
+  }
+
+  return String(value);
 }
 
 function parseEditedAttributeValue(

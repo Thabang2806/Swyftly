@@ -243,7 +243,8 @@ describe('SellerStoreSettingsPageComponent', () => {
         { category: 'Verification', isEnabled: true, emailEnabled: true },
         { category: 'Products', isEnabled: false, emailEnabled: true },
         { category: 'Revisions', isEnabled: true, emailEnabled: true },
-        { category: 'Ads', isEnabled: true, emailEnabled: true }
+        { category: 'Ads', isEnabled: true, emailEnabled: true },
+        { category: 'Reports', isEnabled: true, emailEnabled: true }
       ]
     });
   });

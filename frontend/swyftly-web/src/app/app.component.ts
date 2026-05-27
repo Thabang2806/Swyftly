@@ -179,6 +179,10 @@ export class AppComponent implements OnInit {
       return '/seller';
     }
 
+    if (notification.relatedEntityType === 'SellerAnalytics') {
+      return '/seller/analytics';
+    }
+
     return '/seller/notifications';
   }
 }

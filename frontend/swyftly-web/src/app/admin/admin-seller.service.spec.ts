@@ -35,6 +35,38 @@ describe('AdminSellerService', () => {
     expect(response[0].verificationStatus).toBe('UnderReview');
   });
 
+  it('loads all-state seller operational lists with query params', async () => {
+    const promise = service.getSellers({
+      view: 'All',
+      status: 'Verified',
+      search: 'store',
+      sellerId: 'seller-id',
+      page: 2,
+      pageSize: 50,
+      sort: 'UpdatedAsc'
+    });
+
+    const request = httpTestingController.expectOne(req => req.url === `${environment.apiBaseUrl}/api/admin/sellers`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('view')).toBe('All');
+    expect(request.request.params.get('status')).toBe('Verified');
+    expect(request.request.params.get('search')).toBe('store');
+    expect(request.request.params.get('sellerId')).toBe('seller-id');
+    expect(request.request.params.get('page')).toBe('2');
+    expect(request.request.params.get('pageSize')).toBe('50');
+    expect(request.request.params.get('sort')).toBe('UpdatedAsc');
+    request.flush({
+      items: [{ ...createSellerSummary(), updatedAtUtc: '2026-05-18T13:00:00Z', detailRoute: '/admin/sellers/seller-id' }],
+      totalCount: 1,
+      page: 2,
+      pageSize: 50,
+      statusCounts: [{ status: 'Verified', count: 1 }]
+    });
+
+    const response = await promise;
+    expect(response.items[0].detailRoute).toBe('/admin/sellers/seller-id');
+  });
+
   it('approves a seller', async () => {
     const promise = service.approveSeller('seller-id');
 

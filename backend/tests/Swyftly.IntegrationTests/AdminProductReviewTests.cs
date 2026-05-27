@@ -35,8 +35,10 @@ public sealed class AdminProductReviewTests
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
 
         using var response = await client.GetAsync("/api/admin/products/pending-review");
+        using var moderationResponse = await client.GetAsync("/api/admin/products/moderation-items");
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, moderationResponse.StatusCode);
     }
 
     [Fact]
@@ -56,6 +58,44 @@ public sealed class AdminProductReviewTests
         Assert.NotNull(products);
         var product = Assert.Single(products!, item => item.ProductId == productId);
         Assert.Equal("PendingReview", product.Status);
+    }
+
+    [Fact]
+    public async Task Admin_CanListProductModerationItems_AcrossProductAndRevisionTypes()
+    {
+        using var factory = new AdminProductReviewTestFactory();
+        using var client = factory.CreateClient();
+        var pendingProductId = await CreateReviewProductAsync(factory);
+        var variantSeed = await CreatePublishedProductWithVariantRevisionAsync(factory);
+        var listingRevisionId = await CreatePendingListingRevisionAsync(factory, variantSeed.ProductId);
+        var adminToken = await CreateAndLoginAdminAsync(factory, client);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        using var needsAttentionResponse = await client.GetAsync("/api/admin/products/moderation-items");
+        needsAttentionResponse.EnsureSuccessStatusCode();
+        var needsAttention = await needsAttentionResponse.Content.ReadFromJsonAsync<AdminPagedResponse<AdminProductModerationItemResponse>>();
+        Assert.NotNull(needsAttention);
+        Assert.Contains(needsAttention!.Items, item =>
+            item.ItemType == "Product"
+            && item.ProductId == pendingProductId
+            && item.DetailRoute == $"/admin/products/{pendingProductId}");
+        Assert.Contains(needsAttention.Items, item =>
+            item.ItemType == "ListingRevision"
+            && item.RevisionId == listingRevisionId
+            && item.DetailRoute == $"/admin/products/revisions/{listingRevisionId}");
+        Assert.Contains(needsAttention.Items, item =>
+            item.ItemType == "VariantRevision"
+            && item.RevisionId == variantSeed.RevisionId
+            && item.DetailRoute == $"/admin/products/variant-revisions/{variantSeed.RevisionId}");
+        Assert.Contains(needsAttention.StatusCounts, count => count.Status == "PendingReview" && count.Count >= 3);
+
+        using var publishedResponse = await client.GetAsync("/api/admin/products/moderation-items?view=All&status=Published&search=Published%20Variant");
+        publishedResponse.EnsureSuccessStatusCode();
+        var published = await publishedResponse.Content.ReadFromJsonAsync<AdminPagedResponse<AdminProductModerationItemResponse>>();
+        Assert.NotNull(published);
+        var publishedProduct = Assert.Single(published!.Items, item => item.ProductId == variantSeed.ProductId && item.ItemType == "Product");
+        Assert.Equal("Published", publishedProduct.Status);
     }
 
     [Fact]
@@ -459,6 +499,30 @@ public sealed class AdminProductReviewTests
 
         await dbContext.SaveChangesAsync();
         return new VariantRevisionSeed(product.Id, variant.Id, revision.Id, cartItemId);
+    }
+
+    private static async Task<Guid> CreatePendingListingRevisionAsync(
+        AdminProductReviewTestFactory factory,
+        Guid productId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SwyftlyDbContext>();
+        var product = await dbContext.Products.SingleAsync(item => item.Id == productId);
+        var revision = new ProductListingRevision(product.Id, product.SellerId);
+        revision.UpdateProposal(
+            product.CategoryId,
+            null,
+            $"{product.Title} Editorial Update",
+            $"{product.Slug}-editorial-update",
+            product.ShortDescription,
+            product.FullDescription,
+            "[]",
+            "{}");
+        revision.SubmitForReview(hasAtLeastOneImage: true, DateTimeOffset.UtcNow);
+
+        dbContext.ProductListingRevisions.Add(revision);
+        await dbContext.SaveChangesAsync();
+        return revision.Id;
     }
 
     private sealed record VariantRevisionSeed(

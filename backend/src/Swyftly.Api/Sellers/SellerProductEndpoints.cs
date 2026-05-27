@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +24,20 @@ namespace Swyftly.Api.Sellers;
 public static class SellerProductEndpoints
 {
     private const int MaxRevisionImages = 12;
+    private const int MaxVariantRevisionImportRows = 500;
+
+    private static readonly string[] VariantRevisionCsvHeaders =
+    [
+        "operation",
+        "sourceVariantId",
+        "sku",
+        "size",
+        "colour",
+        "price",
+        "compareAtPrice",
+        "initialStockQuantity",
+        "barcode"
+    ];
 
     private static readonly HashSet<string> SupportedAiApplyFields = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -207,6 +223,36 @@ public static class SellerProductEndpoints
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        group.MapGet("/{id:guid}/variant-revision/export.csv", ExportVariantRevisionCsvAsync)
+            .WithName("ExportSellerProductVariantRevisionCsv")
+            .WithSummary("Exports current live variants for bulk published variant revision staging.")
+            .Produces(StatusCodes.Status200OK, contentType: "text/csv")
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapGet("/{id:guid}/variant-revision/import-template.csv", ExportVariantRevisionImportTemplateCsvAsync)
+            .WithName("ExportSellerProductVariantRevisionImportTemplateCsv")
+            .WithSummary("Exports a CSV template for bulk published variant revision staging.")
+            .Produces(StatusCodes.Status200OK, contentType: "text/csv")
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapPost("/{id:guid}/variant-revision/import/preview", PreviewVariantRevisionImportAsync)
+            .WithName("PreviewSellerProductVariantRevisionImport")
+            .WithSummary("Previews a published variant revision CSV import without changing data.")
+            .Accepts<IFormFile>("multipart/form-data")
+            .Produces<SellerProductVariantRevisionBulkImportResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .DisableAntiforgery();
+
+        group.MapPost("/{id:guid}/variant-revision/bulk-stage", BulkStageVariantRevisionAsync)
+            .WithName("BulkStageSellerProductVariantRevision")
+            .WithSummary("Replaces draft staged variant revision items with validated bulk rows.")
+            .Produces<SellerProductVariantRevisionBulkImportResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         group.MapPost("/{id:guid}/variant-revision/submit-review", SubmitVariantRevisionReviewAsync)
             .WithName("SubmitSellerProductVariantRevision")
             .WithSummary("Submits a published product variant and pricing revision for admin review.")
@@ -251,7 +297,12 @@ public static class SellerProductEndpoints
                 request.Title,
                 request.Slug,
                 request.ShortDescription,
-                request.FullDescription);
+                request.FullDescription,
+                request.SeoTitle,
+                request.SeoDescription,
+                request.MerchandisingLabel,
+                request.CareInstructions,
+                request.ProductDisclaimer);
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
         {
@@ -286,6 +337,37 @@ public static class SellerProductEndpoints
                 product.Title,
                 product.Slug,
                 product.Status.ToString(),
+                product.MerchandisingLabel,
+                dbContext.ProductImages
+                    .Where(image => image.ProductId == product.Id)
+                    .OrderByDescending(image => image.IsPrimary)
+                    .ThenBy(image => image.SortOrder)
+                    .Select(image => image.Url)
+                    .FirstOrDefault(),
+                dbContext.ProductImages
+                    .Where(image => image.ProductId == product.Id)
+                    .OrderByDescending(image => image.IsPrimary)
+                    .ThenBy(image => image.SortOrder)
+                    .Select(image => image.AltText)
+                    .FirstOrDefault(),
+                dbContext.ProductVariants
+                    .Where(variant => variant.ProductId == product.Id)
+                    .Sum(variant => (int?)variant.StockQuantity) ?? 0,
+                dbContext.ProductVariants
+                    .Where(variant => variant.ProductId == product.Id)
+                    .Sum(variant => (int?)variant.ReservedQuantity) ?? 0,
+                dbContext.ProductVariants
+                    .Where(variant => variant.ProductId == product.Id)
+                    .Sum(variant => (int?)(variant.StockQuantity - variant.ReservedQuantity)) ?? 0,
+                dbContext.ProductVariants
+                    .Count(variant => variant.ProductId == product.Id
+                        && variant.Status == ProductVariantStatus.Active
+                        && variant.StockQuantity > variant.ReservedQuantity
+                        && variant.StockQuantity - variant.ReservedQuantity <= 5),
+                dbContext.ProductVariants
+                    .Count(variant => variant.ProductId == product.Id
+                        && (variant.Status == ProductVariantStatus.OutOfStock
+                            || variant.StockQuantity <= variant.ReservedQuantity)),
                 product.UpdatedAtUtc))
             .ToListAsync(cancellationToken);
 
@@ -331,7 +413,12 @@ public static class SellerProductEndpoints
                 request.Title,
                 request.Slug,
                 request.ShortDescription,
-                request.FullDescription);
+                request.FullDescription,
+                request.SeoTitle,
+                request.SeoDescription,
+                request.MerchandisingLabel,
+                request.CareInstructions,
+                request.ProductDisclaimer);
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
         {
@@ -907,7 +994,12 @@ public static class SellerProductEndpoints
                 request.ShortDescription,
                 request.FullDescription,
                 tagsJson,
-                SerializeAttributes(attributes));
+                SerializeAttributes(attributes),
+                request.SeoTitle,
+                request.SeoDescription,
+                request.MerchandisingLabel,
+                request.CareInstructions,
+                request.ProductDisclaimer);
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or JsonException)
         {
@@ -1279,6 +1371,176 @@ public static class SellerProductEndpoints
         return HttpResults.Ok(await CreateVariantRevisionResponseAsync(revision.Id, dbContext, cancellationToken));
     }
 
+    private static async Task<IResult> ExportVariantRevisionCsvAsync(
+        Guid id,
+        ClaimsPrincipal principal,
+        HttpResponse response,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var product = await GetOwnedProductAsync(id, principal, dbContext, cancellationToken);
+        if (product is null)
+        {
+            return ProductNotFound();
+        }
+
+        if (product.Status != ProductStatus.Published)
+        {
+            return Validation("product", "Variant revision export is available only for published products.");
+        }
+
+        var variants = await dbContext.ProductVariants
+            .AsNoTracking()
+            .Where(variant => variant.ProductId == product.Id)
+            .OrderBy(variant => variant.Sku)
+            .ToListAsync(cancellationToken);
+
+        response.Headers.ContentDisposition = $"attachment; filename=\"{product.Slug ?? product.Id.ToString()}-variant-revision-export.csv\"";
+        return HttpResults.Text(BuildVariantRevisionCsv(variants), "text/csv", Encoding.UTF8);
+    }
+
+    private static async Task<IResult> ExportVariantRevisionImportTemplateCsvAsync(
+        Guid id,
+        ClaimsPrincipal principal,
+        HttpResponse response,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var product = await GetOwnedProductAsync(id, principal, dbContext, cancellationToken);
+        if (product is null)
+        {
+            return ProductNotFound();
+        }
+
+        if (product.Status != ProductStatus.Published)
+        {
+            return Validation("product", "Variant revision import templates are available only for published products.");
+        }
+
+        response.Headers.ContentDisposition = $"attachment; filename=\"{product.Slug ?? product.Id.ToString()}-variant-revision-template.csv\"";
+        return HttpResults.Text(BuildVariantRevisionCsv(Array.Empty<ProductVariant>()), "text/csv", Encoding.UTF8);
+    }
+
+    private static async Task<IResult> PreviewVariantRevisionImportAsync(
+        Guid id,
+        IFormFile file,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var product = await GetOwnedProductAsync(id, principal, dbContext, cancellationToken);
+        if (product is null)
+        {
+            return ProductNotFound();
+        }
+
+        if (product.Status != ProductStatus.Published)
+        {
+            return Validation("product", "Variant revision imports are available only for published products.");
+        }
+
+        if (file.Length == 0)
+        {
+            return Validation("file", "Variant revision import CSV cannot be empty.");
+        }
+
+        IReadOnlyCollection<VariantRevisionImportRow> rows;
+        try
+        {
+            rows = await ParseVariantRevisionCsvAsync(file, cancellationToken);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Validation("file", exception.Message);
+        }
+
+        if (rows.Count > MaxVariantRevisionImportRows)
+        {
+            return Validation("file", $"Variant revision import cannot contain more than {MaxVariantRevisionImportRows} rows.");
+        }
+
+        var preview = await BuildVariantRevisionBulkPreviewAsync(
+            product.Id,
+            Guid.NewGuid(),
+            rows,
+            dbContext,
+            cancellationToken);
+
+        return HttpResults.Ok(preview.Response);
+    }
+
+    private static async Task<IResult> BulkStageVariantRevisionAsync(
+        Guid id,
+        BulkStageSellerProductVariantRevisionRequest request,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var product = await GetOwnedProductAsync(id, principal, dbContext, cancellationToken);
+        if (product is null)
+        {
+            return ProductNotFound();
+        }
+
+        if (product.Status != ProductStatus.Published)
+        {
+            return Validation("product", "Variant revision bulk staging is available only for published products.");
+        }
+
+        if (request.Items is null || request.Items.Count == 0)
+        {
+            return Validation("items", "At least one variant revision row is required.");
+        }
+
+        if (request.Items.Count > MaxVariantRevisionImportRows)
+        {
+            return Validation("items", $"Variant revision bulk staging cannot contain more than {MaxVariantRevisionImportRows} rows.");
+        }
+
+        var revision = await GetOrCreateActiveVariantRevisionAsync(product, dbContext, timeProvider, cancellationToken);
+        if (!revision.CanSellerEdit)
+        {
+            return Validation("revision", "A variant revision already submitted for review cannot be edited.");
+        }
+
+        var rows = request.Items
+            .Select((item, index) => VariantRevisionImportRow.FromRequest(index + 1, item))
+            .ToArray();
+        var preview = await BuildVariantRevisionBulkPreviewAsync(
+            product.Id,
+            revision.Id,
+            rows,
+            dbContext,
+            cancellationToken);
+
+        if (preview.Response.ErrorRows > 0)
+        {
+            return HttpResults.BadRequest(preview.Response);
+        }
+
+        var existingItems = await dbContext.ProductVariantRevisionItems
+            .Where(item => item.RevisionId == revision.Id)
+            .ToListAsync(cancellationToken);
+        dbContext.ProductVariantRevisionItems.RemoveRange(existingItems);
+        if (preview.ChangedItems.Count > 0)
+        {
+            dbContext.ProductVariantRevisionItems.AddRange(preview.ChangedItems);
+        }
+
+        try
+        {
+            revision.UpdateSellerReason(request.SellerReason);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Validation("revision", exception.Message);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return HttpResults.Ok(preview.Response);
+    }
+
     private static async Task<IResult> SubmitVariantRevisionReviewAsync(
         Guid id,
         ClaimsPrincipal principal,
@@ -1556,7 +1818,12 @@ public static class SellerProductEndpoints
                 title,
                 product.Slug,
                 shortDescription,
-                fullDescription);
+                fullDescription,
+                product.SeoTitle,
+                product.SeoDescription,
+                product.MerchandisingLabel,
+                product.CareInstructions,
+                product.ProductDisclaimer);
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
         {
@@ -1704,7 +1971,12 @@ public static class SellerProductEndpoints
             product.ShortDescription,
             product.FullDescription,
             product.TagsJson,
-            await BuildProductAttributesJsonAsync(product.Id, dbContext, cancellationToken));
+            await BuildProductAttributesJsonAsync(product.Id, dbContext, cancellationToken),
+            product.SeoTitle,
+            product.SeoDescription,
+            product.MerchandisingLabel,
+            product.CareInstructions,
+            product.ProductDisclaimer);
         dbContext.ProductListingRevisions.Add(revision);
 
         var productImages = await dbContext.ProductImages
@@ -1727,6 +1999,576 @@ public static class SellerProductEndpoints
         }
 
         return revision;
+    }
+
+    private static async Task<VariantRevisionBulkPreviewBuildResult> BuildVariantRevisionBulkPreviewAsync(
+        Guid productId,
+        Guid revisionId,
+        IReadOnlyCollection<VariantRevisionImportRow> rows,
+        SwyftlyDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var currentVariants = await dbContext.ProductVariants
+            .AsNoTracking()
+            .Where(variant => variant.ProductId == productId)
+            .OrderBy(variant => variant.Sku)
+            .ToListAsync(cancellationToken);
+        var byId = currentVariants.ToDictionary(variant => variant.Id);
+        var bySku = currentVariants
+            .GroupBy(variant => variant.Sku, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.OrdinalIgnoreCase);
+        var byBarcode = currentVariants
+            .Where(variant => !string.IsNullOrWhiteSpace(variant.Barcode))
+            .GroupBy(variant => variant.Barcode!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.OrdinalIgnoreCase);
+        var seenSourceIds = new HashSet<Guid>();
+        var responseRows = new List<SellerProductVariantRevisionBulkImportRowResponse>();
+        var changedItems = new List<ProductVariantRevisionItem>();
+
+        foreach (var row in rows)
+        {
+            var messages = row.ParseMessages.ToList();
+            ProductVariantRevisionItemOperation? operation = null;
+            ProductVariant? source = null;
+            ProductVariantRevisionItem? item = null;
+
+            if (!Enum.TryParse<ProductVariantRevisionItemOperation>(row.Operation, ignoreCase: true, out var parsedOperation)
+                || !Enum.IsDefined(parsedOperation))
+            {
+                messages.Add("Operation must be Add, Update, or Deactivate.");
+            }
+            else
+            {
+                operation = parsedOperation;
+            }
+
+            if (operation == ProductVariantRevisionItemOperation.Add)
+            {
+                if (row.SourceVariantId.HasValue)
+                {
+                    messages.Add("Add rows cannot include a source variant id.");
+                }
+            }
+            else if (operation.HasValue)
+            {
+                source = ResolveVariantRevisionImportSource(row, byId, bySku, byBarcode, messages);
+                if (source is not null && !seenSourceIds.Add(source.Id))
+                {
+                    messages.Add("This source variant appears more than once in the import.");
+                }
+            }
+
+            if (operation.HasValue && messages.Count == 0)
+            {
+                item = TryCreateVariantRevisionImportItem(revisionId, operation.Value, row, source, messages);
+            }
+
+            var rowStatus = InventoryImportRowStatus.Error;
+            if (messages.Count == 0 && item is not null)
+            {
+                rowStatus = IsVariantRevisionImportChanged(item, source)
+                    ? InventoryImportRowStatus.Changed
+                    : InventoryImportRowStatus.Unchanged;
+
+                if (rowStatus == InventoryImportRowStatus.Changed)
+                {
+                    changedItems.Add(item);
+                }
+            }
+
+            responseRows.Add(CreateVariantRevisionImportRowResponse(row, operation, source, item, rowStatus, messages));
+        }
+
+        ProductVariantRevisionValidationResult validation;
+        if (changedItems.Count == 0)
+        {
+            validation = await ProductVariantRevisionRules.ValidateAsync(
+                productId,
+                Array.Empty<ProductVariantRevisionItem>(),
+                dbContext,
+                cancellationToken);
+        }
+        else
+        {
+            validation = await ProductVariantRevisionRules.ValidateAsync(
+                productId,
+                changedItems,
+                dbContext,
+                cancellationToken);
+        }
+
+        if (changedItems.Count > 0 && !validation.IsValid)
+        {
+            var finalSetMessages = validation.Errors
+                .SelectMany(item => item.Value)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(message => $"Proposed final variant set is invalid: {message}")
+                .ToArray();
+            responseRows = responseRows
+                .Select(row => row.RowStatus == InventoryImportRowStatus.Error
+                    ? row
+                    : row with
+                    {
+                        RowStatus = InventoryImportRowStatus.Error,
+                        ValidationMessages = row.ValidationMessages.Concat(finalSetMessages).ToArray()
+                    })
+                .ToList();
+        }
+
+        var errorRows = responseRows.Count(row => row.RowStatus == InventoryImportRowStatus.Error);
+        var changedRows = responseRows.Count(row => row.RowStatus == InventoryImportRowStatus.Changed);
+        var unchangedRows = responseRows.Count(row => row.RowStatus == InventoryImportRowStatus.Unchanged);
+        IReadOnlyCollection<SellerProductVariantRevisionFinalVariantResponse> finalVariants =
+            changedItems.Count == 0 || !validation.IsValid
+                ? Array.Empty<SellerProductVariantRevisionFinalVariantResponse>()
+                : validation.FinalVariants
+                    .Select(MapVariantRevisionFinalVariantResponse)
+                    .ToArray();
+
+        return new VariantRevisionBulkPreviewBuildResult(
+            new SellerProductVariantRevisionBulkImportResponse(
+                responseRows.Count,
+                responseRows.Count - errorRows,
+                errorRows,
+                changedRows,
+                unchangedRows,
+                responseRows,
+                finalVariants),
+            errorRows == 0 ? changedItems : Array.Empty<ProductVariantRevisionItem>());
+    }
+
+    private static ProductVariant? ResolveVariantRevisionImportSource(
+        VariantRevisionImportRow row,
+        IReadOnlyDictionary<Guid, ProductVariant> byId,
+        IReadOnlyDictionary<string, ProductVariant[]> bySku,
+        IReadOnlyDictionary<string, ProductVariant[]> byBarcode,
+        List<string> messages)
+    {
+        if (row.SourceVariantId.HasValue)
+        {
+            if (!byId.TryGetValue(row.SourceVariantId.Value, out var idSource))
+            {
+                messages.Add("Source variant id was not found for this product.");
+                return null;
+            }
+
+            var skuSourceForId = ResolveUniqueVariant("SKU", row.Sku?.Trim(), bySku, messages);
+            var barcodeSourceForId = ResolveUniqueVariant("Barcode", row.Barcode?.Trim(), byBarcode, messages);
+            if (skuSourceForId is not null && skuSourceForId.Id != idSource.Id)
+            {
+                messages.Add("sourceVariantId and SKU refer to different current variants.");
+            }
+
+            if (barcodeSourceForId is not null && barcodeSourceForId.Id != idSource.Id)
+            {
+                messages.Add("sourceVariantId and barcode refer to different current variants.");
+            }
+
+            return idSource;
+        }
+
+        var sku = row.Sku?.Trim();
+        var barcode = row.Barcode?.Trim();
+        var skuSource = ResolveUniqueVariant("SKU", sku, bySku, messages);
+        var barcodeSource = ResolveUniqueVariant("Barcode", barcode, byBarcode, messages);
+
+        if (skuSource is not null && barcodeSource is not null && skuSource.Id != barcodeSource.Id)
+        {
+            messages.Add("SKU and barcode refer to different current variants.");
+            return null;
+        }
+
+        var source = barcodeSource ?? skuSource;
+        if (source is null)
+        {
+            messages.Add("Update and Deactivate rows require sourceVariantId, current SKU, or current barcode.");
+        }
+
+        return source;
+    }
+
+    private static ProductVariant? ResolveUniqueVariant(
+        string label,
+        string? value,
+        IReadOnlyDictionary<string, ProductVariant[]> lookup,
+        List<string> messages)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (!lookup.TryGetValue(value, out var matches))
+        {
+            return null;
+        }
+
+        if (matches.Length > 1)
+        {
+            messages.Add($"{label} matches multiple current variants; use sourceVariantId for this row.");
+            return null;
+        }
+
+        return matches[0];
+    }
+
+    private static ProductVariantRevisionItem? TryCreateVariantRevisionImportItem(
+        Guid revisionId,
+        ProductVariantRevisionItemOperation operation,
+        VariantRevisionImportRow row,
+        ProductVariant? source,
+        List<string> messages)
+    {
+        var sku = operation == ProductVariantRevisionItemOperation.Deactivate
+            ? source!.Sku
+            : DefaultBlank(row.Sku, source?.Sku);
+        var size = operation == ProductVariantRevisionItemOperation.Deactivate
+            ? source!.Size
+            : DefaultBlank(row.Size, source?.Size);
+        var colour = operation == ProductVariantRevisionItemOperation.Deactivate
+            ? source!.Colour
+            : DefaultBlank(row.Colour, source?.Colour);
+        var price = operation == ProductVariantRevisionItemOperation.Deactivate
+            ? source!.Price
+            : row.Price ?? source?.Price;
+        var compareAtPrice = operation == ProductVariantRevisionItemOperation.Deactivate
+            ? source!.CompareAtPrice
+            : row.CompareAtPrice ?? source?.CompareAtPrice;
+        var initialStockQuantity = operation == ProductVariantRevisionItemOperation.Add
+            ? row.InitialStockQuantity
+            : null;
+        var barcode = operation == ProductVariantRevisionItemOperation.Deactivate
+            ? source!.Barcode
+            : DefaultBlank(row.Barcode, source?.Barcode);
+
+        if (operation == ProductVariantRevisionItemOperation.Add && row.InitialStockQuantity is null)
+        {
+            messages.Add("Add rows require initialStockQuantity.");
+        }
+
+        if (price is null)
+        {
+            messages.Add("Price is required.");
+        }
+
+        if (messages.Count > 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            return new ProductVariantRevisionItem(
+                revisionId,
+                operation,
+                operation == ProductVariantRevisionItemOperation.Add ? null : source!.Id,
+                sku ?? string.Empty,
+                size ?? string.Empty,
+                colour ?? string.Empty,
+                price!.Value,
+                compareAtPrice,
+                initialStockQuantity,
+                operation == ProductVariantRevisionItemOperation.Deactivate
+                    ? ProductVariantStatus.Inactive
+                    : source?.Status ?? ProductVariantStatus.Active,
+                barcode);
+        }
+        catch (Exception exception) when (exception is ArgumentException or ArgumentOutOfRangeException)
+        {
+            messages.Add(exception.Message);
+            return null;
+        }
+    }
+
+    private static SellerProductVariantRevisionBulkImportRowResponse CreateVariantRevisionImportRowResponse(
+        VariantRevisionImportRow row,
+        ProductVariantRevisionItemOperation? operation,
+        ProductVariant? source,
+        ProductVariantRevisionItem? item,
+        string rowStatus,
+        IReadOnlyCollection<string> messages) =>
+        new(
+            row.RowNumber,
+            operation?.ToString() ?? row.Operation,
+            source?.Id ?? row.SourceVariantId,
+            source?.Sku,
+            source?.Size,
+            source?.Colour,
+            source?.Price,
+            source?.CompareAtPrice,
+            source?.Status.ToString(),
+            source?.Barcode,
+            item?.Sku ?? row.Sku,
+            item?.Size ?? row.Size,
+            item?.Colour ?? row.Colour,
+            item?.Price ?? row.Price,
+            item?.CompareAtPrice ?? row.CompareAtPrice,
+            item?.InitialStockQuantity ?? row.InitialStockQuantity,
+            item?.Barcode ?? row.Barcode,
+            rowStatus,
+            messages);
+
+    private static bool IsVariantRevisionImportChanged(
+        ProductVariantRevisionItem item,
+        ProductVariant? source)
+    {
+        if (item.Operation == ProductVariantRevisionItemOperation.Add)
+        {
+            return true;
+        }
+
+        if (source is null)
+        {
+            return false;
+        }
+
+        if (item.Operation == ProductVariantRevisionItemOperation.Deactivate)
+        {
+            return source.Status != ProductVariantStatus.Inactive;
+        }
+
+        return !string.Equals(item.Sku, source.Sku, StringComparison.Ordinal)
+            || !string.Equals(item.Size, source.Size, StringComparison.Ordinal)
+            || !string.Equals(item.Colour, source.Colour, StringComparison.Ordinal)
+            || item.Price != source.Price
+            || item.CompareAtPrice != source.CompareAtPrice
+            || !string.Equals(item.Barcode, source.Barcode, StringComparison.Ordinal)
+            || item.ProposedStatus != source.Status;
+    }
+
+    private static SellerProductVariantRevisionFinalVariantResponse MapVariantRevisionFinalVariantResponse(
+        ProductVariantRevisionFinalVariant variant) =>
+        new(
+            variant.SourceVariantId,
+            variant.ChangeType,
+            variant.Sku,
+            variant.Size,
+            variant.Colour,
+            variant.Price,
+            variant.CompareAtPrice,
+            variant.StockQuantity,
+            variant.ReservedQuantity,
+            variant.Status.ToString(),
+            variant.Barcode,
+            variant.AvailableQuantity);
+
+    private static string? DefaultBlank(string? value, string? defaultValue) =>
+        string.IsNullOrWhiteSpace(value) ? defaultValue : value.Trim();
+
+    private static string BuildVariantRevisionCsv(IReadOnlyCollection<ProductVariant> variants)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine(string.Join(",", VariantRevisionCsvHeaders.Select(Csv)));
+
+        foreach (var variant in variants)
+        {
+            AppendCsvLine(
+                builder,
+                "Update",
+                variant.Id.ToString(),
+                variant.Sku,
+                variant.Size,
+                variant.Colour,
+                variant.Price.ToString(CultureInfo.InvariantCulture),
+                variant.CompareAtPrice?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                string.Empty,
+                variant.Barcode ?? string.Empty);
+        }
+
+        return builder.ToString();
+    }
+
+    private static async Task<IReadOnlyCollection<VariantRevisionImportRow>> ParseVariantRevisionCsvAsync(
+        IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        await using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        var content = await reader.ReadToEndAsync(cancellationToken);
+        var records = ParseCsv(content);
+
+        if (records.Count == 0)
+        {
+            throw new InvalidOperationException("Variant revision import CSV must include a header row.");
+        }
+
+        var headers = records[0]
+            .Select((header, index) => new { Header = header.Trim(), Index = index })
+            .Where(item => item.Header.Length > 0)
+            .ToDictionary(item => item.Header, item => item.Index, StringComparer.OrdinalIgnoreCase);
+
+        if (!headers.ContainsKey("operation"))
+        {
+            throw new InvalidOperationException("Variant revision import CSV is missing the 'operation' column.");
+        }
+
+        var rows = new List<VariantRevisionImportRow>();
+        var rowNumber = 1;
+        foreach (var record in records.Skip(1))
+        {
+            rowNumber++;
+            if (record.All(string.IsNullOrWhiteSpace))
+            {
+                continue;
+            }
+
+            var messages = new List<string>();
+            var sourceVariantIdText = ReadColumn(record, headers, "sourceVariantId");
+            var priceText = ReadColumn(record, headers, "price");
+            var compareAtPriceText = ReadColumn(record, headers, "compareAtPrice");
+            var initialStockText = ReadColumn(record, headers, "initialStockQuantity");
+
+            rows.Add(new VariantRevisionImportRow(
+                rowNumber,
+                ReadColumn(record, headers, "operation") ?? string.Empty,
+                ParseGuidOrNull(sourceVariantIdText, "sourceVariantId", messages),
+                ReadColumn(record, headers, "sku"),
+                ReadColumn(record, headers, "size"),
+                ReadColumn(record, headers, "colour"),
+                ParseDecimalOrNull(priceText, "price", messages),
+                ParseDecimalOrNull(compareAtPriceText, "compareAtPrice", messages),
+                ParseIntOrNull(initialStockText, "initialStockQuantity", messages),
+                ReadColumn(record, headers, "barcode"),
+                messages));
+        }
+
+        return rows;
+    }
+
+    private static Guid? ParseGuidOrNull(string? value, string fieldName, List<string> messages)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (Guid.TryParse(value, out var parsed))
+        {
+            return parsed;
+        }
+
+        messages.Add($"{fieldName} must be a valid GUID.");
+        return null;
+    }
+
+    private static decimal? ParseDecimalOrNull(string? value, string fieldName, List<string> messages)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed))
+        {
+            return parsed;
+        }
+
+        messages.Add($"{fieldName} must be a decimal number.");
+        return null;
+    }
+
+    private static int? ParseIntOrNull(string? value, string fieldName, List<string> messages)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            return parsed;
+        }
+
+        messages.Add($"{fieldName} must be an integer.");
+        return null;
+    }
+
+    private static List<string[]> ParseCsv(string content)
+    {
+        var rows = new List<string[]>();
+        var row = new List<string>();
+        var value = new StringBuilder();
+        var inQuotes = false;
+
+        for (var index = 0; index < content.Length; index++)
+        {
+            var character = content[index];
+
+            if (character == '"')
+            {
+                if (inQuotes && index + 1 < content.Length && content[index + 1] == '"')
+                {
+                    value.Append('"');
+                    index++;
+                }
+                else
+                {
+                    inQuotes = !inQuotes;
+                }
+
+                continue;
+            }
+
+            if (!inQuotes && character == ',')
+            {
+                row.Add(value.ToString());
+                value.Clear();
+                continue;
+            }
+
+            if (!inQuotes && (character == '\r' || character == '\n'))
+            {
+                if (character == '\r' && index + 1 < content.Length && content[index + 1] == '\n')
+                {
+                    index++;
+                }
+
+                row.Add(value.ToString());
+                value.Clear();
+                rows.Add(row.ToArray());
+                row.Clear();
+                continue;
+            }
+
+            value.Append(character);
+        }
+
+        if (inQuotes)
+        {
+            throw new InvalidOperationException("Variant revision import CSV contains an unterminated quoted value.");
+        }
+
+        if (value.Length > 0 || row.Count > 0)
+        {
+            row.Add(value.ToString());
+            rows.Add(row.ToArray());
+        }
+
+        return rows;
+    }
+
+    private static string? ReadColumn(
+        IReadOnlyList<string> record,
+        IReadOnlyDictionary<string, int> headers,
+        string header)
+    {
+        if (!headers.TryGetValue(header, out var index) || index >= record.Count)
+        {
+            return null;
+        }
+
+        return record[index].Trim();
+    }
+
+    private static void AppendCsvLine(StringBuilder builder, params string[] values)
+    {
+        builder.AppendLine(string.Join(",", values.Select(Csv)));
+    }
+
+    private static string Csv(string value)
+    {
+        var escaped = value.Replace("\"", "\"\"", StringComparison.Ordinal);
+        return $"\"{escaped}\"";
     }
 
     private static async Task<ProductVariantRevision?> GetActiveVariantRevisionAsync(
@@ -1939,6 +2781,11 @@ public static class SellerProductEndpoints
             revision.Slug,
             revision.ShortDescription,
             revision.FullDescription,
+            revision.SeoTitle,
+            revision.SeoDescription,
+            revision.MerchandisingLabel,
+            revision.CareInstructions,
+            revision.ProductDisclaimer,
             ReadStringArray(revision.TagsJson),
             ReadRevisionAttributes(revision.AttributesJson),
             images,
@@ -2708,6 +3555,11 @@ public static class SellerProductEndpoints
             product.Slug,
             product.ShortDescription,
             product.FullDescription,
+            product.SeoTitle,
+            product.SeoDescription,
+            product.MerchandisingLabel,
+            product.CareInstructions,
+            product.ProductDisclaimer,
             ReadStringArray(product.TagsJson),
             product.Status.ToString(),
             product.RejectionReason,
@@ -2775,6 +3627,11 @@ public sealed record UpsertSellerProductRequest(
     string? Slug,
     string? ShortDescription,
     string? FullDescription,
+    string? SeoTitle,
+    string? SeoDescription,
+    string? MerchandisingLabel,
+    string? CareInstructions,
+    string? ProductDisclaimer,
     IReadOnlyDictionary<string, JsonElement>? Attributes);
 
 public sealed record UpsertSellerProductVariantRequest(
@@ -2807,6 +3664,11 @@ public sealed record UpsertSellerProductRevisionRequest(
     string? Slug,
     string? ShortDescription,
     string? FullDescription,
+    string? SeoTitle,
+    string? SeoDescription,
+    string? MerchandisingLabel,
+    string? CareInstructions,
+    string? ProductDisclaimer,
     IReadOnlyCollection<string>? Tags,
     IReadOnlyDictionary<string, JsonElement>? Attributes);
 
@@ -2843,6 +3705,14 @@ public sealed record SellerProductSummaryResponse(
     string? Title,
     string? Slug,
     string Status,
+    string? MerchandisingLabel,
+    string? PrimaryImageUrl,
+    string? PrimaryImageAltText,
+    int TotalStockQuantity,
+    int ReservedQuantity,
+    int AvailableQuantity,
+    int LowStockVariantCount,
+    int OutOfStockVariantCount,
     DateTimeOffset UpdatedAtUtc);
 
 public sealed record SellerProductDetailResponse(
@@ -2854,6 +3724,11 @@ public sealed record SellerProductDetailResponse(
     string? Slug,
     string? ShortDescription,
     string? FullDescription,
+    string? SeoTitle,
+    string? SeoDescription,
+    string? MerchandisingLabel,
+    string? CareInstructions,
+    string? ProductDisclaimer,
     IReadOnlyCollection<string> Tags,
     string Status,
     string? RejectionReason,
@@ -2902,6 +3777,11 @@ public sealed record SellerProductRevisionResponse(
     string? Slug,
     string? ShortDescription,
     string? FullDescription,
+    string? SeoTitle,
+    string? SeoDescription,
+    string? MerchandisingLabel,
+    string? CareInstructions,
+    string? ProductDisclaimer,
     IReadOnlyCollection<string> Tags,
     IReadOnlyDictionary<string, string> Attributes,
     IReadOnlyCollection<SellerProductRevisionImageResponse> Images,
@@ -2959,6 +3839,40 @@ public sealed record SellerProductVariantRevisionFinalVariantResponse(
     string? Barcode,
     int AvailableQuantity);
 
+public sealed record BulkStageSellerProductVariantRevisionRequest(
+    string? SellerReason,
+    IReadOnlyCollection<UpsertSellerProductVariantRevisionItemRequest>? Items);
+
+public sealed record SellerProductVariantRevisionBulkImportResponse(
+    int TotalRows,
+    int ValidRows,
+    int ErrorRows,
+    int ChangedRows,
+    int UnchangedRows,
+    IReadOnlyCollection<SellerProductVariantRevisionBulkImportRowResponse> Rows,
+    IReadOnlyCollection<SellerProductVariantRevisionFinalVariantResponse> ProposedFinalVariants);
+
+public sealed record SellerProductVariantRevisionBulkImportRowResponse(
+    int RowNumber,
+    string Operation,
+    Guid? SourceVariantId,
+    string? CurrentSku,
+    string? CurrentSize,
+    string? CurrentColour,
+    decimal? CurrentPrice,
+    decimal? CurrentCompareAtPrice,
+    string? CurrentStatus,
+    string? CurrentBarcode,
+    string? ProposedSku,
+    string? ProposedSize,
+    string? ProposedColour,
+    decimal? ProposedPrice,
+    decimal? ProposedCompareAtPrice,
+    int? ProposedInitialStockQuantity,
+    string? ProposedBarcode,
+    string RowStatus,
+    IReadOnlyCollection<string> ValidationMessages);
+
 public sealed record SellerAiSuggestionResponse(
     Guid SuggestionId,
     string? RecommendedTitle,
@@ -2974,3 +3888,37 @@ public sealed record SellerAiSuggestionResponse(
     IReadOnlyCollection<string> MissingFields,
     IReadOnlyCollection<string> RiskFlags,
     decimal QualityScore);
+
+internal sealed record VariantRevisionBulkPreviewBuildResult(
+    SellerProductVariantRevisionBulkImportResponse Response,
+    IReadOnlyCollection<ProductVariantRevisionItem> ChangedItems);
+
+internal sealed record VariantRevisionImportRow(
+    int RowNumber,
+    string Operation,
+    Guid? SourceVariantId,
+    string? Sku,
+    string? Size,
+    string? Colour,
+    decimal? Price,
+    decimal? CompareAtPrice,
+    int? InitialStockQuantity,
+    string? Barcode,
+    IReadOnlyCollection<string> ParseMessages)
+{
+    public static VariantRevisionImportRow FromRequest(
+        int rowNumber,
+        UpsertSellerProductVariantRevisionItemRequest request) =>
+        new(
+            rowNumber,
+            request.Operation,
+            request.SourceVariantId,
+            request.Sku,
+            request.Size,
+            request.Colour,
+            request.Price,
+            request.CompareAtPrice,
+            request.InitialStockQuantity,
+            request.Barcode,
+            []);
+}

@@ -35,6 +35,54 @@ describe('AdminProductService', () => {
     expect(response[0].status).toBe('PendingReview');
   });
 
+  it('loads product moderation items with query params', async () => {
+    const promise = service.getModerationItems({
+      view: 'All',
+      status: 'Published',
+      search: 'dress',
+      sellerId: 'seller-id',
+      page: 3,
+      pageSize: 25,
+      sort: 'SubmittedAsc'
+    });
+
+    const request = httpTestingController.expectOne(req => req.url === `${environment.apiBaseUrl}/api/admin/products/moderation-items`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('view')).toBe('All');
+    expect(request.request.params.get('status')).toBe('Published');
+    expect(request.request.params.get('search')).toBe('dress');
+    expect(request.request.params.get('sellerId')).toBe('seller-id');
+    expect(request.request.params.get('page')).toBe('3');
+    expect(request.request.params.get('pageSize')).toBe('25');
+    expect(request.request.params.get('sort')).toBe('SubmittedAsc');
+    request.flush({
+      items: [{
+        id: 'product-id',
+        itemType: 'Product',
+        productId: 'product-id',
+        revisionId: null,
+        sellerId: 'seller-id',
+        sellerDisplayName: 'Seller Store',
+        sellerVerificationStatus: 'Verified',
+        title: 'Summer Dress',
+        categoryPath: 'Women > Dresses',
+        status: 'Published',
+        submittedAtUtc: null,
+        updatedAtUtc: '2026-05-18T12:00:00Z',
+        riskFlagCount: 0,
+        itemCount: 0,
+        detailRoute: '/admin/products/product-id'
+      }],
+      totalCount: 1,
+      page: 3,
+      pageSize: 25,
+      statusCounts: [{ status: 'Published', count: 1 }]
+    });
+
+    const response = await promise;
+    expect(response.items[0].detailRoute).toBe('/admin/products/product-id');
+  });
+
   it('approves with an optional override reason', async () => {
     const promise = service.approveProduct('product-id', { overrideReason: 'Manual review complete.' });
 

@@ -48,6 +48,16 @@ public sealed class ProductListingRevision : AuditableEntity
 
     public string AttributesJson { get; private set; } = "{}";
 
+    public string? SeoTitle { get; private set; }
+
+    public string? SeoDescription { get; private set; }
+
+    public string? MerchandisingLabel { get; private set; }
+
+    public string? CareInstructions { get; private set; }
+
+    public string? ProductDisclaimer { get; private set; }
+
     public ProductListingRevisionStatus Status { get; private set; }
 
     public string? RejectionReason { get; private set; }
@@ -68,7 +78,12 @@ public sealed class ProductListingRevision : AuditableEntity
         string? shortDescription,
         string? fullDescription,
         string tagsJson,
-        string attributesJson)
+        string attributesJson,
+        string? seoTitle = null,
+        string? seoDescription = null,
+        string? merchandisingLabel = null,
+        string? careInstructions = null,
+        string? productDisclaimer = null)
     {
         EnsureSellerEditable();
 
@@ -93,6 +108,11 @@ public sealed class ProductListingRevision : AuditableEntity
         FullDescription = TrimOrNull(fullDescription);
         TagsJson = tagsJson;
         AttributesJson = attributesJson;
+        SeoTitle = Optional(seoTitle, nameof(seoTitle), Product.SeoTitleMaxLength);
+        SeoDescription = Optional(seoDescription, nameof(seoDescription), Product.SeoDescriptionMaxLength);
+        MerchandisingLabel = Optional(merchandisingLabel, nameof(merchandisingLabel), Product.MerchandisingLabelMaxLength);
+        CareInstructions = Optional(careInstructions, nameof(careInstructions), Product.CareInstructionsMaxLength);
+        ProductDisclaimer = Optional(productDisclaimer, nameof(productDisclaimer), Product.ProductDisclaimerMaxLength);
 
         if (Status == ProductListingRevisionStatus.Rejected)
         {
@@ -216,6 +236,17 @@ public sealed class ProductListingRevision : AuditableEntity
     {
         var trimmed = value?.Trim();
         return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
+    private static string? Optional(string? value, string parameterName, int maxLength)
+    {
+        var trimmed = TrimOrNull(value);
+        if (trimmed is not null && trimmed.Length > maxLength)
+        {
+            throw new ArgumentException($"Value cannot exceed {maxLength} characters.", parameterName);
+        }
+
+        return trimmed;
     }
 
     private static string? NormalizeSlugOrNull(string? slug)

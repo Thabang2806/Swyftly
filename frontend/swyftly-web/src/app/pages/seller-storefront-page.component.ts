@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { StorefrontAnalyticsService } from '../analytics/storefront-analytics.service';
 import { getApiErrorMessage } from '../auth/api-error';
 import { ProductCardComponent } from '../shop/product-card.component';
 import { PublicSellerStorefrontResponse } from '../shop/public-catalog.models';
@@ -109,6 +110,8 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
 export class SellerStorefrontPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly publicCatalogService = inject(PublicCatalogService);
+  private readonly router = inject(Router);
+  private readonly storefrontAnalytics = inject(StorefrontAnalyticsService);
 
   protected readonly storefront = signal<PublicSellerStorefrontResponse | null>(null);
   protected readonly isLoading = signal(true);
@@ -127,6 +130,7 @@ export class SellerStorefrontPageComponent implements OnInit {
 
     try {
       this.storefront.set(await this.publicCatalogService.getSellerStorefront(storeSlug));
+      this.storefrontAnalytics.trackStorefrontView(storeSlug, this.router.url);
     } catch (error) {
       this.errorMessage.set(getApiErrorMessage(error));
       this.storefront.set(null);

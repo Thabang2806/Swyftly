@@ -95,6 +95,7 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy(SwyftlyRateLimitPolicies.Webhook, httpContext => CreateFixedWindowLimiter(httpContext, rateLimitOptions.Webhook));
     options.AddPolicy(SwyftlyRateLimitPolicies.AdImpression, httpContext => CreateFixedWindowLimiter(httpContext, rateLimitOptions.AdImpression));
     options.AddPolicy(SwyftlyRateLimitPolicies.AdClick, httpContext => CreateFixedWindowLimiter(httpContext, rateLimitOptions.AdClick));
+    options.AddPolicy(SwyftlyRateLimitPolicies.StorefrontAnalytics, httpContext => CreateFixedWindowLimiter(httpContext, rateLimitOptions.StorefrontAnalytics));
     options.AddPolicy(SwyftlyRateLimitPolicies.Search, httpContext => CreateFixedWindowLimiter(httpContext, rateLimitOptions.Search));
 });
 
@@ -322,6 +323,8 @@ app.MapSellerVerificationEvidenceEndpoints();
 app.MapSellerPayoutProfileChangeEndpoints();
 app.MapAdminSellerEndpoints();
 app.MapAdminProductEndpoints();
+app.MapAdminQueueTriageEndpoints();
+app.MapAdminModerationQueueEndpoints();
 app.MapAdminReviewEndpoints();
 app.MapAdminAuditLogEndpoints();
 app.MapAdminDashboardEndpoints();
@@ -352,6 +355,7 @@ app.MapSupportTicketEndpoints();
 app.MapSellerAdCampaignEndpoints();
 app.MapAdminAdCampaignEndpoints();
 app.MapAdTrackingEndpoints();
+app.MapStorefrontAnalyticsEndpoints();
 app.MapSellerAnalyticsEndpoints();
 app.MapBuyerAiShoppingAssistantEndpoints();
 app.MapBuyerVisualSearchEndpoints();

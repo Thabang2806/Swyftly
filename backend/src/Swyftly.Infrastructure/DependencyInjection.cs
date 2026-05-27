@@ -7,6 +7,7 @@ using Swyftly.Application.Abstractions;
 using Swyftly.Application.Advertising;
 using Swyftly.Application.Admin;
 using Swyftly.Application.Ai;
+using Swyftly.Application.Analytics;
 using Swyftly.Application.Catalog;
 using Swyftly.Application.Delivery;
 using Swyftly.Application.Disputes;
@@ -23,6 +24,7 @@ using Swyftly.Application.Sellers;
 using Swyftly.Infrastructure.Admin;
 using Swyftly.Infrastructure.Advertising;
 using Swyftly.Infrastructure.Ai;
+using Swyftly.Infrastructure.Analytics;
 using Swyftly.Infrastructure.Carriers;
 using Swyftly.Infrastructure.Delivery;
 using Swyftly.Infrastructure.Disputes;
@@ -36,6 +38,7 @@ using Swyftly.Infrastructure.Persistence;
 using Swyftly.Infrastructure.Refunds;
 using Swyftly.Infrastructure.Returns;
 using Swyftly.Infrastructure.Search;
+using Swyftly.Infrastructure.Sellers;
 using Swyftly.Infrastructure.Storage;
 
 namespace Swyftly.Infrastructure;
@@ -305,6 +308,8 @@ public static class DependencyInjection
         });
         services.AddScoped<IAdCampaignEligibilityService, AdCampaignEligibilityService>();
         services.AddScoped<IAdTrackingService, EfAdTrackingService>();
+        services.AddScoped<IStorefrontAnalyticsService, EfStorefrontAnalyticsService>();
+        services.AddScoped<ISellerScheduledReportService, EfSellerScheduledReportService>();
         services.Configure<PaymentProviderOptions>(options =>
         {
             var section = configuration.GetSection(PaymentProviderOptions.SectionName);

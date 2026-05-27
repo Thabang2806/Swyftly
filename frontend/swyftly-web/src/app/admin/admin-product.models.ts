@@ -1,4 +1,5 @@
 import { AdminAuditLogResponse } from './admin-seller.models';
+import { AdminQueueTriageFields } from './admin-queue-triage.models';
 
 export interface AdminProductSummaryResponse {
   productId: string;
@@ -38,6 +39,26 @@ export interface AdminProductVariantRevisionSummaryResponse {
   updatedAtUtc: string;
 }
 
+export type AdminProductModerationItemType = 'Product' | 'ListingRevision' | 'VariantRevision';
+
+export interface AdminProductModerationItemResponse extends AdminQueueTriageFields {
+  id: string;
+  itemType: AdminProductModerationItemType;
+  productId: string;
+  revisionId: string | null;
+  sellerId: string;
+  sellerDisplayName: string | null;
+  sellerVerificationStatus: string | null;
+  title: string | null;
+  categoryPath: string | null;
+  status: string;
+  submittedAtUtc: string | null;
+  updatedAtUtc: string;
+  riskFlagCount: number;
+  itemCount: number;
+  detailRoute: string;
+}
+
 export interface AdminProductDetailResponse {
   productId: string;
   sellerId: string;
@@ -49,6 +70,11 @@ export interface AdminProductDetailResponse {
   slug: string | null;
   shortDescription: string | null;
   fullDescription: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  merchandisingLabel?: string | null;
+  careInstructions?: string | null;
+  productDisclaimer?: string | null;
   tags: string[];
   status: string;
   rejectionReason: string | null;
@@ -132,6 +158,11 @@ export interface AdminProductListingSnapshotResponse {
   slug: string | null;
   shortDescription: string | null;
   fullDescription: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  merchandisingLabel?: string | null;
+  careInstructions?: string | null;
+  productDisclaimer?: string | null;
   tags: string[];
   attributes: Record<string, string>;
   images: AdminProductRevisionImageResponse[];

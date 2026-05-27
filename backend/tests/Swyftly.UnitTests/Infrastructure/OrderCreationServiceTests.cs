@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Swyftly.Application.Analytics;
+using Swyftly.Application.Common.Results;
 using Swyftly.Application.Inventory;
 using Swyftly.Application.Orders;
 using Swyftly.Domain.Buyers;
@@ -114,7 +116,11 @@ public class OrderCreationServiceTests
     }
 
     private static EfOrderCreationService CreateService(SwyftlyDbContext dbContext) =>
-        new(dbContext, new EfInventoryReservationService(dbContext), new LocalRulesAddressVerificationService(TimeProvider.System));
+        new(
+            dbContext,
+            new EfInventoryReservationService(dbContext),
+            new LocalRulesAddressVerificationService(TimeProvider.System),
+            new NoOpStorefrontAnalyticsService());
 
     private static OrderDeliveryAddressRequest TestDeliveryAddress(string recipientName = "Thabo Buyer") =>
         new(
@@ -128,6 +134,20 @@ public class OrderCreationServiceTests
             "2196",
             "ZA",
             "Leave with reception if needed.");
+
+    private sealed class NoOpStorefrontAnalyticsService : IStorefrontAnalyticsService
+    {
+        public Task<Result<StorefrontFunnelEventResult>> RecordClientEventAsync(
+            StorefrontFunnelEventRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result<StorefrontFunnelEventResult>.Success(new StorefrontFunnelEventResult(false, null, "Skipped")));
+
+        public Task RecordOrderCreatedAsync(Guid orderId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task RecordOrderPaidAsync(Guid orderId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+    }
 
     private static async Task<(BuyerProfile Buyer, Product Product, ProductVariant Variant, Cart Cart, SellerDeliveryMethod DeliveryMethod)> SeedCartAsync(
         SwyftlyDbContext dbContext,

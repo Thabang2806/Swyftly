@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { StorefrontAnalyticsService } from '../analytics/storefront-analytics.service';
 import { AuthService } from '../auth/auth.service';
 import { BuyerEngagementService } from '../buyer/buyer-engagement.service';
 import { BuyerWishlistStateService } from '../buyer/buyer-wishlist-state.service';
@@ -15,6 +16,7 @@ describe('ProductDetailPageComponent', () => {
   let wishlistState: jasmine.SpyObj<BuyerWishlistStateService>;
   let cartService: jasmine.SpyObj<CartService>;
   let publicCatalogService: jasmine.SpyObj<PublicCatalogService>;
+  let storefrontAnalytics: jasmine.SpyObj<StorefrontAnalyticsService>;
 
   beforeEach(async () => {
     authService = jasmine.createSpyObj<AuthService>('AuthService', ['initialize', 'hasAnyRole']);
@@ -68,6 +70,10 @@ describe('ProductDetailPageComponent', () => {
       subtotal: 499
     });
     publicCatalogService = jasmine.createSpyObj<PublicCatalogService>('PublicCatalogService', ['getProduct']);
+    storefrontAnalytics = jasmine.createSpyObj<StorefrontAnalyticsService>('StorefrontAnalyticsService', [
+      'trackProductView',
+      'trackProductAddedToCart'
+    ]);
     publicCatalogService.getProduct.and.resolveTo({
       product: createProduct(),
       fullDescription: 'A full product description.',
@@ -112,7 +118,8 @@ describe('ProductDetailPageComponent', () => {
         { provide: BuyerEngagementService, useValue: engagementService },
         { provide: BuyerWishlistStateService, useValue: wishlistState },
         { provide: CartService, useValue: cartService },
-        { provide: PublicCatalogService, useValue: publicCatalogService }
+        { provide: PublicCatalogService, useValue: publicCatalogService },
+        { provide: StorefrontAnalyticsService, useValue: storefrontAnalytics }
       ]
     }).compileComponents();
 
@@ -129,6 +136,7 @@ describe('ProductDetailPageComponent', () => {
     expect(wishlistState.isSaved).toHaveBeenCalledWith('product-id');
     expect(engagementService.getProductReviewSummary).toHaveBeenCalledWith('summer-dress');
     expect(engagementService.listProductReviews).toHaveBeenCalledWith('summer-dress');
+    expect(storefrontAnalytics.trackProductView).toHaveBeenCalledWith('product-id', jasmine.any(String));
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Summer Dress');
     expect(compiled.textContent).toContain('A full product description.');
@@ -156,6 +164,7 @@ describe('ProductDetailPageComponent', () => {
       productVariantId: 'variant-id',
       quantity: 1
     });
+    expect(storefrontAnalytics.trackProductAddedToCart).toHaveBeenCalledWith('product-id', jasmine.any(String));
   });
 
   it('saves the product to wishlist', async () => {

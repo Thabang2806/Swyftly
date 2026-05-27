@@ -1,5 +1,6 @@
 import { SellerPolicyResponse } from '../shared/seller-policy.models';
 import { SellerVerificationEvidenceResponse } from '../seller/seller-verification-evidence.models';
+import { AdminQueueTriageFields } from './admin-queue-triage.models';
 
 export interface AdminSellerSummaryResponse {
   sellerId: string;
@@ -9,6 +10,11 @@ export interface AdminSellerSummaryResponse {
   storeSlug: string | null;
   verificationStatus: string;
   submittedAtUtc: string | null;
+}
+
+export interface AdminSellerOperationalSummaryResponse extends AdminSellerSummaryResponse, AdminQueueTriageFields {
+  updatedAtUtc: string;
+  detailRoute: string;
 }
 
 export interface AdminSellerDetailResponse {

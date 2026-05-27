@@ -63,3 +63,7 @@ if (Test-Path $assetsPath) {
 else {
     dotnet run --project $projectPath -- @seedArgs
 }
+
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}

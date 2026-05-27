@@ -151,6 +151,57 @@
   background: rgb(255 255 255 / 90%);
 }
 
+.seller-products-table--visual .seller-ops-table-row {
+  grid-template-columns: minmax(260px, 1.6fr) minmax(150px, 0.8fr) minmax(150px, 0.8fr) minmax(120px, 0.55fr) minmax(110px, 0.55fr);
+}
+
+.seller-product-identity {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.seller-product-identity span {
+  display: grid;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.seller-product-thumb {
+  width: 64px;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border: 1px solid rgb(216 194 173 / 74%);
+  background: #fffaf5;
+}
+
+.seller-product-thumb img,
+.seller-product-thumb app-product-visual-fallback {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.seller-product-thumb img {
+  object-fit: cover;
+}
+
+.product-editor-search-preview {
+  border: 1px solid rgb(216 194 173 / 74%);
+  background: #fffaf5;
+}
+
+.product-editor-search-preview h3 {
+  margin: 0.35rem 0;
+  font-family: var(--swyftly-editorial-font);
+  font-weight: 400;
+}
+
+.product-editor-context--stacked {
+  align-items: stretch;
+}
+
 .seller-onboarding {
   display: grid;
   gap: 1.25rem;
@@ -1724,6 +1775,17 @@
 .seller-scanner-field input {
   font-family: var(--swyftly-font-mono, monospace);
   letter-spacing: 0.02em;
+}
+
+.seller-report-schedule-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.seller-report-schedule-card .form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .seller-ops-page .mat-mdc-form-field,

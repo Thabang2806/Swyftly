@@ -56,7 +56,12 @@ public sealed class ProductSearchIndexer(
         var descriptionParts = new[]
             {
                 product.ShortDescription,
-                product.FullDescription
+                product.FullDescription,
+                product.SeoTitle,
+                product.SeoDescription,
+                product.MerchandisingLabel,
+                product.CareInstructions,
+                product.ProductDisclaimer
             }
             .Where(value => !string.IsNullOrWhiteSpace(value));
 

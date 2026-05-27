@@ -33,6 +33,10 @@ describe('SellerProductFormPageComponent', () => {
         'cancelRevision',
         'getVariantRevision',
         'updateVariantRevision',
+        'exportVariantRevisionCsv',
+        'downloadVariantRevisionTemplate',
+        'previewVariantRevisionImport',
+        'bulkStageVariantRevision',
         'submitVariantRevisionForReview',
         'cancelVariantRevision',
         'generateAiSuggestion',
@@ -47,6 +51,10 @@ describe('SellerProductFormPageComponent', () => {
     productService.updateVariantRevision.and.resolveTo(createVariantRevision({
       items: [createVariantRevisionItem({ operation: 'Update', sku: 'SKU-EDIT', price: 129 })]
     }));
+    productService.exportVariantRevisionCsv.and.resolveTo(new Blob(['operation,sourceVariantId'], { type: 'text/csv' }));
+    productService.downloadVariantRevisionTemplate.and.resolveTo(new Blob(['operation,sourceVariantId'], { type: 'text/csv' }));
+    productService.previewVariantRevisionImport.and.resolveTo(createVariantRevisionImportPreview());
+    productService.bulkStageVariantRevision.and.resolveTo(createVariantRevisionImportPreview());
     productService.submitVariantRevisionForReview.and.resolveTo(createVariantRevision({ status: 'PendingReview', canEdit: false }));
     productService.cancelVariantRevision.and.resolveTo(createVariantRevision({ status: 'Cancelled', canEdit: false }));
     productService.updateImage.and.resolveTo(createProductDetail({
@@ -128,7 +136,12 @@ describe('SellerProductFormPageComponent', () => {
       title: 'Summer Dress',
       slug: 'summer-dress',
       shortDescription: 'Short',
-      fullDescription: 'Full'
+      fullDescription: 'Full',
+      seoTitle: 'SEO summer dress',
+      seoDescription: 'SEO description for summer dress.',
+      merchandisingLabel: 'Seller pick',
+      careInstructions: 'Cold wash.',
+      productDisclaimer: 'Colour may vary.'
     });
     component.attributeForm.controls['size'].setValue('M');
 
@@ -136,6 +149,11 @@ describe('SellerProductFormPageComponent', () => {
 
     expect(productService.createProduct).toHaveBeenCalledWith(jasmine.objectContaining({
       categoryId: 'category-id',
+      seoTitle: 'SEO summer dress',
+      seoDescription: 'SEO description for summer dress.',
+      merchandisingLabel: 'Seller pick',
+      careInstructions: 'Cold wash.',
+      productDisclaimer: 'Colour may vary.',
       attributes: jasmine.objectContaining({ size: 'M' })
     }));
   });
@@ -291,6 +309,38 @@ describe('SellerProductFormPageComponent', () => {
         price: 129
       })]
     }));
+  });
+
+  it('bulk-stages published variant revision import rows', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const component = fixture.componentInstance as unknown as {
+      product: { set(value: unknown): void };
+      variantRevision: { set(value: unknown): void };
+      variantRevisionImportPreview: { set(value: unknown): void };
+      variantRevisionForm: {
+        patchValue(value: Record<string, unknown>): void;
+      };
+      bulkStageVariantRevisionImport(): Promise<void>;
+    };
+    component.product.set(createProductDetail({ status: 'Published', variants: [createVariant()] }));
+    component.variantRevision.set(createVariantRevision());
+    component.variantRevisionImportPreview.set(createVariantRevisionImportPreview());
+    component.variantRevisionForm.patchValue({ sellerReason: 'Seasonal CSV update.' });
+
+    await component.bulkStageVariantRevisionImport();
+
+    expect(productService.bulkStageVariantRevision).toHaveBeenCalledWith('product-id', jasmine.objectContaining({
+      sellerReason: 'Seasonal CSV update.',
+      items: [jasmine.objectContaining({
+        operation: 'Update',
+        sourceVariantId: 'variant-id',
+        sku: 'SKU-EDIT',
+        price: 129
+      })]
+    }));
+    expect(productService.getVariantRevision).toHaveBeenCalledWith('product-id');
   });
 
   it('generates an AI suggestion from the saved product draft', async () => {
@@ -497,6 +547,39 @@ function createVariantRevisionItem(overrides: Record<string, unknown> = {}) {
     initialStockQuantity: null,
     proposedStatus: 'Active',
     barcode: null,
+    ...overrides
+  };
+}
+
+function createVariantRevisionImportPreview(overrides: Record<string, unknown> = {}) {
+  return {
+    totalRows: 1,
+    validRows: 1,
+    errorRows: 0,
+    changedRows: 1,
+    unchangedRows: 0,
+    rows: [{
+      rowNumber: 2,
+      operation: 'Update',
+      sourceVariantId: 'variant-id',
+      currentSku: 'SKU-1',
+      currentSize: 'M',
+      currentColour: 'Black',
+      currentPrice: 100,
+      currentCompareAtPrice: null,
+      currentStatus: 'Active',
+      currentBarcode: null,
+      proposedSku: 'SKU-EDIT',
+      proposedSize: 'M',
+      proposedColour: 'Black',
+      proposedPrice: 129,
+      proposedCompareAtPrice: null,
+      proposedInitialStockQuantity: null,
+      proposedBarcode: null,
+      rowStatus: 'Changed',
+      validationMessages: []
+    }],
+    proposedFinalVariants: [createRevisionVariant({ sku: 'SKU-EDIT', price: 129, changeType: 'Update' })],
     ...overrides
   };
 }

@@ -5,12 +5,14 @@ import { environment } from '../../environments/environment';
 import {
   ApplySellerAiSuggestionRequest,
   AttachSellerProductImageRequest,
+  BulkStageSellerProductVariantRevisionRequest,
   GenerateSellerAiSuggestionRequest,
   SellerAiSuggestionResponse,
   SellerCatalogCategoryResponse,
   SellerProductDetailResponse,
   SellerProductRevisionResponse,
   SellerProductSummaryResponse,
+  SellerProductVariantRevisionBulkImportResponse,
   SellerProductVariantRevisionResponse,
   UpdateSellerProductImageRequest,
   UpsertSellerProductRequest,
@@ -139,6 +141,33 @@ export class SellerProductService {
     productId: string,
     request: UpsertSellerProductVariantRevisionRequest): Promise<SellerProductVariantRevisionResponse> {
     return firstValueFrom(this.http.put<SellerProductVariantRevisionResponse>(`${this.productBaseUrl}/${productId}/variant-revision`, request));
+  }
+
+  exportVariantRevisionCsv(productId: string): Promise<Blob> {
+    return firstValueFrom(this.http.get(`${this.productBaseUrl}/${productId}/variant-revision/export.csv`, { responseType: 'blob' }));
+  }
+
+  downloadVariantRevisionTemplate(productId: string): Promise<Blob> {
+    return firstValueFrom(this.http.get(`${this.productBaseUrl}/${productId}/variant-revision/import-template.csv`, { responseType: 'blob' }));
+  }
+
+  previewVariantRevisionImport(
+    productId: string,
+    file: File): Promise<SellerProductVariantRevisionBulkImportResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return firstValueFrom(this.http.post<SellerProductVariantRevisionBulkImportResponse>(
+      `${this.productBaseUrl}/${productId}/variant-revision/import/preview`,
+      formData));
+  }
+
+  bulkStageVariantRevision(
+    productId: string,
+    request: BulkStageSellerProductVariantRevisionRequest): Promise<SellerProductVariantRevisionBulkImportResponse> {
+    return firstValueFrom(this.http.post<SellerProductVariantRevisionBulkImportResponse>(
+      `${this.productBaseUrl}/${productId}/variant-revision/bulk-stage`,
+      request));
   }
 
   submitVariantRevisionForReview(productId: string): Promise<SellerProductVariantRevisionResponse> {

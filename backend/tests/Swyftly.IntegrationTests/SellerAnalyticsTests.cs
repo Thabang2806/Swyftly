@@ -12,11 +12,14 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Swyftly.Api.Analytics;
 using Swyftly.Api.Authentication;
 using Swyftly.Application.Identity;
+using Swyftly.Application.Notifications;
+using Swyftly.Application.Sellers;
 using Swyftly.Domain.Advertising;
 using Swyftly.Domain.Ai;
 using Swyftly.Domain.Catalog;
 using Swyftly.Domain.Disputes;
 using Swyftly.Domain.Inventory;
+using Swyftly.Domain.Notifications;
 using Swyftly.Domain.Orders;
 using Swyftly.Domain.Refunds;
 using Swyftly.Domain.Returns;
@@ -41,6 +44,86 @@ public sealed class SellerAnalyticsTests
         using var response = await client.GetAsync("/api/seller/analytics/summary");
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task StorefrontAnalytics_RecordsAnonymousProductViewAndDedupesByIdempotency()
+    {
+        using var factory = new SellerAnalyticsTestFactory();
+        using var client = factory.CreateClient();
+        var seller = await CreateSellerUserAsync(factory, client, "analytics-public-seller@example.test", verify: true);
+        Guid productId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<SwyftlyDbContext>();
+            var product = CreatePublishedProduct(seller.SellerId, "Public Funnel Product");
+            dbContext.Products.Add(product);
+            await dbContext.SaveChangesAsync();
+            productId = product.Id;
+        }
+
+        var payload = new
+        {
+            eventType = "ProductViewed",
+            productId,
+            anonymousVisitorId = "visitor_12345",
+            sourceRoute = "/product/public-funnel-product",
+            idempotencyKey = "product-view-public-funnel",
+            utmSource = "newsletter",
+            utmMedium = "email",
+            utmCampaign = "launch",
+            referrerHost = "mail.example.test",
+            sourceCategory = "Email"
+        };
+
+        using var first = await client.PostAsJsonAsync("/api/analytics/storefront-events", payload);
+        using var second = await client.PostAsJsonAsync("/api/analytics/storefront-events", payload);
+
+        Assert.Equal(HttpStatusCode.Accepted, first.StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, second.StatusCode);
+        using var verifyScope = factory.Services.CreateScope();
+        var verifyContext = verifyScope.ServiceProvider.GetRequiredService<SwyftlyDbContext>();
+        Assert.Equal(1, await verifyContext.SellerFunnelEvents.CountAsync(
+            funnelEvent => funnelEvent.SellerId == seller.SellerId
+                && funnelEvent.ProductId == productId
+                && funnelEvent.EventType == SellerFunnelEventType.ProductViewed
+                && funnelEvent.SourceCategory == "Email"
+                && funnelEvent.UtmSource == "newsletter"
+                && funnelEvent.ReferrerHost == "mail.example.test"));
+    }
+
+    [Fact]
+    public async Task StorefrontAnalytics_RejectsMalformedVisitorIdAndUnknownProduct()
+    {
+        using var factory = new SellerAnalyticsTestFactory();
+        using var client = factory.CreateClient();
+
+        using var malformed = await client.PostAsJsonAsync("/api/analytics/storefront-events", new
+        {
+            eventType = "ProductViewed",
+            productId = Guid.NewGuid(),
+            anonymousVisitorId = "bad visitor id",
+            sourceRoute = "/product/missing"
+        });
+        using var unknownProduct = await client.PostAsJsonAsync("/api/analytics/storefront-events", new
+        {
+            eventType = "ProductViewed",
+            productId = Guid.NewGuid(),
+            anonymousVisitorId = "visitor_12345",
+            sourceRoute = "/product/missing"
+        });
+        using var invalidSource = await client.PostAsJsonAsync("/api/analytics/storefront-events", new
+        {
+            eventType = "ProductViewed",
+            productId = Guid.NewGuid(),
+            anonymousVisitorId = "visitor_12345",
+            sourceRoute = "/product/missing",
+            sourceCategory = "Telepathy"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, malformed.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, unknownProduct.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, invalidSource.StatusCode);
     }
 
     [Fact]
@@ -73,6 +156,7 @@ public sealed class SellerAnalyticsTests
         Assert.Equal(1, analytics.AdPerformance.Impressions);
         Assert.Equal(1, analytics.AdPerformance.Clicks);
         Assert.Equal(1, analytics.AdPerformance.OrdersGenerated);
+        Assert.Equal(0.5m, analytics.ConversionRatePlaceholder);
         Assert.Equal(3, analytics.AiUsage.Requests);
         Assert.Equal(2, analytics.AiUsage.SuccessfulRequests);
         Assert.Equal(1, analytics.AiUsage.FailedRequests);
@@ -116,6 +200,25 @@ public sealed class SellerAnalyticsTests
         Assert.Equal(1, analytics.CustomerCareSummary.RefundCount);
         Assert.Equal(1, analytics.CustomerCareSummary.SupportTicketCount);
         Assert.Equal(1, analytics.CustomerCareSummary.DisputeCount);
+        Assert.Equal(2, analytics.FunnelSummary.ProductViews);
+        Assert.Equal(1, analytics.FunnelSummary.AddToCartCount);
+        Assert.Equal(1, analytics.FunnelSummary.PaidOrderCount);
+        Assert.Contains(analytics.SourceBreakdown, source =>
+            source.SourceCategory == "Email"
+            && source.ProductViews == 1
+            && source.TopUtmSource == "newsletter");
+        Assert.Contains(analytics.ProductFunnel, product =>
+            product.ProductTitle == "Seller One Product"
+            && product.ProductViews == 2
+            && product.AddToCartCount == 1
+            && product.DominantSourceCategory == "Email");
+
+        using var filteredResponse = await client.GetAsync($"/api/seller/analytics/performance?fromUtc={fromUtc}&toUtc={toUtc}&bucket=Day&sourceCategory=Email");
+        filteredResponse.EnsureSuccessStatusCode();
+        var filteredAnalytics = await filteredResponse.Content.ReadFromJsonAsync<SellerAnalyticsPerformanceResponse>();
+        Assert.NotNull(filteredAnalytics);
+        Assert.Equal(1, filteredAnalytics!.FunnelSummary.ProductViews);
+        Assert.All(filteredAnalytics.ProductFunnel, product => Assert.Equal("Email", product.DominantSourceCategory));
     }
 
     [Fact]
@@ -139,6 +242,14 @@ public sealed class SellerAnalyticsTests
         Assert.Contains("\"productId\",\"productTitle\",\"productSlug\"", csv);
         Assert.Contains("Seller One Product", csv);
         Assert.DoesNotContain("Other Seller Product", csv);
+
+        using var funnelResponse = await client.GetAsync($"/api/seller/analytics/export.csv?report=Funnel&fromUtc={fromUtc}&toUtc={toUtc}");
+        funnelResponse.EnsureSuccessStatusCode();
+        var funnelCsv = await funnelResponse.Content.ReadAsStringAsync();
+        Assert.Contains("\"productId\",\"productTitle\",\"productSlug\",\"dominantSourceCategory\"", funnelCsv);
+        Assert.Contains("Seller One Product", funnelCsv);
+        Assert.Contains("newsletter", funnelCsv);
+        Assert.DoesNotContain("Other Seller Product", funnelCsv);
     }
 
     [Fact]
@@ -154,10 +265,131 @@ public sealed class SellerAnalyticsTests
         using var badRange = await client.GetAsync($"/api/seller/analytics/performance?fromUtc={fromUtc}&toUtc={toUtc}");
         using var badBucket = await client.GetAsync("/api/seller/analytics/performance?bucket=Month");
         using var badReport = await client.GetAsync("/api/seller/analytics/export.csv?report=Unknown");
+        using var badSource = await client.GetAsync("/api/seller/analytics/performance?sourceCategory=UnknownChannel");
 
         Assert.Equal(HttpStatusCode.BadRequest, badRange.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, badBucket.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, badReport.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, badSource.StatusCode);
+    }
+
+    [Fact]
+    public async Task SellerAnalyticsReportSchedule_CanBeReadAndUpdatedByVerifiedSeller()
+    {
+        using var factory = new SellerAnalyticsTestFactory();
+        using var client = factory.CreateClient();
+        var seller = await CreateSellerUserAsync(factory, client, "analytics-schedule@example.test", verify: true);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.AccessToken);
+
+        using var getResponse = await client.GetAsync("/api/seller/analytics/report-schedule");
+        getResponse.EnsureSuccessStatusCode();
+        var defaultSchedule = await getResponse.Content.ReadFromJsonAsync<SellerReportScheduleResponse>();
+        Assert.NotNull(defaultSchedule);
+        Assert.False(defaultSchedule!.IsEnabled);
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            "/api/seller/analytics/report-schedule",
+            new SellerReportScheduleRequest(
+                IsEnabled: true,
+                Frequency: "Weekly",
+                ReportRange: "Last30Days",
+                SendDayOfWeek: "Monday",
+                SendDayOfMonth: null,
+                SendTimeLocal: "08:00",
+                TimeZoneId: "Africa/Johannesburg"));
+
+        updateResponse.EnsureSuccessStatusCode();
+        var updated = await updateResponse.Content.ReadFromJsonAsync<SellerReportScheduleResponse>();
+        Assert.NotNull(updated);
+        Assert.True(updated!.IsEnabled);
+        Assert.Equal("Weekly", updated.Frequency);
+        Assert.NotNull(updated.NextRunAtUtc);
+    }
+
+    [Fact]
+    public async Task SellerAnalyticsReportSchedule_RejectsUnverifiedSellerAndInvalidPayload()
+    {
+        using var factory = new SellerAnalyticsTestFactory();
+        using var client = factory.CreateClient();
+        var seller = await CreateSellerUserAsync(factory, client, "analytics-schedule-unverified@example.test");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.AccessToken);
+
+        using var conflict = await client.PutAsJsonAsync(
+            "/api/seller/analytics/report-schedule",
+            new SellerReportScheduleRequest(true, "Weekly", "Last30Days", "Monday", null, "08:00", "Africa/Johannesburg"));
+        using var invalid = await client.PutAsJsonAsync(
+            "/api/seller/analytics/report-schedule",
+            new SellerReportScheduleRequest(false, "Daily", "Last30Days", null, null, "8am", "Unknown/Zone"));
+
+        Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+    }
+
+    [Fact]
+    public async Task SellerAnalyticsReportSchedule_SendTestQueuesSellerNotificationAndEmail()
+    {
+        using var factory = new SellerAnalyticsTestFactory();
+        using var client = factory.CreateClient();
+        var seller = await CreateSellerUserAsync(factory, client, "analytics-schedule-test@example.test", verify: true);
+        await SeedAnalyticsDataAsync(factory, seller.SellerId, Guid.NewGuid());
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.AccessToken);
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/seller/analytics/report-schedule/send-test",
+            new { });
+
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<SellerReportDigestSendResult>();
+        Assert.NotNull(result);
+        Assert.True(result!.IsSuccess);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SwyftlyDbContext>();
+        var notification = await dbContext.Notifications.SingleAsync(
+            item => item.RecipientUserId == seller.UserId
+                && item.Type == SellerNotificationTypes.SellerAnalyticsDigestReady);
+        Assert.True(notification.IsInAppVisible);
+        Assert.Contains("gross sales", notification.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1, await dbContext.NotificationEmailDeliveries.CountAsync(
+            delivery => delivery.NotificationId == notification.Id));
+    }
+
+    [Fact]
+    public async Task SellerScheduledReportProcessor_SendsDueReportsOnce()
+    {
+        using var factory = new SellerAnalyticsTestFactory();
+        using var client = factory.CreateClient();
+        var seller = await CreateSellerUserAsync(factory, client, "analytics-schedule-worker@example.test", verify: true);
+        await SeedAnalyticsDataAsync(factory, seller.SellerId, Guid.NewGuid());
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SwyftlyDbContext>();
+        var now = DateTimeOffset.UtcNow;
+        var schedule = new SellerReportSchedule(seller.SellerId, now.AddDays(-1));
+        schedule.Update(
+            true,
+            SellerReportFrequency.Weekly,
+            SellerReportRange.Last7Days,
+            DayOfWeek.Monday,
+            null,
+            "08:00",
+            "Africa/Johannesburg",
+            now.AddMinutes(-1),
+            now.AddDays(-1));
+        dbContext.SellerReportSchedules.Add(schedule);
+        await dbContext.SaveChangesAsync();
+
+        var service = scope.ServiceProvider.GetRequiredService<ISellerScheduledReportService>();
+        var first = await service.ProcessDueReportsAsync(now);
+        var second = await service.ProcessDueReportsAsync(now.AddSeconds(5));
+
+        Assert.Equal(1, first.ProcessedCount);
+        Assert.Equal(1, first.SentCount);
+        Assert.Equal(0, second.ProcessedCount);
+        Assert.Equal(1, await dbContext.SellerReportScheduleRuns.CountAsync(run => run.SellerId == seller.SellerId));
+        Assert.Equal(1, await dbContext.Notifications.CountAsync(
+            notification => notification.RecipientUserId == seller.UserId
+                && notification.Type == SellerNotificationTypes.SellerAnalyticsDigestReady));
     }
 
     private static async Task RegisterAsync(HttpClient client, string email, string role)
@@ -169,10 +401,11 @@ public sealed class SellerAnalyticsTests
         response.EnsureSuccessStatusCode();
     }
 
-    private static async Task<(Guid SellerId, string AccessToken)> CreateSellerUserAsync(
+    private static async Task<(Guid SellerId, Guid UserId, string AccessToken)> CreateSellerUserAsync(
         SellerAnalyticsTestFactory factory,
         HttpClient client,
-        string email)
+        string email,
+        bool verify = false)
     {
         await RegisterAsync(client, email, SwyftlyRoles.Seller);
         var token = await LoginAsync(client, email);
@@ -187,7 +420,43 @@ public sealed class SellerAnalyticsTests
             .Select(seller => seller.Id)
             .SingleAsync();
 
-        return (sellerId, token);
+        if (verify)
+        {
+            var seller = await dbContext.SellerProfiles.SingleAsync(existing => existing.Id == sellerId);
+            VerifySeller(dbContext, seller);
+            await dbContext.SaveChangesAsync();
+        }
+
+        return (sellerId, user!.Id, token);
+    }
+
+    private static void VerifySeller(SwyftlyDbContext dbContext, SellerProfile seller)
+    {
+        seller.UpdateProfile(
+            $"Seller {seller.Id:N}"[..24],
+            $"seller-{seller.Id:N}@example.test",
+            "+27110000000",
+            SellerBusinessType.Individual,
+            null);
+        var storefront = new SellerStorefront(
+            seller.Id,
+            $"Store {seller.Id:N}"[..24],
+            $"store-{seller.Id:N}"[..32]);
+        storefront.Publish();
+        var address = new SellerAddress(
+            seller.Id,
+            "10 Market Street",
+            null,
+            "Johannesburg",
+            "Gauteng",
+            "2196",
+            "ZA");
+        var payout = new SellerPayoutProfilePlaceholder(seller.Id, $"provider-{seller.Id:N}");
+        payout.MarkAdminApproved(Guid.NewGuid(), DateTimeOffset.UtcNow);
+        seller.MarkVerified(storefront, address, payout);
+        dbContext.SellerStorefronts.Add(storefront);
+        dbContext.SellerAddresses.Add(address);
+        dbContext.SellerPayoutProfiles.Add(payout);
     }
 
     private static async Task<string> LoginAsync(HttpClient client, string email)
@@ -305,6 +574,106 @@ public sealed class SellerAnalyticsTests
         dbContext.AdClicks.Add(click);
         dbContext.AdCharges.Add(new AdCharge(campaign.Id, click.Id, 5m, "ZAR", "Click", DateTimeOffset.UtcNow));
         dbContext.AdConversions.Add(new AdConversion(campaign.Id, click.Id, sellerOneOrder.Id, sellerOneOrder.TotalAmount, "ZAR", DateTimeOffset.UtcNow));
+        dbContext.SellerFunnelEvents.AddRange(
+            new SellerFunnelEvent(
+                sellerOneId,
+                SellerFunnelEventType.StorefrontViewed,
+                DateTimeOffset.UtcNow.AddDays(-2),
+                hashedAnonymousVisitorId: "visitor-one-hash",
+                sourceRoute: "/seller/store-one",
+                idempotencyKey: "storefront-view-one",
+                utmSource: "newsletter",
+                utmMedium: "email",
+                utmCampaign: "winter-edit",
+                referrerHost: "mail.example.test",
+                sourceCategory: "Email"),
+            new SellerFunnelEvent(
+                sellerOneId,
+                SellerFunnelEventType.ProductViewed,
+                DateTimeOffset.UtcNow.AddDays(-2),
+                productId: sellerOneProduct.Id,
+                hashedAnonymousVisitorId: "visitor-one-hash",
+                sourceRoute: "/product/seller-one-product",
+                idempotencyKey: "product-view-one",
+                utmSource: "newsletter",
+                utmMedium: "email",
+                utmCampaign: "winter-edit",
+                referrerHost: "mail.example.test",
+                sourceCategory: "Email"),
+            new SellerFunnelEvent(
+                sellerOneId,
+                SellerFunnelEventType.ProductViewed,
+                DateTimeOffset.UtcNow.AddDays(-1),
+                productId: sellerOneProduct.Id,
+                hashedAnonymousVisitorId: "visitor-two-hash",
+                sourceRoute: "/product/seller-one-product",
+                idempotencyKey: "product-view-two",
+                referrerHost: "google.com",
+                sourceCategory: "Search"),
+            new SellerFunnelEvent(
+                sellerOneId,
+                SellerFunnelEventType.ProductAddedToCart,
+                DateTimeOffset.UtcNow.AddDays(-1),
+                productId: sellerOneProduct.Id,
+                hashedAnonymousVisitorId: "visitor-one-hash",
+                sourceRoute: "/product/seller-one-product",
+                idempotencyKey: "cart-one",
+                utmSource: "newsletter",
+                utmMedium: "email",
+                utmCampaign: "winter-edit",
+                referrerHost: "mail.example.test",
+                sourceCategory: "Email"),
+            new SellerFunnelEvent(
+                sellerOneId,
+                SellerFunnelEventType.CheckoutStarted,
+                DateTimeOffset.UtcNow.AddHours(-12),
+                cartId: sellerOneOrder.CartId,
+                buyerId: buyerId,
+                hashedAnonymousVisitorId: "visitor-one-hash",
+                sourceRoute: "/checkout",
+                idempotencyKey: "checkout-one",
+                utmSource: "newsletter",
+                utmMedium: "email",
+                utmCampaign: "winter-edit",
+                referrerHost: "mail.example.test",
+                sourceCategory: "Email"),
+            new SellerFunnelEvent(
+                sellerOneId,
+                SellerFunnelEventType.OrderCreated,
+                DateTimeOffset.UtcNow.AddHours(-10),
+                cartId: sellerOneOrder.CartId,
+                orderId: sellerOneOrder.Id,
+                buyerId: buyerId,
+                sourceRoute: "server",
+                idempotencyKey: $"OrderCreated:{sellerOneOrder.Id:N}",
+                utmSource: "newsletter",
+                utmMedium: "email",
+                utmCampaign: "winter-edit",
+                referrerHost: "mail.example.test",
+                sourceCategory: "Email"),
+            new SellerFunnelEvent(
+                sellerOneId,
+                SellerFunnelEventType.OrderPaid,
+                DateTimeOffset.UtcNow.AddHours(-8),
+                cartId: sellerOneOrder.CartId,
+                orderId: sellerOneOrder.Id,
+                buyerId: buyerId,
+                sourceRoute: "server",
+                idempotencyKey: $"OrderPaid:{sellerOneOrder.Id:N}",
+                utmSource: "newsletter",
+                utmMedium: "email",
+                utmCampaign: "winter-edit",
+                referrerHost: "mail.example.test",
+                sourceCategory: "Email"),
+            new SellerFunnelEvent(
+                sellerTwoId,
+                SellerFunnelEventType.ProductViewed,
+                DateTimeOffset.UtcNow.AddDays(-1),
+                productId: sellerTwoProduct.Id,
+                hashedAnonymousVisitorId: "other-visitor-hash",
+                sourceRoute: "/product/other-seller-product",
+                idempotencyKey: "other-product-view",
+                sourceCategory: "Direct"));
         dbContext.AiUsageLogs.AddRange(
             new AiUsageLog("ListingAssistant", "seller-user", sellerOneId, "fake-model", 10, 20, 0.01m, 100, true, null, DateTimeOffset.UtcNow),
             new AiUsageLog("ListingAssistant", "seller-user", sellerOneId, "fake-model", 10, 20, 0.01m, 110, true, null, DateTimeOffset.UtcNow),

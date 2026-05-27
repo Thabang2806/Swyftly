@@ -68,6 +68,11 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                 <div><dt>Updated</dt><dd>{{ product()?.updatedAtUtc | date:'medium' }}</dd></div>
                 <div><dt>Short description</dt><dd>{{ product()?.shortDescription ?? 'Not provided' }}</dd></div>
                 <div><dt>Full description</dt><dd>{{ product()?.fullDescription ?? 'Not provided' }}</dd></div>
+                <div><dt>Merchandising label</dt><dd>{{ product()?.merchandisingLabel ?? 'Not provided' }}</dd></div>
+                <div><dt>SEO title</dt><dd>{{ product()?.seoTitle ?? 'Not provided' }}</dd></div>
+                <div><dt>SEO description</dt><dd>{{ product()?.seoDescription ?? 'Not provided' }}</dd></div>
+                <div><dt>Product care</dt><dd>{{ product()?.careInstructions ?? 'Not provided' }}</dd></div>
+                <div><dt>Product disclaimer</dt><dd>{{ product()?.productDisclaimer ?? 'Not provided' }}</dd></div>
                 <div><dt>Tags</dt><dd>{{ product()?.tags?.length ? product()?.tags?.join(', ') : 'None' }}</dd></div>
                 @if (product()?.rejectionReason) {
                   <div><dt>Latest reason</dt><dd>{{ product()?.rejectionReason }}</dd></div>

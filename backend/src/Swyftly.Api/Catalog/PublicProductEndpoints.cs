@@ -286,6 +286,11 @@ public static class PublicProductEndpoints
                 (product.Title != null && product.Title.ToLower().Contains(normalized)) ||
                 (product.ShortDescription != null && product.ShortDescription.ToLower().Contains(normalized)) ||
                 (product.FullDescription != null && product.FullDescription.ToLower().Contains(normalized)) ||
+                (product.SeoTitle != null && product.SeoTitle.ToLower().Contains(normalized)) ||
+                (product.SeoDescription != null && product.SeoDescription.ToLower().Contains(normalized)) ||
+                (product.MerchandisingLabel != null && product.MerchandisingLabel.ToLower().Contains(normalized)) ||
+                (product.CareInstructions != null && product.CareInstructions.ToLower().Contains(normalized)) ||
+                (product.ProductDisclaimer != null && product.ProductDisclaimer.ToLower().Contains(normalized)) ||
                 product.TagsJson.ToLower().Contains(normalized));
         }
 
@@ -422,6 +427,7 @@ public static class PublicProductEndpoints
             product.Title,
             product.Slug,
             product.ShortDescription,
+            product.MerchandisingLabel,
             primaryImage?.Url,
             primaryImage?.AltText,
             variants.Min(variant => variant.Price),
@@ -476,6 +482,10 @@ public static class PublicProductEndpoints
         return new PublicProductDetailResponse(
             card,
             product.FullDescription,
+            product.SeoTitle,
+            product.SeoDescription,
+            product.CareInstructions,
+            product.ProductDisclaimer,
             attributes,
             images,
             variants,
@@ -571,6 +581,7 @@ public sealed record ProductSearchItemResponse(
     string? Title,
     string? Slug,
     string? ShortDescription,
+    string? MerchandisingLabel,
     string? PrimaryImageUrl,
     string? PrimaryImageAltText,
     decimal PriceMin,
@@ -582,6 +593,10 @@ public sealed record ProductSearchItemResponse(
 public sealed record PublicProductDetailResponse(
     ProductSearchItemResponse Product,
     string? FullDescription,
+    string? SeoTitle,
+    string? SeoDescription,
+    string? CareInstructions,
+    string? ProductDisclaimer,
     IReadOnlyDictionary<string, string> Attributes,
     IReadOnlyCollection<PublicProductImageResponse> Images,
     IReadOnlyCollection<PublicProductVariantResponse> Variants,

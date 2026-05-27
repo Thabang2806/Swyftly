@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -17,6 +17,7 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
   selector: 'app-admin-support-detail-page',
   imports: [
     DatePipe,
+    DecimalPipe,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
@@ -65,6 +66,9 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
                 <div><dt>Created by</dt><dd>{{ ticket()!.createdByRole }}</dd></div>
                 <div><dt>Category</dt><dd>{{ ticket()!.category }}</dd></div>
                 <div><dt>Opened</dt><dd>{{ ticket()!.openedAtUtc | date:'medium' }}</dd></div>
+                <div><dt>Priority</dt><dd>{{ ticket()!.priority }}</dd></div>
+                <div><dt>Assignee</dt><dd>{{ ticket()!.assignedSupportUserId ?? 'Unassigned' }}</dd></div>
+                <div><dt>Escalation</dt><dd>{{ ticket()!.escalationReason ?? 'None' }}</dd></div>
                 <div><dt>Buyer</dt><dd>{{ ticket()!.buyerId ?? 'None' }}</dd></div>
                 <div><dt>Seller</dt><dd>{{ ticket()!.sellerId ?? 'None' }}</dd></div>
                 <div><dt>Order</dt><dd>{{ ticket()!.linkedOrderId ?? 'None' }}</dd></div>
@@ -73,12 +77,36 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
               </dl>
 
               <div class="admin-finance-actions">
+                <button mat-stroked-button type="button" [disabled]="isSaving()" (click)="claimTicket()">Claim</button>
+                <button mat-stroked-button type="button" [disabled]="isSaving()" (click)="unclaimTicket()">Unclaim</button>
                 <button mat-stroked-button type="button" [disabled]="isSaving()" (click)="resolveTicket()">Resolve</button>
                 <button mat-flat-button type="button" [disabled]="isSaving()" (click)="closeTicket()">Close</button>
               </div>
             </section>
 
             <aside class="admin-finance-action-panel">
+              <h2>Operational triage</h2>
+              <form [formGroup]="triageForm" (ngSubmit)="triageTicket()" class="admin-finance-form" novalidate>
+                <mat-form-field appearance="outline">
+                  <mat-label>Priority</mat-label>
+                  <input matInput formControlName="priority" placeholder="Normal, High, Urgent" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Internal note</mat-label>
+                  <textarea matInput rows="3" formControlName="internalNote"></textarea>
+                </mat-form-field>
+                <button mat-stroked-button type="submit" [disabled]="isSaving()">Save triage</button>
+              </form>
+
+              <h2>Escalation</h2>
+              <form [formGroup]="escalationForm" (ngSubmit)="escalateTicket()" class="admin-finance-form" novalidate>
+                <mat-form-field appearance="outline">
+                  <mat-label>Escalation reason</mat-label>
+                  <textarea matInput rows="3" formControlName="reason"></textarea>
+                </mat-form-field>
+                <button mat-stroked-button type="submit" [disabled]="isSaving()">Escalate</button>
+              </form>
+
               <h2>Add support response</h2>
               <form [formGroup]="publicMessageForm" (ngSubmit)="addPublicMessage()" class="admin-finance-form" novalidate>
                 <mat-form-field appearance="outline">
@@ -98,6 +126,53 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
               </form>
             </aside>
           </div>
+
+          @if (ticket()!.customerContext) {
+            <section class="admin-finance-action-panel">
+              <h2>Customer context</h2>
+              <div class="admin-metric-grid">
+                @if (ticket()!.customerContext!.buyer) {
+                  <article class="admin-metric-card">
+                    <span>Buyer</span>
+                    <strong>{{ ticket()!.customerContext!.buyer!.displayName ?? ticket()!.customerContext!.buyer!.email ?? 'Buyer profile' }}</strong>
+                    <small>{{ ticket()!.customerContext!.buyer!.buyerId }}</small>
+                  </article>
+                }
+                @if (ticket()!.customerContext!.seller) {
+                  <article class="admin-metric-card">
+                    <span>Seller</span>
+                    <strong>{{ ticket()!.customerContext!.seller!.displayName ?? 'Seller profile' }}</strong>
+                    <small>{{ ticket()!.customerContext!.seller!.verificationStatus }}</small>
+                    <a [routerLink]="ticket()!.customerContext!.seller!.adminRoute">Open seller</a>
+                  </article>
+                }
+                @if (ticket()!.customerContext!.order) {
+                  <article class="admin-metric-card">
+                    <span>Order</span>
+                    <strong>{{ ticket()!.customerContext!.order!.status }}</strong>
+                    <small>{{ ticket()!.customerContext!.order!.totalAmount | number:'1.2-2' }}</small>
+                    <a [routerLink]="ticket()!.customerContext!.order!.adminRoute">Open order</a>
+                  </article>
+                }
+                @if (ticket()!.customerContext!.payment) {
+                  <article class="admin-metric-card">
+                    <span>Payment</span>
+                    <strong>{{ ticket()!.customerContext!.payment!.status }}</strong>
+                    <small>{{ ticket()!.customerContext!.payment!.provider }} {{ ticket()!.customerContext!.payment!.amount | number:'1.2-2' }} {{ ticket()!.customerContext!.payment!.currency }}</small>
+                    <a [routerLink]="ticket()!.customerContext!.payment!.adminRoute">Open payment</a>
+                  </article>
+                }
+                @if (ticket()!.customerContext!.product) {
+                  <article class="admin-metric-card">
+                    <span>Product</span>
+                    <strong>{{ ticket()!.customerContext!.product!.title ?? 'Product' }}</strong>
+                    <small>{{ ticket()!.customerContext!.product!.status }}</small>
+                    <a [routerLink]="ticket()!.customerContext!.product!.adminRoute">Open product</a>
+                  </article>
+                }
+              </div>
+            </section>
+          }
 
           <section class="admin-support-messages">
             <h2>Conversation and notes</h2>
@@ -138,6 +213,15 @@ export class AdminSupportDetailPageComponent implements OnInit {
     message: ['', [Validators.required]]
   });
 
+  protected readonly triageForm = this.formBuilder.group({
+    priority: ['Normal', [Validators.required]],
+    internalNote: ['']
+  });
+
+  protected readonly escalationForm = this.formBuilder.group({
+    reason: ['', [Validators.required]]
+  });
+
   async ngOnInit(): Promise<void> {
     await this.loadTicket();
   }
@@ -174,6 +258,42 @@ export class AdminSupportDetailPageComponent implements OnInit {
     await this.runAction(() => this.supportService.closeTicket(this.ticketId()), 'Ticket closed.');
   }
 
+  protected async claimTicket(): Promise<void> {
+    await this.runAction(() => this.supportService.claimTicket(this.ticketId()), 'Ticket claimed.');
+  }
+
+  protected async unclaimTicket(): Promise<void> {
+    await this.runAction(() => this.supportService.unclaimTicket(this.ticketId()), 'Ticket unclaimed.');
+  }
+
+  protected async triageTicket(): Promise<void> {
+    if (this.triageForm.invalid || this.isSaving()) {
+      this.triageForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.triageForm.getRawValue();
+    await this.runAction(
+      () => this.supportService.triageTicket(this.ticketId(), {
+        priority: value.priority,
+        internalNote: value.internalNote?.trim() || null
+      }),
+      'Triage saved.');
+    this.triageForm.patchValue({ internalNote: '' });
+  }
+
+  protected async escalateTicket(): Promise<void> {
+    if (this.escalationForm.invalid || this.isSaving()) {
+      this.escalationForm.markAllAsTouched();
+      return;
+    }
+
+    await this.runAction(
+      () => this.supportService.escalateTicket(this.ticketId(), this.escalationForm.getRawValue()),
+      'Ticket escalated.');
+    this.escalationForm.reset({ reason: '' });
+  }
+
   protected statusTone(status: string): StatusBadgeTone {
     if (['Open', 'WaitingForCustomer', 'WaitingForSeller', 'Escalated'].includes(status)) {
       return 'warning';
@@ -191,7 +311,9 @@ export class AdminSupportDetailPageComponent implements OnInit {
     this.errorMessage.set(null);
 
     try {
-      this.ticket.set(await this.supportService.getTicket(this.ticketId()));
+      const ticket = await this.supportService.getTicket(this.ticketId());
+      this.ticket.set(ticket);
+      this.triageForm.patchValue({ priority: ticket.priority || 'Normal' });
     } catch (error) {
       this.errorMessage.set(getApiErrorMessage(error));
     } finally {
@@ -208,7 +330,12 @@ export class AdminSupportDetailPageComponent implements OnInit {
     this.successMessage.set(null);
 
     try {
-      this.ticket.set(await action());
+      const ticket = await action();
+      this.ticket.set({
+        ...ticket,
+        customerContext: ticket.customerContext ?? this.ticket()?.customerContext ?? null
+      });
+      this.triageForm.patchValue({ priority: ticket.priority || 'Normal' });
       this.successMessage.set(successMessage);
     } catch (error) {
       this.errorMessage.set(getApiErrorMessage(error));

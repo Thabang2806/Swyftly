@@ -127,6 +127,11 @@ import { UiAlertComponent } from '../shared/ui/ui-alert.component';
           <div><dt>Category</dt><dd>{{ snapshot.categoryPath ?? 'No category' }}</dd></div>
           <div><dt>Short description</dt><dd>{{ snapshot.shortDescription ?? 'Not provided' }}</dd></div>
           <div><dt>Full description</dt><dd>{{ snapshot.fullDescription ?? 'Not provided' }}</dd></div>
+          <div><dt>Merchandising label</dt><dd>{{ snapshot.merchandisingLabel ?? 'Not provided' }}</dd></div>
+          <div><dt>SEO title</dt><dd>{{ snapshot.seoTitle ?? 'Not provided' }}</dd></div>
+          <div><dt>SEO description</dt><dd>{{ snapshot.seoDescription ?? 'Not provided' }}</dd></div>
+          <div><dt>Product care</dt><dd>{{ snapshot.careInstructions ?? 'Not provided' }}</dd></div>
+          <div><dt>Product disclaimer</dt><dd>{{ snapshot.productDisclaimer ?? 'Not provided' }}</dd></div>
           <div><dt>Tags</dt><dd>{{ snapshot.tags.length ? snapshot.tags.join(', ') : 'None' }}</dd></div>
           <div><dt>Images</dt><dd>{{ snapshot.images.length }}</dd></div>
         </dl>

@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Router, provideRouter } from '@angular/router';
+import { StorefrontAnalyticsService } from '../analytics/storefront-analytics.service';
 import { BuyerPaymentRedirectService, BuyerPaymentService } from '../buyer/buyer-payment.service';
 import { BuyerSettingsService } from '../buyer/buyer-settings.service';
 import { CartService } from '../cart/cart.service';
@@ -13,6 +14,7 @@ describe('CheckoutPageComponent', () => {
   let paymentService: jasmine.SpyObj<BuyerPaymentService>;
   let settingsService: jasmine.SpyObj<BuyerSettingsService>;
   let cartService: jasmine.SpyObj<CartService>;
+  let storefrontAnalytics: jasmine.SpyObj<StorefrontAnalyticsService>;
   let router: Router;
 
   beforeEach(async () => {
@@ -20,6 +22,7 @@ describe('CheckoutPageComponent', () => {
     paymentRedirectService = jasmine.createSpyObj<BuyerPaymentRedirectService>('BuyerPaymentRedirectService', ['redirect']);
     paymentService = jasmine.createSpyObj<BuyerPaymentService>('BuyerPaymentService', ['initiatePayment']);
     settingsService = jasmine.createSpyObj<BuyerSettingsService>('BuyerSettingsService', ['listDeliveryAddresses']);
+    storefrontAnalytics = jasmine.createSpyObj<StorefrontAnalyticsService>('StorefrontAnalyticsService', ['trackCheckoutStarted']);
     cartService.getCart.and.resolveTo(createCart());
     cartService.getShippingOptions.and.resolveTo(createShippingOptions());
     settingsService.listDeliveryAddresses.and.resolveTo([]);
@@ -61,7 +64,8 @@ describe('CheckoutPageComponent', () => {
         { provide: BuyerPaymentRedirectService, useValue: paymentRedirectService },
         { provide: BuyerPaymentService, useValue: paymentService },
         { provide: BuyerSettingsService, useValue: settingsService },
-        { provide: CartService, useValue: cartService }
+        { provide: CartService, useValue: cartService },
+        { provide: StorefrontAnalyticsService, useValue: storefrontAnalytics }
       ]
     }).compileComponents();
 
@@ -125,6 +129,7 @@ describe('CheckoutPageComponent', () => {
       deliveryMethodId: 'delivery-method-id',
       pickupPointId: null
     });
+    expect(storefrontAnalytics.trackCheckoutStarted).toHaveBeenCalledWith('cart-id', jasmine.any(String));
     expect(paymentService.initiatePayment).toHaveBeenCalledWith('order-id');
     expect(paymentRedirectService.redirect).toHaveBeenCalledWith('https://checkout.example.test/session');
     expect(router.navigate).not.toHaveBeenCalled();

@@ -10,6 +10,7 @@ using Swyftly.Application.Identity;
 using Swyftly.Application.Notifications;
 using Swyftly.Application.Search;
 using Swyftly.Domain.Ai;
+using Swyftly.Domain.Admin;
 using Swyftly.Domain.Catalog;
 using Swyftly.Domain.Sellers;
 using Swyftly.Infrastructure.Persistence;
@@ -66,6 +67,14 @@ public static class AdminProductEndpoints
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
+        group.MapGet("/moderation-items", GetModerationItemsAsync)
+            .WithName("GetAdminProductModerationItems")
+            .WithSummary("Returns products and published-product revisions for all-state admin moderation.")
+            .Produces<AdminPagedResponse<AdminProductModerationItemResponse>>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+
         group.MapGet("/variant-revisions/{revisionId:guid}", GetVariantRevisionByIdAsync)
             .WithName("GetAdminProductVariantRevision")
             .WithSummary("Returns a published product variant and pricing revision for admin review.")
@@ -114,6 +123,241 @@ public static class AdminProductEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         return app;
+    }
+
+    private static async Task<IResult> GetModerationItemsAsync(
+        string? view,
+        string? status,
+        string? search,
+        Guid? sellerId,
+        string? assigned,
+        string? priority,
+        bool? hasNotes,
+        string? sla,
+        Guid? savedViewId,
+        int? page,
+        int? pageSize,
+        string? sort,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var savedView = await AdminModerationQueueEndpoints.GetSavedViewForRequestAsync(savedViewId, principal, dbContext, cancellationToken);
+        view = AdminModerationQueueEndpoints.Merge(view, savedView?.View);
+        status = AdminModerationQueueEndpoints.Merge(status, savedView?.Status);
+        search = AdminModerationQueueEndpoints.Merge(search, savedView?.Search);
+        sellerId = AdminModerationQueueEndpoints.Merge(sellerId, savedView?.SellerId);
+        assigned = AdminModerationQueueEndpoints.Merge(assigned, savedView?.Assigned);
+        priority = AdminModerationQueueEndpoints.Merge(priority, savedView?.Priority);
+        hasNotes = AdminModerationQueueEndpoints.Merge(hasNotes, savedView?.HasNotes);
+        sla = AdminModerationQueueEndpoints.Merge(sla, savedView?.Sla);
+        pageSize = AdminModerationQueueEndpoints.Merge(pageSize, savedView?.PageSize);
+        sort = AdminModerationQueueEndpoints.Merge(sort, savedView?.Sort);
+
+        if (!AdminQueueSla.IsKnownStatus(sla))
+        {
+            return Validation("sla", "SLA filter must be OnTrack, DueSoon, or Overdue.");
+        }
+
+        var pageNumber = Math.Max(page ?? 1, 1);
+        var requestedPageSize = Math.Clamp(pageSize ?? 25, 1, 100);
+        var normalizedView = string.Equals(view, "All", StringComparison.OrdinalIgnoreCase) ? "All" : "NeedsAttention";
+        var normalizedSearch = search?.Trim();
+        var normalizedStatus = status?.Trim();
+        var normalizedSort = string.IsNullOrWhiteSpace(sort) ? "UpdatedDesc" : sort.Trim();
+        var now = timeProvider.GetUtcNow();
+
+        if (!string.IsNullOrWhiteSpace(normalizedStatus) && !IsKnownProductModerationStatus(normalizedStatus))
+        {
+            return Validation("status", "Unknown product moderation status.");
+        }
+
+        var sellerProfiles = await dbContext.SellerProfiles
+            .AsNoTracking()
+            .ToDictionaryAsync(item => item.Id, cancellationToken);
+        var items = new List<AdminProductModerationItemResponse>();
+
+        var products = await dbContext.Products
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+        foreach (var product in products)
+        {
+            if (sellerId.HasValue && product.SellerId != sellerId.Value)
+            {
+                continue;
+            }
+
+            sellerProfiles.TryGetValue(product.SellerId, out var seller);
+            var highRiskCount = await dbContext.AiModerationResults.CountAsync(
+                result => result.ProductId == product.Id
+                    && result.NeedsAdminReview
+                    && result.RiskLevel == AiModerationRiskLevel.High,
+                cancellationToken);
+            var variantCount = await dbContext.ProductVariants.CountAsync(
+                variant => variant.ProductId == product.Id,
+                cancellationToken);
+
+            items.Add(new AdminProductModerationItemResponse(
+                product.Id,
+                "Product",
+                product.Id,
+                null,
+                product.SellerId,
+                seller?.DisplayName,
+                seller?.VerificationStatus.ToString(),
+                product.Title,
+                await GetCategoryPathAsync(product.CategoryId, dbContext, cancellationToken),
+                product.Status.ToString(),
+                product.Status is ProductStatus.PendingReview or ProductStatus.NeedsAdminReview ? product.UpdatedAtUtc : null,
+                product.UpdatedAtUtc,
+                highRiskCount,
+                variantCount,
+                $"/admin/products/{product.Id}"));
+        }
+
+        var listingRevisions = await dbContext.ProductListingRevisions
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+        foreach (var revision in listingRevisions)
+        {
+            if (sellerId.HasValue && revision.SellerId != sellerId.Value)
+            {
+                continue;
+            }
+
+            sellerProfiles.TryGetValue(revision.SellerId, out var seller);
+            var product = products.FirstOrDefault(item => item.Id == revision.ProductId);
+            items.Add(new AdminProductModerationItemResponse(
+                revision.Id,
+                "ListingRevision",
+                revision.ProductId,
+                revision.Id,
+                revision.SellerId,
+                seller?.DisplayName,
+                seller?.VerificationStatus.ToString(),
+                revision.Title ?? product?.Title,
+                await GetCategoryPathAsync(revision.CategoryId ?? product?.CategoryId, dbContext, cancellationToken),
+                revision.Status.ToString(),
+                revision.SubmittedAtUtc,
+                revision.UpdatedAtUtc,
+                0,
+                await dbContext.ProductListingRevisionImages.CountAsync(image => image.RevisionId == revision.Id, cancellationToken),
+                $"/admin/products/revisions/{revision.Id}"));
+        }
+
+        var variantRevisions = await dbContext.ProductVariantRevisions
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+        foreach (var revision in variantRevisions)
+        {
+            if (sellerId.HasValue && revision.SellerId != sellerId.Value)
+            {
+                continue;
+            }
+
+            sellerProfiles.TryGetValue(revision.SellerId, out var seller);
+            var product = products.FirstOrDefault(item => item.Id == revision.ProductId);
+            items.Add(new AdminProductModerationItemResponse(
+                revision.Id,
+                "VariantRevision",
+                revision.ProductId,
+                revision.Id,
+                revision.SellerId,
+                seller?.DisplayName,
+                seller?.VerificationStatus.ToString(),
+                product?.Title,
+                await GetCategoryPathAsync(product?.CategoryId, dbContext, cancellationToken),
+                revision.Status.ToString(),
+                revision.SubmittedAtUtc,
+                revision.UpdatedAtUtc,
+                0,
+                await dbContext.ProductVariantRevisionItems.CountAsync(item => item.RevisionId == revision.Id, cancellationToken),
+                $"/admin/products/variant-revisions/{revision.Id}"));
+        }
+
+        var triageSummaries = await AdminQueueTriageEndpoints.GetTriageSummariesAsync(
+            dbContext,
+            items.Select(item => new AdminQueueItemKey(ParseModerationItemType(item.ItemType), item.Id)),
+            cancellationToken);
+        IEnumerable<AdminProductModerationItemResponse> filteredItems = items.Select(item =>
+        {
+            triageSummaries.TryGetValue(new AdminQueueItemKey(ParseModerationItemType(item.ItemType), item.Id), out var triage);
+            var slaState = AdminQueueSla.Calculate(ParseModerationItemType(item.ItemType), item.SubmittedAtUtc, item.UpdatedAtUtc, now);
+            return item with
+            {
+                AssignedToUserId = triage?.AssignedToUserId,
+                AssignedToDisplayName = triage?.AssignedToDisplayName,
+                Priority = triage?.Priority ?? AdminQueuePriority.Normal.ToString(),
+                LatestTriageNote = triage?.LatestTriageNote,
+                TriageNoteCount = triage?.TriageNoteCount ?? 0,
+                TriageUpdatedAtUtc = triage?.TriageUpdatedAtUtc,
+                AgeHours = slaState.AgeHours,
+                SlaStatus = slaState.SlaStatus,
+                SlaDueAtUtc = slaState.SlaDueAtUtc
+            };
+        });
+        filteredItems = filteredItems.Where(item => AdminQueueSla.Matches(new AdminQueueSlaResponse(item.AgeHours, item.SlaStatus, item.SlaDueAtUtc ?? DateTimeOffset.MinValue), sla));
+        if (string.IsNullOrWhiteSpace(normalizedStatus) && normalizedView == "NeedsAttention")
+        {
+            filteredItems = filteredItems.Where(item =>
+                (item.ItemType == "Product" && (item.Status == ProductStatus.PendingReview.ToString() || item.Status == ProductStatus.NeedsAdminReview.ToString()))
+                || (item.ItemType == "ListingRevision" && item.Status == ProductListingRevisionStatus.PendingReview.ToString())
+                || (item.ItemType == "VariantRevision" && item.Status == ProductVariantRevisionStatus.PendingReview.ToString()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedSearch))
+        {
+            filteredItems = filteredItems.Where(item => TextMatches(
+                normalizedSearch,
+                item.ItemType,
+                item.Title,
+                item.CategoryPath,
+                item.SellerDisplayName,
+                item.SellerVerificationStatus,
+                item.Status));
+        }
+
+        filteredItems = filteredItems.Where(item => AdminQueueTriageEndpoints.MatchesTriageFilters(
+            new AdminQueueTriageSummaryResponse(item.AssignedToUserId, item.AssignedToDisplayName, item.Priority, item.LatestTriageNote, item.TriageNoteCount, item.TriageUpdatedAtUtc),
+            assigned,
+            priority,
+            hasNotes,
+            principal));
+
+        var statusCountSource = filteredItems.ToList();
+        if (!string.IsNullOrWhiteSpace(normalizedStatus))
+        {
+            filteredItems = statusCountSource.Where(item => string.Equals(item.Status, normalizedStatus, StringComparison.OrdinalIgnoreCase));
+        }
+
+        filteredItems = normalizedSort.ToLowerInvariant() switch
+        {
+            "updatedasc" => filteredItems.OrderBy(item => item.UpdatedAtUtc),
+            "submitteddesc" => filteredItems.OrderByDescending(item => item.SubmittedAtUtc ?? DateTimeOffset.MinValue),
+            "submittedasc" => filteredItems.OrderBy(item => item.SubmittedAtUtc ?? DateTimeOffset.MaxValue),
+            "nameasc" => filteredItems.OrderBy(item => item.Title ?? string.Empty),
+            "namedesc" => filteredItems.OrderByDescending(item => item.Title ?? string.Empty),
+            "statusasc" => filteredItems.OrderBy(item => item.Status),
+            "statusdesc" => filteredItems.OrderByDescending(item => item.Status),
+            "typeasc" => filteredItems.OrderBy(item => item.ItemType),
+            "typedesc" => filteredItems.OrderByDescending(item => item.ItemType),
+            _ => filteredItems.OrderByDescending(item => item.UpdatedAtUtc)
+        };
+
+        var orderedItems = filteredItems.ToList();
+        var totalCount = orderedItems.Count;
+        var pagedItems = orderedItems
+            .Skip((pageNumber - 1) * requestedPageSize)
+            .Take(requestedPageSize)
+            .ToList();
+
+        return HttpResults.Ok(new AdminPagedResponse<AdminProductModerationItemResponse>(
+            pagedItems,
+            totalCount,
+            pageNumber,
+            requestedPageSize,
+            BuildStatusCounts(statusCountSource.Select(item => item.Status))));
     }
 
     private static async Task<IResult> GetPendingReviewAsync(
@@ -275,6 +519,11 @@ public static class AdminProductEndpoints
             product.ShortDescription,
             product.FullDescription,
             product.TagsJson,
+            product.SeoTitle,
+            product.SeoDescription,
+            product.MerchandisingLabel,
+            product.CareInstructions,
+            product.ProductDisclaimer,
             Attributes = await ReadProductAttributesForAuditAsync(product.Id, dbContext, cancellationToken)
         });
 
@@ -288,7 +537,12 @@ public static class AdminProductEndpoints
                 revision.Slug,
                 revision.ShortDescription,
                 revision.FullDescription,
-                revision.TagsJson);
+                revision.TagsJson,
+                revision.SeoTitle,
+                revision.SeoDescription,
+                revision.MerchandisingLabel,
+                revision.CareInstructions,
+                revision.ProductDisclaimer);
             revision.Approve(reviewedByUserId, timeProvider.GetUtcNow());
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
@@ -314,6 +568,11 @@ public static class AdminProductEndpoints
                 revision.ShortDescription,
                 revision.FullDescription,
                 revision.TagsJson,
+                revision.SeoTitle,
+                revision.SeoDescription,
+                revision.MerchandisingLabel,
+                revision.CareInstructions,
+                revision.ProductDisclaimer,
                 revision.AttributesJson
             }),
             null,
@@ -943,6 +1202,11 @@ public static class AdminProductEndpoints
             product.Slug,
             product.ShortDescription,
             product.FullDescription,
+            product.SeoTitle,
+            product.SeoDescription,
+            product.MerchandisingLabel,
+            product.CareInstructions,
+            product.ProductDisclaimer,
             ReadStringArray(product.TagsJson),
             product.Status.ToString(),
             product.RejectionReason,
@@ -1037,6 +1301,11 @@ public static class AdminProductEndpoints
                 product.Slug,
                 product.ShortDescription,
                 product.FullDescription,
+                product.SeoTitle,
+                product.SeoDescription,
+                product.MerchandisingLabel,
+                product.CareInstructions,
+                product.ProductDisclaimer,
                 ReadStringArray(product.TagsJson),
                 currentAttributes,
                 currentImages),
@@ -1048,6 +1317,11 @@ public static class AdminProductEndpoints
                 revision.Slug,
                 revision.ShortDescription,
                 revision.FullDescription,
+                revision.SeoTitle,
+                revision.SeoDescription,
+                revision.MerchandisingLabel,
+                revision.CareInstructions,
+                revision.ProductDisclaimer,
                 ReadStringArray(revision.TagsJson),
                 ReadRevisionAttributes(revision.AttributesJson),
                 proposedImages),
@@ -1570,6 +1844,34 @@ public static class AdminProductEndpoints
             ["reason"] = ["Reason is required."]
         });
 
+    private static bool IsKnownProductModerationStatus(string status) =>
+        Enum.TryParse<ProductStatus>(status, ignoreCase: true, out _)
+        || Enum.TryParse<ProductListingRevisionStatus>(status, ignoreCase: true, out _)
+        || Enum.TryParse<ProductVariantRevisionStatus>(status, ignoreCase: true, out _);
+
+    private static AdminQueueItemType ParseModerationItemType(string itemType) =>
+        itemType switch
+        {
+            "ListingRevision" => AdminQueueItemType.ListingRevision,
+            "VariantRevision" => AdminQueueItemType.VariantRevision,
+            _ => AdminQueueItemType.Product
+        };
+
+    private static bool TextMatches(string search, params string?[] values)
+    {
+        var normalizedSearch = search.Trim().ToLowerInvariant();
+        return values
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Any(value => value!.ToLowerInvariant().Contains(normalizedSearch, StringComparison.Ordinal));
+    }
+
+    private static IReadOnlyCollection<AdminStatusCountResponse> BuildStatusCounts(IEnumerable<string> statuses) =>
+        statuses
+            .GroupBy(status => status, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key)
+            .Select(group => new AdminStatusCountResponse(group.Key, group.Count()))
+            .ToArray();
+
     private static IResult Validation(string key, string message) =>
         HttpResults.ValidationProblem(new Dictionary<string, string[]>
         {
@@ -1618,6 +1920,32 @@ public sealed record AdminProductVariantRevisionSummaryResponse(
     DateTimeOffset? SubmittedAtUtc,
     DateTimeOffset UpdatedAtUtc);
 
+public sealed record AdminProductModerationItemResponse(
+    Guid Id,
+    string ItemType,
+    Guid ProductId,
+    Guid? RevisionId,
+    Guid SellerId,
+    string? SellerDisplayName,
+    string? SellerVerificationStatus,
+    string? Title,
+    string? CategoryPath,
+    string Status,
+    DateTimeOffset? SubmittedAtUtc,
+    DateTimeOffset UpdatedAtUtc,
+    int RiskFlagCount,
+    int ItemCount,
+    string DetailRoute,
+    Guid? AssignedToUserId = null,
+    string? AssignedToDisplayName = null,
+    string Priority = "Normal",
+    string? LatestTriageNote = null,
+    int TriageNoteCount = 0,
+    DateTimeOffset? TriageUpdatedAtUtc = null,
+    int AgeHours = 0,
+    string SlaStatus = "OnTrack",
+    DateTimeOffset? SlaDueAtUtc = null);
+
 public sealed record AdminProductDetailResponse(
     Guid ProductId,
     Guid SellerId,
@@ -1629,6 +1957,11 @@ public sealed record AdminProductDetailResponse(
     string? Slug,
     string? ShortDescription,
     string? FullDescription,
+    string? SeoTitle,
+    string? SeoDescription,
+    string? MerchandisingLabel,
+    string? CareInstructions,
+    string? ProductDisclaimer,
     IReadOnlyCollection<string> Tags,
     string Status,
     string? RejectionReason,
@@ -1662,6 +1995,11 @@ public sealed record AdminProductListingSnapshotResponse(
     string? Slug,
     string? ShortDescription,
     string? FullDescription,
+    string? SeoTitle,
+    string? SeoDescription,
+    string? MerchandisingLabel,
+    string? CareInstructions,
+    string? ProductDisclaimer,
     IReadOnlyCollection<string> Tags,
     IReadOnlyDictionary<string, string> Attributes,
     IReadOnlyCollection<AdminProductRevisionImageResponse> Images);

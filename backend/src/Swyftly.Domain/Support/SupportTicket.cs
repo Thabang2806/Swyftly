@@ -35,6 +35,7 @@ public sealed class SupportTicket : AuditableEntity
         SellerId = sellerId == Guid.Empty ? null : sellerId;
         Category = category;
         Status = SupportTicketStatus.Open;
+        Priority = SupportTicketPriority.Normal;
         Subject = Required(subject, nameof(subject), 200);
         Description = Required(description, nameof(description), 4000);
         LinkedOrderId = linkedOrderId == Guid.Empty ? null : linkedOrderId;
@@ -60,6 +61,8 @@ public sealed class SupportTicket : AuditableEntity
 
     public SupportTicketStatus Status { get; private set; }
 
+    public SupportTicketPriority Priority { get; private set; } = SupportTicketPriority.Normal;
+
     public string Subject { get; private set; } = string.Empty;
 
     public string Description { get; private set; } = string.Empty;
@@ -73,6 +76,12 @@ public sealed class SupportTicket : AuditableEntity
     public Guid? LinkedPaymentId { get; private set; }
 
     public Guid? AssignedSupportUserId { get; private set; }
+
+    public string? EscalationReason { get; private set; }
+
+    public DateTimeOffset? EscalatedAtUtc { get; private set; }
+
+    public Guid? EscalatedByUserId { get; private set; }
 
     public DateTimeOffset OpenedAtUtc { get; private set; }
 
@@ -115,6 +124,39 @@ public sealed class SupportTicket : AuditableEntity
         UpdatedAtUtc = createdAtUtc;
     }
 
+    public void Claim(Guid supportUserId, bool canOverride, DateTimeOffset changedAtUtc)
+    {
+        if (supportUserId == Guid.Empty)
+        {
+            throw new ArgumentException("Support user id is required.", nameof(supportUserId));
+        }
+
+        if (AssignedSupportUserId.HasValue && AssignedSupportUserId.Value != supportUserId && !canOverride)
+        {
+            throw new InvalidOperationException("Support ticket is already claimed by another support user.");
+        }
+
+        AssignedSupportUserId = supportUserId;
+        UpdatedAtUtc = changedAtUtc;
+    }
+
+    public void Unclaim(Guid supportUserId, bool canOverride, DateTimeOffset changedAtUtc)
+    {
+        if (AssignedSupportUserId.HasValue && AssignedSupportUserId.Value != supportUserId && !canOverride)
+        {
+            throw new InvalidOperationException("Only the current assignee, admin, or super admin can unclaim this ticket.");
+        }
+
+        AssignedSupportUserId = null;
+        UpdatedAtUtc = changedAtUtc;
+    }
+
+    public void SetPriority(SupportTicketPriority priority, DateTimeOffset changedAtUtc)
+    {
+        Priority = priority;
+        UpdatedAtUtc = changedAtUtc;
+    }
+
     public void Escalate(DateTimeOffset changedAtUtc)
     {
         if (Status == SupportTicketStatus.Closed)
@@ -124,6 +166,19 @@ public sealed class SupportTicket : AuditableEntity
 
         Status = SupportTicketStatus.Escalated;
         UpdatedAtUtc = changedAtUtc;
+    }
+
+    public void Escalate(Guid escalatedByUserId, string reason, DateTimeOffset changedAtUtc)
+    {
+        if (escalatedByUserId == Guid.Empty)
+        {
+            throw new ArgumentException("Escalated-by user id is required.", nameof(escalatedByUserId));
+        }
+
+        Escalate(changedAtUtc);
+        EscalatedByUserId = escalatedByUserId;
+        EscalatedAtUtc = changedAtUtc;
+        EscalationReason = Required(reason, nameof(reason), 1000);
     }
 
     public void Resolve(DateTimeOffset resolvedAtUtc)

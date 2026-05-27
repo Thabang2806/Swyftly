@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using Swyftly.Application.Advertising;
+using Swyftly.Application.Analytics;
 using Swyftly.Application.Common.Errors;
 using Swyftly.Application.Common.Results;
 using Swyftly.Application.Common.Validation;
@@ -21,6 +22,7 @@ public sealed class EfPaymentService(
     IPaymentProvider paymentProvider,
     ILedgerService ledgerService,
     IAdTrackingService adTrackingService,
+    IStorefrontAnalyticsService storefrontAnalyticsService,
     IOptions<PaymentProviderOptions> paymentOptions,
     TimeProvider timeProvider) : IPaymentService
 {
@@ -173,6 +175,8 @@ public sealed class EfPaymentService(
             now);
         dbContext.PaymentEvents.Add(paymentEvent);
 
+        var shouldRecordOrderPaidFunnelEvent = false;
+
         if (payment is null)
         {
             paymentEvent.MarkFailed("Payment was not found for provider reference.", now);
@@ -210,6 +214,7 @@ public sealed class EfPaymentService(
             {
                 await ProcessSuccessfulPaymentAsync(payment, order, now, cancellationToken);
                 paymentEvent.MarkProcessed(payment.Id, now);
+                shouldRecordOrderPaidFunnelEvent = true;
             }
         }
         else if (IsAuthorizedStatus(parsedEvent.Status))
@@ -245,6 +250,10 @@ public sealed class EfPaymentService(
         {
             await dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            if (shouldRecordOrderPaidFunnelEvent)
+            {
+                await storefrontAnalyticsService.RecordOrderPaidAsync(order.Id, cancellationToken);
+            }
         }
         catch (DbUpdateException exception) when (IsDuplicatePaymentEventViolation(exception))
         {

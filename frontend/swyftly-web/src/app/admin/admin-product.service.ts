@@ -1,10 +1,12 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { AdminOperationalListQuery, AdminPagedResponse } from './admin-operational-list.models';
 import {
   AdminProductApproveRequest,
   AdminProductDetailResponse,
+  AdminProductModerationItemResponse,
   AdminProductReasonRequest,
   AdminProductRevisionDetailResponse,
   AdminProductRevisionSummaryResponse,
@@ -17,6 +19,14 @@ import {
 export class AdminProductService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiBaseUrl}/api/admin/products`;
+
+  getModerationItems(query: AdminOperationalListQuery = {}): Promise<AdminPagedResponse<AdminProductModerationItemResponse>> {
+    return firstValueFrom(
+      this.http.get<AdminPagedResponse<AdminProductModerationItemResponse>>(`${this.baseUrl}/moderation-items`, {
+        params: buildAdminOperationalParams(query)
+      })
+    );
+  }
 
   getPendingReviewProducts(): Promise<AdminProductSummaryResponse[]> {
     return firstValueFrom(this.http.get<AdminProductSummaryResponse[]>(`${this.baseUrl}/pending-review`));
@@ -69,4 +79,15 @@ export class AdminProductService {
   rejectVariantRevision(revisionId: string, request: AdminProductReasonRequest): Promise<AdminProductVariantRevisionDetailResponse> {
     return firstValueFrom(this.http.post<AdminProductVariantRevisionDetailResponse>(`${this.baseUrl}/variant-revisions/${revisionId}/reject`, request));
   }
+}
+
+function buildAdminOperationalParams(query: AdminOperationalListQuery): HttpParams {
+  let params = new HttpParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      params = params.set(key, String(value));
+    }
+  });
+
+  return params;
 }

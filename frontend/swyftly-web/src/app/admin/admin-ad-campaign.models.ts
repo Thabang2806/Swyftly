@@ -1,4 +1,5 @@
 import { AdminAuditLogResponse } from './admin-seller.models';
+import { AdminQueueTriageFields } from './admin-queue-triage.models';
 
 export interface AdminAdCampaignSummaryResponse {
   adCampaignId: string;
@@ -13,6 +14,12 @@ export interface AdminAdCampaignSummaryResponse {
   productCount: number;
   totalBudget: number | null;
   currency: string | null;
+}
+
+export interface AdminAdCampaignOperationalSummaryResponse extends AdminAdCampaignSummaryResponse, AdminQueueTriageFields {
+  sellerVerificationStatus: string | null;
+  updatedAtUtc: string;
+  detailRoute: string;
 }
 
 export interface AdminAdCampaignDetailResponse {

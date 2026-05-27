@@ -18,7 +18,7 @@ export interface SellerNotificationsReadAllResponse {
   updatedCount: number;
 }
 
-export type SellerNotificationPreferenceCategory = 'Verification' | 'Products' | 'Revisions' | 'Ads';
+export type SellerNotificationPreferenceCategory = 'Verification' | 'Products' | 'Revisions' | 'Ads' | 'Reports';
 
 export interface SellerNotificationPreferenceRequest {
   category: SellerNotificationPreferenceCategory;

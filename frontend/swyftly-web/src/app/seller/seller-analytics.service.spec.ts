@@ -40,27 +40,32 @@ describe('SellerAnalyticsService', () => {
     const promise = service.getPerformance({
       fromUtc: '2026-05-01T00:00:00.000Z',
       toUtc: '2026-05-31T00:00:00.000Z',
-      bucket: 'Week'
+      bucket: 'Week',
+      sourceCategory: 'Email'
     });
 
     const request = httpTestingController.expectOne(req =>
       req.url === `${environment.apiBaseUrl}/api/seller/analytics/performance`
       && req.params.get('fromUtc') === '2026-05-01T00:00:00.000Z'
       && req.params.get('toUtc') === '2026-05-31T00:00:00.000Z'
-      && req.params.get('bucket') === 'Week');
+      && req.params.get('bucket') === 'Week'
+      && req.params.get('sourceCategory') === 'Email');
     expect(request.request.method).toBe('GET');
     request.flush(createPerformance());
 
     const response = await promise;
     expect(response.salesTrend[0].grossSales).toBe(998);
     expect(response.productPerformance[0].productTitle).toBe('Seller One Product');
+    expect(response.funnelSummary.productViews).toBe(10);
+    expect(response.sourceBreakdown[0].sourceCategory).toBe('Email');
   });
 
   it('builds seller analytics csv export urls', () => {
     const url = service.getCsvExportUrl('Products', {
       fromUtc: '2026-05-01T00:00:00.000Z',
       toUtc: '2026-05-31T00:00:00.000Z',
-      bucket: 'Day'
+      bucket: 'Day',
+      sourceCategory: 'Referral'
     });
 
     expect(url).toContain(`${environment.apiBaseUrl}/api/seller/analytics/export.csv?`);
@@ -68,6 +73,43 @@ describe('SellerAnalyticsService', () => {
     expect(url).toContain('fromUtc=2026-05-01T00:00:00.000Z');
     expect(url).toContain('toUtc=2026-05-31T00:00:00.000Z');
     expect(url).toContain('bucket=Day');
+    expect(url).toContain('sourceCategory=Referral');
+
+    const funnelUrl = service.getCsvExportUrl('Funnel');
+    expect(funnelUrl).toContain('report=Funnel');
+  });
+
+  it('loads and updates the scheduled report settings', async () => {
+    const getPromise = service.getReportSchedule();
+    const getRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/seller/analytics/report-schedule`);
+    expect(getRequest.request.method).toBe('GET');
+    getRequest.flush(createSchedule());
+    expect((await getPromise).frequency).toBe('Weekly');
+
+    const updatePromise = service.updateReportSchedule({
+      isEnabled: true,
+      frequency: 'Weekly',
+      reportRange: 'Last30Days',
+      sendDayOfWeek: 'Monday',
+      sendDayOfMonth: null,
+      sendTimeLocal: '08:00',
+      timeZoneId: 'Africa/Johannesburg'
+    });
+    const updateRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/seller/analytics/report-schedule`);
+    expect(updateRequest.request.method).toBe('PUT');
+    expect(updateRequest.request.body.isEnabled).toBeTrue();
+    updateRequest.flush(createSchedule());
+    expect((await updatePromise).isEnabled).toBeTrue();
+  });
+
+  it('sends a test seller analytics digest', async () => {
+    const promise = service.sendTestReportDigest();
+
+    const request = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/seller/analytics/report-schedule/send-test`);
+    expect(request.request.method).toBe('POST');
+    request.flush({ isSuccess: true, notificationId: 'notification-id', failureReason: null });
+
+    expect((await promise).notificationId).toBe('notification-id');
   });
 });
 
@@ -153,6 +195,74 @@ function createPerformance() {
       openSupportTicketCount: 1,
       disputeCount: 1,
       activeDisputeCount: 1
-    }
+    },
+    funnelSummary: {
+      storefrontViews: 3,
+      productViews: 10,
+      addToCartCount: 2,
+      checkoutStartCount: 1,
+      orderCreatedCount: 1,
+      paidOrderCount: 1,
+      productViewToCartRate: 0.2,
+      checkoutToPaidRate: 1
+    },
+    funnelTrend: [{
+      periodStartUtc: '2026-05-01T00:00:00.000Z',
+      periodEndUtc: '2026-05-08T00:00:00.000Z',
+      storefrontViews: 3,
+      productViews: 10,
+      addToCartCount: 2,
+      checkoutStartCount: 1,
+      orderCreatedCount: 1,
+      paidOrderCount: 1,
+      productViewToCartRate: 0.2,
+      checkoutToPaidRate: 1
+    }],
+    productFunnel: [{
+      productId: 'product-id',
+      productTitle: 'Seller One Product',
+      productSlug: 'seller-one-product',
+      productViews: 10,
+      addToCartCount: 2,
+      paidOrderCount: 1,
+      revenue: 998,
+      productViewToCartRate: 0.2,
+      productViewToPaidRate: 0.1,
+      dominantSourceCategory: 'Email',
+      topUtmSource: 'newsletter',
+      topReferrerHost: null
+    }],
+    sourceBreakdown: [{
+      sourceCategory: 'Email',
+      storefrontViews: 3,
+      productViews: 10,
+      addToCartCount: 2,
+      checkoutStartCount: 1,
+      orderCreatedCount: 1,
+      paidOrderCount: 1,
+      productViewToCartRate: 0.2,
+      checkoutToPaidRate: 1,
+      topUtmSource: 'newsletter',
+      topReferrerHost: null
+    }]
+  };
+}
+
+function createSchedule() {
+  return {
+    scheduleId: 'schedule-id',
+    isEnabled: true,
+    frequency: 'Weekly',
+    reportRange: 'Last30Days',
+    sendDayOfWeek: 'Monday',
+    sendDayOfMonth: null,
+    sendTimeLocal: '08:00',
+    timeZoneId: 'Africa/Johannesburg',
+    nextRunAtUtc: '2026-05-04T06:00:00.000Z',
+    lastSentAtUtc: null,
+    lastReportPeriodStartUtc: null,
+    lastReportPeriodEndUtc: null,
+    lastFailureReason: null,
+    lastFailedAtUtc: null
   };
 }

@@ -4,6 +4,12 @@ namespace Swyftly.Domain.Catalog;
 
 public sealed class Product : AuditableEntity
 {
+    public const int SeoTitleMaxLength = 70;
+    public const int SeoDescriptionMaxLength = 170;
+    public const int MerchandisingLabelMaxLength = 60;
+    public const int CareInstructionsMaxLength = 1000;
+    public const int ProductDisclaimerMaxLength = 1000;
+
     private Product()
     {
     }
@@ -35,6 +41,16 @@ public sealed class Product : AuditableEntity
 
     public string TagsJson { get; private set; } = "[]";
 
+    public string? SeoTitle { get; private set; }
+
+    public string? SeoDescription { get; private set; }
+
+    public string? MerchandisingLabel { get; private set; }
+
+    public string? CareInstructions { get; private set; }
+
+    public string? ProductDisclaimer { get; private set; }
+
     public ProductStatus Status { get; private set; }
 
     public string? RejectionReason { get; private set; }
@@ -49,7 +65,12 @@ public sealed class Product : AuditableEntity
         string? title,
         string? slug,
         string? shortDescription,
-        string? fullDescription)
+        string? fullDescription,
+        string? seoTitle = null,
+        string? seoDescription = null,
+        string? merchandisingLabel = null,
+        string? careInstructions = null,
+        string? productDisclaimer = null)
     {
         EnsureSellerEditable();
 
@@ -69,6 +90,12 @@ public sealed class Product : AuditableEntity
         Slug = NormalizeSlugOrNull(slug);
         ShortDescription = TrimOrNull(shortDescription);
         FullDescription = TrimOrNull(fullDescription);
+        UpdateMerchandisingFields(
+            seoTitle,
+            seoDescription,
+            merchandisingLabel,
+            careInstructions,
+            productDisclaimer);
     }
 
     public void UpdateTags(string tagsJson)
@@ -176,7 +203,12 @@ public sealed class Product : AuditableEntity
         string? slug,
         string? shortDescription,
         string? fullDescription,
-        string tagsJson)
+        string tagsJson,
+        string? seoTitle = null,
+        string? seoDescription = null,
+        string? merchandisingLabel = null,
+        string? careInstructions = null,
+        string? productDisclaimer = null)
     {
         if (Status != ProductStatus.Published)
         {
@@ -200,6 +232,26 @@ public sealed class Product : AuditableEntity
         ShortDescription = TrimOrNull(shortDescription);
         FullDescription = TrimOrNull(fullDescription);
         TagsJson = Required(tagsJson, nameof(tagsJson));
+        UpdateMerchandisingFields(
+            seoTitle,
+            seoDescription,
+            merchandisingLabel,
+            careInstructions,
+            productDisclaimer);
+    }
+
+    private void UpdateMerchandisingFields(
+        string? seoTitle,
+        string? seoDescription,
+        string? merchandisingLabel,
+        string? careInstructions,
+        string? productDisclaimer)
+    {
+        SeoTitle = Optional(seoTitle, nameof(seoTitle), SeoTitleMaxLength);
+        SeoDescription = Optional(seoDescription, nameof(seoDescription), SeoDescriptionMaxLength);
+        MerchandisingLabel = Optional(merchandisingLabel, nameof(merchandisingLabel), MerchandisingLabelMaxLength);
+        CareInstructions = Optional(careInstructions, nameof(careInstructions), CareInstructionsMaxLength);
+        ProductDisclaimer = Optional(productDisclaimer, nameof(productDisclaimer), ProductDisclaimerMaxLength);
     }
 
     private void EnsureSellerEditable()
@@ -225,6 +277,17 @@ public sealed class Product : AuditableEntity
     {
         var trimmed = value?.Trim();
         return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
+    private static string? Optional(string? value, string parameterName, int maxLength)
+    {
+        var trimmed = TrimOrNull(value);
+        if (trimmed is not null && trimmed.Length > maxLength)
+        {
+            throw new ArgumentException($"Value cannot exceed {maxLength} characters.", parameterName);
+        }
+
+        return trimmed;
     }
 
     private static string? NormalizeSlugOrNull(string? slug)

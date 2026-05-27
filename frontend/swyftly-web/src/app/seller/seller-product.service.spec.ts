@@ -181,6 +181,63 @@ describe('SellerProductService', () => {
     updateRequest.flush(createVariantRevision({ items: [createVariantRevisionItem()] }));
     await expectAsync(updatePromise).toBeResolved();
 
+    const exportPromise = service.exportVariantRevisionCsv('product-id');
+    const exportRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/seller/products/product-id/variant-revision/export.csv`);
+    expect(exportRequest.request.method).toBe('GET');
+    expect(exportRequest.request.responseType).toBe('blob');
+    exportRequest.flush(new Blob(['operation,sourceVariantId']));
+    await expectAsync(exportPromise).toBeResolved();
+
+    const templatePromise = service.downloadVariantRevisionTemplate('product-id');
+    const templateRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/seller/products/product-id/variant-revision/import-template.csv`);
+    expect(templateRequest.request.method).toBe('GET');
+    expect(templateRequest.request.responseType).toBe('blob');
+    templateRequest.flush(new Blob(['operation,sourceVariantId']));
+    await expectAsync(templatePromise).toBeResolved();
+
+    const previewPromise = service.previewVariantRevisionImport('product-id', new File(['csv'], 'variants.csv', { type: 'text/csv' }));
+    const previewRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/seller/products/product-id/variant-revision/import/preview`);
+    expect(previewRequest.request.method).toBe('POST');
+    expect(previewRequest.request.body instanceof FormData).toBeTrue();
+    previewRequest.flush({
+      totalRows: 1,
+      validRows: 1,
+      errorRows: 0,
+      changedRows: 1,
+      unchangedRows: 0,
+      rows: [],
+      proposedFinalVariants: []
+    });
+    await expectAsync(previewPromise).toBeResolved();
+
+    const bulkPromise = service.bulkStageVariantRevision('product-id', {
+      sellerReason: 'CSV update.',
+      items: [{
+        operation: 'Update',
+        sourceVariantId: 'variant-id',
+        sku: 'SKU-EDIT',
+        size: 'M',
+        colour: 'Black',
+        price: 120,
+        compareAtPrice: null,
+        initialStockQuantity: null,
+        barcode: null
+      }]
+    });
+    const bulkRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/seller/products/product-id/variant-revision/bulk-stage`);
+    expect(bulkRequest.request.method).toBe('POST');
+    expect(bulkRequest.request.body.sellerReason).toBe('CSV update.');
+    bulkRequest.flush({
+      totalRows: 1,
+      validRows: 1,
+      errorRows: 0,
+      changedRows: 1,
+      unchangedRows: 0,
+      rows: [],
+      proposedFinalVariants: []
+    });
+    await expectAsync(bulkPromise).toBeResolved();
+
     const submitPromise = service.submitVariantRevisionForReview('product-id');
     const submitRequest = httpTestingController.expectOne(`${environment.apiBaseUrl}/api/seller/products/product-id/variant-revision/submit-review`);
     expect(submitRequest.request.method).toBe('POST');

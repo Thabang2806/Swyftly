@@ -158,6 +158,40 @@ public class ProductTests
             "Full description"));
     }
 
+    [Fact]
+    public void MerchandisingAndSeoFields_AreTrimmedAndLengthValidated()
+    {
+        var product = new Product(Guid.NewGuid());
+
+        product.UpdateDraftDetails(
+            Guid.NewGuid(),
+            null,
+            "Summer Dress",
+            "summer-dress",
+            "Short description",
+            "Full description",
+            "  SEO title  ",
+            "  SEO description  ",
+            "  Seller pick  ",
+            "  Cold wash  ",
+            "  Colour may vary  ");
+
+        Assert.Equal("SEO title", product.SeoTitle);
+        Assert.Equal("SEO description", product.SeoDescription);
+        Assert.Equal("Seller pick", product.MerchandisingLabel);
+        Assert.Equal("Cold wash", product.CareInstructions);
+        Assert.Equal("Colour may vary", product.ProductDisclaimer);
+
+        Assert.Throws<ArgumentException>(() => product.UpdateDraftDetails(
+            Guid.NewGuid(),
+            null,
+            "Summer Dress",
+            "summer-dress",
+            "Short description",
+            "Full description",
+            new string('x', Product.SeoTitleMaxLength + 1)));
+    }
+
     private static Product CreateSubmittableProduct()
     {
         var product = new Product(Guid.NewGuid());

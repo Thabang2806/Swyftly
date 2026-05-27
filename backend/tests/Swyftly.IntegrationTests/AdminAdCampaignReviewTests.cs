@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Swyftly.Api.Admin;
 using Swyftly.Api.Advertising;
 using Swyftly.Api.Authentication;
 using Swyftly.Application.Identity;
@@ -41,6 +42,38 @@ public sealed class AdminAdCampaignReviewTests
         var pendingCampaign = Assert.Single(campaigns!, item => item.AdCampaignId == campaign.AdCampaignId);
         Assert.Equal("PendingReview", pendingCampaign.Status);
         Assert.Equal("Review Seller", pendingCampaign.SellerDisplayName);
+    }
+
+    [Fact]
+    public async Task Admin_CanListOperationalAdCampaigns_WithAllStateFilters()
+    {
+        using var factory = new AdminAdCampaignReviewTestFactory();
+        using var client = factory.CreateClient();
+        var campaign = await CreatePendingCampaignAsync(factory);
+        var adminToken = await CreateAndLoginAdminAsync(factory, client);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        using var needsAttentionResponse = await client.GetAsync("/api/admin/ad-campaigns");
+        needsAttentionResponse.EnsureSuccessStatusCode();
+        var needsAttention = await needsAttentionResponse.Content.ReadFromJsonAsync<AdminPagedResponse<AdminAdCampaignOperationalSummaryResponse>>();
+        Assert.NotNull(needsAttention);
+        var pendingCampaign = Assert.Single(needsAttention!.Items, item => item.AdCampaignId == campaign.AdCampaignId);
+        Assert.Equal("PendingReview", pendingCampaign.Status);
+        Assert.Equal($"/admin/ads/{campaign.AdCampaignId}", pendingCampaign.DetailRoute);
+
+        using var approveResponse = await client.PostAsJsonAsync(
+            $"/api/admin/ad-campaigns/{campaign.AdCampaignId}/approve",
+            new { });
+        approveResponse.EnsureSuccessStatusCode();
+
+        using var allStateResponse = await client.GetAsync("/api/admin/ad-campaigns?view=All&status=Active&search=Launch&page=1&pageSize=10&sort=UpdatedDesc");
+        allStateResponse.EnsureSuccessStatusCode();
+        var allState = await allStateResponse.Content.ReadFromJsonAsync<AdminPagedResponse<AdminAdCampaignOperationalSummaryResponse>>();
+        Assert.NotNull(allState);
+        var activeCampaign = Assert.Single(allState!.Items, item => item.AdCampaignId == campaign.AdCampaignId);
+        Assert.Equal("Active", activeCampaign.Status);
+        Assert.Contains(allState.StatusCounts, count => count.Status == "Active" && count.Count >= 1);
     }
 
     [Fact]

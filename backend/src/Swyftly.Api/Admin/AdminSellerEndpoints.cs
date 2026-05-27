@@ -7,6 +7,7 @@ using Swyftly.Application.Admin;
 using Swyftly.Application.Identity;
 using Swyftly.Application.Notifications;
 using Swyftly.Application.Sellers;
+using Swyftly.Domain.Admin;
 using Swyftly.Domain.Sellers;
 using Swyftly.Infrastructure.Persistence;
 using HttpResults = Microsoft.AspNetCore.Http.Results;
@@ -20,6 +21,14 @@ public static class AdminSellerEndpoints
         var group = app.MapGroup("/api/admin/sellers")
             .WithTags("Admin Sellers")
             .RequireAuthorization(SwyftlyPolicies.AdminOnly);
+
+        group.MapGet("", GetAllAsync)
+            .WithName("GetAdminSellers")
+            .WithSummary("Returns seller verification records for operational admin review.")
+            .Produces<AdminPagedResponse<AdminSellerOperationalSummaryResponse>>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
 
         group.MapGet("/pending", GetPendingAsync)
             .WithName("GetPendingSellers")
@@ -61,6 +70,172 @@ public static class AdminSellerEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         return app;
+    }
+
+    private static async Task<IResult> GetAllAsync(
+        string? view,
+        string? status,
+        string? search,
+        Guid? sellerId,
+        string? assigned,
+        string? priority,
+        bool? hasNotes,
+        string? sla,
+        Guid? savedViewId,
+        int? page,
+        int? pageSize,
+        string? sort,
+        ClaimsPrincipal principal,
+        SwyftlyDbContext dbContext,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var savedView = await AdminModerationQueueEndpoints.GetSavedViewForRequestAsync(savedViewId, principal, dbContext, cancellationToken);
+        view = AdminModerationQueueEndpoints.Merge(view, savedView?.View);
+        status = AdminModerationQueueEndpoints.Merge(status, savedView?.Status);
+        search = AdminModerationQueueEndpoints.Merge(search, savedView?.Search);
+        sellerId = AdminModerationQueueEndpoints.Merge(sellerId, savedView?.SellerId);
+        assigned = AdminModerationQueueEndpoints.Merge(assigned, savedView?.Assigned);
+        priority = AdminModerationQueueEndpoints.Merge(priority, savedView?.Priority);
+        hasNotes = AdminModerationQueueEndpoints.Merge(hasNotes, savedView?.HasNotes);
+        sla = AdminModerationQueueEndpoints.Merge(sla, savedView?.Sla);
+        pageSize = AdminModerationQueueEndpoints.Merge(pageSize, savedView?.PageSize);
+        sort = AdminModerationQueueEndpoints.Merge(sort, savedView?.Sort);
+
+        if (!AdminQueueSla.IsKnownStatus(sla))
+        {
+            return Validation("sla", "SLA filter must be OnTrack, DueSoon, or Overdue.");
+        }
+
+        var pageNumber = Math.Max(page ?? 1, 1);
+        var requestedPageSize = Math.Clamp(pageSize ?? 25, 1, 100);
+        var normalizedView = string.Equals(view, "All", StringComparison.OrdinalIgnoreCase) ? "All" : "NeedsAttention";
+        var normalizedSearch = search?.Trim();
+        var normalizedSort = string.IsNullOrWhiteSpace(sort) ? "UpdatedDesc" : sort.Trim();
+        var now = timeProvider.GetUtcNow();
+
+        SellerVerificationStatus? requestedStatus = null;
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (!Enum.TryParse<SellerVerificationStatus>(status, ignoreCase: true, out var parsedStatus))
+            {
+                return Validation("status", "Unknown seller verification status.");
+            }
+
+            requestedStatus = parsedStatus;
+        }
+
+        var sellers = await dbContext.SellerProfiles
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+        var sellerIds = sellers.Select(item => item.Id).ToHashSet();
+        var storefronts = await dbContext.SellerStorefronts
+            .AsNoTracking()
+            .Where(item => sellerIds.Contains(item.SellerId))
+            .ToDictionaryAsync(item => item.SellerId, cancellationToken);
+        var verificationRows = await dbContext.SellerVerifications
+            .AsNoTracking()
+            .Where(item => sellerIds.Contains(item.SellerId))
+            .ToListAsync(cancellationToken);
+        var latestVerifications = verificationRows
+            .GroupBy(item => item.SellerId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.OrderByDescending(item => item.SubmittedAtUtc).First());
+
+        var items = sellers.Select(seller =>
+        {
+            storefronts.TryGetValue(seller.Id, out var storefront);
+            latestVerifications.TryGetValue(seller.Id, out var latestVerification);
+            return new AdminSellerOperationalSummaryResponse(
+                seller.Id,
+                seller.DisplayName,
+                seller.ContactEmail,
+                storefront?.StoreName,
+                storefront?.Slug,
+                seller.VerificationStatus.ToString(),
+                latestVerification?.SubmittedAtUtc,
+                seller.UpdatedAtUtc,
+                $"/admin/sellers/{seller.Id}");
+        });
+
+        if (sellerId.HasValue)
+        {
+            items = items.Where(item => item.SellerId == sellerId.Value);
+        }
+
+        if (requestedStatus is null && normalizedView == "NeedsAttention")
+        {
+            items = items.Where(item => string.Equals(item.VerificationStatus, SellerVerificationStatus.UnderReview.ToString(), StringComparison.Ordinal));
+        }
+
+        var triageItemList = items.ToList();
+        var triageSummaries = await AdminQueueTriageEndpoints.GetTriageSummariesAsync(
+            dbContext,
+            triageItemList.Select(item => new AdminQueueItemKey(AdminQueueItemType.Seller, item.SellerId)),
+            cancellationToken);
+        items = triageItemList.Select(item =>
+        {
+            triageSummaries.TryGetValue(new AdminQueueItemKey(AdminQueueItemType.Seller, item.SellerId), out var triage);
+            return item with
+            {
+                AssignedToUserId = triage?.AssignedToUserId,
+                AssignedToDisplayName = triage?.AssignedToDisplayName,
+                Priority = triage?.Priority ?? AdminQueuePriority.Normal.ToString(),
+                LatestTriageNote = triage?.LatestTriageNote,
+                TriageNoteCount = triage?.TriageNoteCount ?? 0,
+                TriageUpdatedAtUtc = triage?.TriageUpdatedAtUtc,
+                AgeHours = AdminQueueSla.Calculate(AdminQueueItemType.Seller, item.SubmittedAtUtc, item.UpdatedAtUtc, now).AgeHours,
+                SlaStatus = AdminQueueSla.Calculate(AdminQueueItemType.Seller, item.SubmittedAtUtc, item.UpdatedAtUtc, now).SlaStatus,
+                SlaDueAtUtc = AdminQueueSla.Calculate(AdminQueueItemType.Seller, item.SubmittedAtUtc, item.UpdatedAtUtc, now).SlaDueAtUtc
+            };
+        });
+
+        items = items.Where(item => AdminQueueSla.Matches(new AdminQueueSlaResponse(item.AgeHours, item.SlaStatus, item.SlaDueAtUtc ?? DateTimeOffset.MinValue), sla));
+
+        if (!string.IsNullOrWhiteSpace(normalizedSearch))
+        {
+            items = items.Where(item => TextMatches(normalizedSearch, item.DisplayName, item.ContactEmail, item.StoreName, item.StoreSlug, item.VerificationStatus));
+        }
+
+        items = items.Where(item => AdminQueueTriageEndpoints.MatchesTriageFilters(
+            new AdminQueueTriageSummaryResponse(item.AssignedToUserId, item.AssignedToDisplayName, item.Priority, item.LatestTriageNote, item.TriageNoteCount, item.TriageUpdatedAtUtc),
+            assigned,
+            priority,
+            hasNotes,
+            principal));
+
+        var statusCountSource = items.ToList();
+        if (requestedStatus.HasValue)
+        {
+            items = statusCountSource.Where(item => string.Equals(item.VerificationStatus, requestedStatus.Value.ToString(), StringComparison.Ordinal));
+        }
+
+        items = normalizedSort.ToLowerInvariant() switch
+        {
+            "updatedasc" => items.OrderBy(item => item.UpdatedAtUtc),
+            "submitteddesc" => items.OrderByDescending(item => item.SubmittedAtUtc ?? DateTimeOffset.MinValue),
+            "submittedasc" => items.OrderBy(item => item.SubmittedAtUtc ?? DateTimeOffset.MaxValue),
+            "nameasc" => items.OrderBy(item => item.StoreName ?? item.DisplayName ?? string.Empty),
+            "namedesc" => items.OrderByDescending(item => item.StoreName ?? item.DisplayName ?? string.Empty),
+            "statusasc" => items.OrderBy(item => item.VerificationStatus),
+            "statusdesc" => items.OrderByDescending(item => item.VerificationStatus),
+            _ => items.OrderByDescending(item => item.UpdatedAtUtc)
+        };
+
+        var orderedItems = items.ToList();
+        var totalCount = orderedItems.Count;
+        var pagedItems = orderedItems
+            .Skip((pageNumber - 1) * requestedPageSize)
+            .Take(requestedPageSize)
+            .ToList();
+
+        return HttpResults.Ok(new AdminPagedResponse<AdminSellerOperationalSummaryResponse>(
+            pagedItems,
+            totalCount,
+            pageNumber,
+            requestedPageSize,
+            BuildStatusCounts(statusCountSource.Select(item => item.VerificationStatus))));
     }
 
     private static async Task<IResult> GetPendingAsync(
@@ -487,6 +662,27 @@ public static class AdminSellerEndpoints
             ["reason"] = ["Reason is required."]
         });
 
+    private static IResult Validation(string field, string message) =>
+        HttpResults.ValidationProblem(new Dictionary<string, string[]>
+        {
+            [field] = [message]
+        });
+
+    private static bool TextMatches(string search, params string?[] values)
+    {
+        var normalizedSearch = search.Trim().ToLowerInvariant();
+        return values
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Any(value => value!.ToLowerInvariant().Contains(normalizedSearch, StringComparison.Ordinal));
+    }
+
+    private static IReadOnlyCollection<AdminStatusCountResponse> BuildStatusCounts(IEnumerable<string> statuses) =>
+        statuses
+            .GroupBy(status => status, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key)
+            .Select(group => new AdminStatusCountResponse(group.Key, group.Count()))
+            .ToArray();
+
     private static IResult SellerNotFound() =>
         HttpResults.Problem(
             title: "AdminSellers.SellerNotFound",
@@ -514,6 +710,35 @@ public sealed record AdminSellerSummaryResponse(
     string? StoreSlug,
     string VerificationStatus,
     DateTimeOffset? SubmittedAtUtc);
+
+public sealed record AdminSellerOperationalSummaryResponse(
+    Guid SellerId,
+    string? DisplayName,
+    string? ContactEmail,
+    string? StoreName,
+    string? StoreSlug,
+    string VerificationStatus,
+    DateTimeOffset? SubmittedAtUtc,
+    DateTimeOffset UpdatedAtUtc,
+    string DetailRoute,
+    Guid? AssignedToUserId = null,
+    string? AssignedToDisplayName = null,
+    string Priority = "Normal",
+    string? LatestTriageNote = null,
+    int TriageNoteCount = 0,
+    DateTimeOffset? TriageUpdatedAtUtc = null,
+    int AgeHours = 0,
+    string SlaStatus = "OnTrack",
+    DateTimeOffset? SlaDueAtUtc = null);
+
+public sealed record AdminPagedResponse<T>(
+    IReadOnlyCollection<T> Items,
+    int TotalCount,
+    int Page,
+    int PageSize,
+    IReadOnlyCollection<AdminStatusCountResponse> StatusCounts);
+
+public sealed record AdminStatusCountResponse(string Status, int Count);
 
 public sealed record AdminSellerDetailResponse(
     Guid SellerId,

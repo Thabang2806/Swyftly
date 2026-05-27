@@ -204,6 +204,7 @@ Request/response:
 Admin seller approval endpoints require an `Admin` or `SuperAdmin` JWT role.
 
 ```http
+GET /api/admin/sellers
 GET /api/admin/sellers/pending
 GET /api/admin/sellers/{sellerId}
 GET /api/admin/sellers/{sellerId}/verification-evidence/{evidenceId}/download
@@ -211,6 +212,8 @@ POST /api/admin/sellers/{sellerId}/approve
 POST /api/admin/sellers/{sellerId}/reject
 POST /api/admin/sellers/{sellerId}/suspend
 ```
+
+`GET /api/admin/sellers` is the all-state operational list used by `/admin/sellers`. It accepts `view=NeedsAttention|All` (default `NeedsAttention`), optional exact `status`, `search`, `sellerId`, `page`, `pageSize`, and `sort`. `NeedsAttention` returns `UnderReview` sellers. The response is paged and includes `statusCounts`; items include seller/store summary, `updatedAtUtc`, and `detailRoute`.
 
 `POST /approve` verifies a seller when required onboarding data and the payout placeholder exist. `POST /reject` and `POST /suspend` require a JSON body:
 
@@ -222,7 +225,7 @@ POST /api/admin/sellers/{sellerId}/suspend
 
 Admin actions write audit-log entries, create best-effort seller notifications after successful state changes, and seller detail responses include `storePolicy`, `verificationEvidence`, and `auditTrail`. Admin evidence downloads require `Admin` or `SuperAdmin`, stream the private file through the API, and write `SellerVerificationEvidenceDownloaded` audit-log entries.
 
-Angular admin seller routes `/admin/sellers` and `/admin/sellers/{sellerId}` use these endpoints unchanged. The queue applies client-side search/status/storefront filters over the loaded pending-seller response, while the detail screen presents profile, storefront, address, payout setup, store policy completeness, optional verification evidence, review actions, and audit trail without changing request payloads.
+Angular admin seller routes `/admin/sellers` and `/admin/sellers/{sellerId}` use these endpoints unchanged. The queue now uses the all-state operational list for server-side view/status/search/seller filtering, pagination, status counts, and detail routing. The detail screen presents profile, storefront, address, payout setup, store policy completeness, optional verification evidence, review actions, and audit trail without changing action payloads.
 
 ## Admin Audit Logs
 
@@ -579,7 +582,82 @@ Admin finance UI status: `/admin/orders`, `/admin/orders/{orderId}`, `/admin/pay
 
 Admin support UI status: `/admin/support` and `/admin/support/{ticketId}` are API-backed frontend screens for support agents, admins, and super admins. Admin catalog UI status: `/admin/categories` is an API-backed catalog management workspace for category and attribute create/edit/activate/deactivate workflows. The catalog UI intentionally has no hard-delete controls.
 
-Admin moderation UI status: `/admin/sellers`, `/admin/sellers/{sellerId}`, `/admin/products`, `/admin/products/{productId}`, and `/admin/audit-logs` are API-backed frontend screens using existing contracts unchanged. Phase 5C added shared admin workspace navigation, client-side queue filters, denser triage rows, seller completeness indicators, product image review/fallbacks, AI risk display polish, and shared loading/empty/error states.
+Admin moderation UI status: `/admin/sellers`, `/admin/sellers/{sellerId}`, `/admin/products`, `/admin/products/{productId}`, `/admin/products/revisions/{revisionId}`, `/admin/products/variant-revisions/{revisionId}`, `/admin/ads`, `/admin/ads/{id}`, and `/admin/audit-logs` are API-backed frontend screens using existing action/detail contracts unchanged. Phase 10R upgraded seller, product, and ad queues to all-state operational lists with server-side view/status/search/seller filtering, pagination, status counts, denser triage rows, and shared loading/empty/error states. Phase 10S added admin-only moderation queue triage metadata: assignment, priority, internal notes, assignment/priority/note filters, and bulk claim/priority triage without changing approval/rejection actions. Phase 10T added per-admin saved queue views, computed SLA/age signals, and read-only review workload summaries.
+
+### Admin Moderation Queue Triage
+
+Admin-only endpoints:
+
+- `GET /api/admin/moderation-queue/items/{itemType}/{itemId}/triage`
+- `PUT /api/admin/moderation-queue/items/{itemType}/{itemId}/triage`
+- `POST /api/admin/moderation-queue/items/{itemType}/{itemId}/claim`
+- `POST /api/admin/moderation-queue/items/{itemType}/{itemId}/unclaim`
+- `POST /api/admin/moderation-queue/bulk-triage`
+
+Supported `itemType` values are `Seller`, `Product`, `ListingRevision`, `VariantRevision`, and `AdCampaign`. Triage notes are internal admin context only and are not exposed to sellers, buyers, public product APIs, or storefront APIs.
+
+`PUT` request:
+
+```json
+{
+  "priority": "High",
+  "note": "Check image authenticity before approval.",
+  "assignedToUserId": null,
+  "clearAssignment": false
+}
+```
+
+Bulk request:
+
+```json
+{
+  "action": "SetPriority",
+  "priority": "High",
+  "note": null,
+  "items": [
+    { "itemType": "Product", "itemId": "00000000-0000-0000-0000-000000000000" }
+  ]
+}
+```
+
+Phase 10R/10S/10T list endpoints now also accept `assigned=Any|Mine|Unassigned`, `priority=Normal|High|Urgent`, `hasNotes=true|false`, `sla=OnTrack|DueSoon|Overdue`, and `savedViewId={viewId}`, and return additive triage/SLA fields: `assignedToUserId`, `assignedToDisplayName`, `priority`, `latestTriageNote`, `triageNoteCount`, `triageUpdatedAtUtc`, `ageHours`, `slaStatus`, and `slaDueAtUtc`.
+
+### Admin Moderation Queue Saved Views And SLA Summary
+
+Admin-only endpoints:
+
+- `GET /api/admin/moderation-queue/views?queue=Sellers|Products|Ads`
+- `POST /api/admin/moderation-queue/views`
+- `PUT /api/admin/moderation-queue/views/{viewId}`
+- `DELETE /api/admin/moderation-queue/views/{viewId}`
+- `POST /api/admin/moderation-queue/views/{viewId}/make-default`
+- `GET /api/admin/moderation-queue/summary`
+
+Saved views are scoped to the authenticated admin user and store filter presets for `Sellers`, `Products`, or `Ads`. SLA signals are computed read-time guidance only; they do not assign, escalate, approve, reject, suspend, or notify sellers.
+
+Saved view request:
+
+```json
+{
+  "queue": "Products",
+  "name": "Urgent product review",
+  "isDefault": false,
+  "filters": {
+    "view": "NeedsAttention",
+    "status": "PendingReview",
+    "search": null,
+    "sellerId": null,
+    "assigned": "Mine",
+    "priority": "Urgent",
+    "hasNotes": true,
+    "sla": "Overdue",
+    "sort": "UpdatedDesc",
+    "pageSize": 25
+  }
+}
+```
+
+Queue summary returns counts by item type, status, priority, SLA state, assignee, plus reviewed-today and reviewed-last-7-days metrics derived from existing moderation audit logs.
 
 ## Admin Order And Payment Reads
 
@@ -759,6 +837,7 @@ Response:
       "title": "Summer Dress",
       "slug": "summer-dress",
       "shortDescription": "A lightweight summer dress.",
+      "merchandisingLabel": "Seller pick",
       "primaryImageUrl": "https://example.test/summer-dress.jpg",
       "primaryImageAltText": "Summer dress",
       "priceMin": 499.99,
@@ -777,7 +856,7 @@ Response:
 
 Out-of-stock handling is explicit through `inStock`: by default, published products can appear even if all active variants are unavailable; `inStock=true` restricts results to products with at least one active variant where stock exceeds reserved quantity. Public product search and detail only expose products whose seller is verified and whose storefront is published.
 
-`GET /api/products/{slug}` returns public product detail with images, variants, attributes, the product card payload, and the current seller `sellerPolicy` snippets when present. It returns `404` for products from unverified, suspended, rejected, pending, or unpublished-storefront sellers. Current product slugs are seller-scoped in persistence, so duplicate public slugs are still a known future routing issue.
+`GET /api/products/{slug}` returns public product detail with images, variants, attributes, the product card payload, buyer-facing `merchandisingLabel`, product-managed SEO/care/disclaimer snippets, and the current seller `sellerPolicy` snippets when present. It returns `404` for products from unverified, suspended, rejected, pending, or unpublished-storefront sellers. Current product slugs are seller-scoped in persistence, so duplicate public slugs are still a known future routing issue.
 
 `GET /api/products/{slug}/reviews` and `GET /api/products/{slug}/review-summary` return only published verified-buyer reviews. They do not require authentication and do not change the existing product detail/search response shapes.
 
@@ -1645,7 +1724,21 @@ GET /api/seller/support-tickets
 GET /api/seller/support-tickets/{ticketId}
 POST /api/seller/support-tickets/{ticketId}/messages
 GET /api/support/tickets
+GET /api/support/tickets/queue
+GET /api/support/tickets/queue/export.csv
+GET /api/support/tickets/summary
+GET /api/support/tickets/quality-report
+GET /api/support/tickets/quality-report/export.csv
+GET /api/support/tickets/views
+POST /api/support/tickets/views
+PUT /api/support/tickets/views/{viewId}
+DELETE /api/support/tickets/views/{viewId}
+POST /api/support/tickets/views/{viewId}/make-default
 GET /api/support/tickets/{ticketId}
+POST /api/support/tickets/{ticketId}/claim
+POST /api/support/tickets/{ticketId}/unclaim
+PUT /api/support/tickets/{ticketId}/triage
+POST /api/support/tickets/{ticketId}/escalate
 POST /api/support/tickets/{ticketId}/messages
 POST /api/support/tickets/{ticketId}/internal-notes
 POST /api/support/tickets/{ticketId}/resolve
@@ -1687,6 +1780,7 @@ Ticket response:
   "sellerId": null,
   "category": "OrderIssue",
   "status": "WaitingForCustomer",
+  "priority": "Normal",
   "subject": "Order arrived damaged",
   "description": "The box arrived damaged.",
   "linkedOrderId": null,
@@ -1694,6 +1788,9 @@ Ticket response:
   "linkedSellerId": null,
   "linkedPaymentId": null,
   "assignedSupportUserId": "00000000-0000-0000-0000-000000000000",
+  "escalationReason": null,
+  "escalatedAtUtc": null,
+  "escalatedByUserId": null,
   "openedAtUtc": "2026-05-19T10:00:00+00:00",
   "resolvedAtUtc": null,
   "closedAtUtc": null,
@@ -1706,15 +1803,45 @@ Ticket response:
       "isInternal": false,
       "createdAtUtc": "2026-05-19T10:05:00+00:00"
     }
-  ]
+  ],
+  "customerContext": null
 }
 ```
 
-Internal notes are included only on `/api/support/tickets` responses. Buyer and seller ticket responses filter out messages where `isInternal` is `true`. Linked order/payment records are ownership-checked for buyer and seller creation; linked product/seller ids are stored as references only and no linked object details are exposed in the support response.
+Internal notes are included only on support/admin `/api/support/tickets` responses. Buyer and seller ticket responses filter out messages where `isInternal` is `true`. Linked order/payment records are ownership-checked for buyer and seller creation. Support/admin ticket detail responses add a nullable `customerContext` object with safe read-only buyer, seller, order, payment, and product summaries plus admin route hints. Buyer/seller support responses do not receive customer context.
+
+The support queue endpoint is additive and paged. It supports `view=NeedsAttention|All`, exact `status`, exact `category`, `search`, `assigned=Any|Mine|Unassigned`, `priority=Normal|High|Urgent`, `sla=OnTrack|DueSoon|Overdue`, `savedViewId`, `page`, `pageSize`, and `sort=UpdatedDesc|OpenedAsc|OpenedDesc|SlaDueAsc|PriorityDesc`. The response includes `items`, `totalCount`, `page`, `pageSize`, `statusCounts`, `priorityCounts`, and `slaCounts`. Queue items add `assignedSupportDisplayName`, `latestInternalNote`, `messageCount`, `ageHours`, `slaStatus`, and `slaDueAtUtc`. `GET /api/support/tickets/queue/export.csv` applies the same filters and returns stable CSV headers for internal support reporting.
+
+Support saved views are per support/admin user and reuse the moderation saved-view shape with `queue: "Support"`. Filters preserve `view`, `status`, `category`, `search`, `assigned`, `priority`, `sla`, `sort`, and `pageSize`; support views cannot be shared across users.
+
+The support summary endpoint is read-only and includes workload metrics in addition to status, priority, and SLA counts: `myOpenTicketCount`, `unassignedOpenTicketCount`, `resolvedTodayCount`, `resolvedLast7DaysCount`, `averageFirstResponseHours`, and `averageResolutionHours`.
+
+The support quality report endpoint is read-only and supports `fromUtc`, `toUtc`, `bucket=Day|Week`, exact `category`, exact `priority`, `assignedSupportUserId`, and `createdByRole=Buyer|Seller|SupportAgent|Admin|SuperAdmin`. It returns `generatedAtUtc`, the effective range, `summary`, `trend`, and breakdown arrays for category, priority, requester role, SLA state, and assignee. Created, resolved, closed, and escalated totals use their own event timestamps inside the requested range; current open and overdue totals are current-state counts after the same filters. First-response metrics ignore internal notes and use the first public support/admin reply after ticket creation. Resolution averages use resolved tickets only so unresolved tickets do not distort elapsed-time averages. The CSV export applies the same filters and returns stable internal reporting headers.
+
+Support quality targets are reporting thresholds only. Default non-secret config keys are `SupportQuality__DefaultRangeDays=30`, `SupportQuality__MaxRangeDays=366`, `SupportQuality__FirstResponseTargetHours=4`, and `SupportQuality__ResolutionTargetHours=72`; changing them does not auto-escalate, auto-assign, notify customers, resolve tickets, refund, or mutate orders.
+
+Support triage uses:
+
+```json
+{
+  "priority": "High",
+  "internalNote": "Prioritise because the buyer is blocked at checkout."
+}
+```
+
+Escalation uses:
+
+```json
+{
+  "reason": "Possible payment/support handoff issue requiring senior review."
+}
+```
+
+Claim is idempotent for the current assignee. Claiming another support user's ticket returns `409` unless an `Admin` or `SuperAdmin` calls `POST /api/support/tickets/{ticketId}/claim?force=true`. Unclaim is allowed for the current assignee, `Admin`, or `SuperAdmin`. SLA and workload fields are operational guidance only and do not auto-resolve, auto-escalate, refund, or notify customers.
 
 Angular buyer support routes `/account/support` and `/account/support/{ticketId}` use the buyer support-ticket endpoints for list/create/detail/message flows. Internal notes remain hidden from buyer responses.
 
-Angular admin routes `/admin/support` and `/admin/support/{ticketId}` list tickets, show public and internal messages, add public replies, add internal notes, resolve tickets, and close tickets. The frontend role list includes `SupportAgent`, `Admin`, and `SuperAdmin` to match the backend support policy.
+Angular admin routes `/admin/support` and `/admin/support/{ticketId}` use the queue/summary, quality-report, saved-view, CSV export, and detail endpoints to show summary cards, workload metrics, saved filters, support quality trends, SLA/priority chips, assignment, customer context, claim/unclaim actions, operational triage, public replies, internal notes, resolve, and close actions. The frontend role list includes `SupportAgent`, `Admin`, and `SuperAdmin` to match the backend support policy.
 
 ## Seller Ad Campaigns
 
@@ -1802,13 +1929,14 @@ Seller ad campaign responses include a seller-safe `moderationEvents` collection
 Admin ad campaign review endpoints require an `Admin` or `SuperAdmin` JWT role.
 
 ```http
+GET /api/admin/ad-campaigns
 GET /api/admin/ad-campaigns/pending
 GET /api/admin/ad-campaigns/{id}
 POST /api/admin/ad-campaigns/{id}/approve
 POST /api/admin/ad-campaigns/{id}/reject
 ```
 
-`GET /pending` returns campaigns in `PendingReview`. Campaign detail responses include seller details, promoted products, budget, current eligibility results, and campaign audit trail entries.
+`GET /api/admin/ad-campaigns` is the all-state operational list used by `/admin/ads`. It accepts `view=NeedsAttention|All` (default `NeedsAttention`), optional exact `status`, `search`, `sellerId`, `page`, `pageSize`, and `sort`. `NeedsAttention` returns `PendingReview` campaigns. The paged response includes status counts and item detail routes. `GET /pending` remains available for compatibility and returns campaigns in `PendingReview`. Campaign detail responses include seller details, promoted products, budget, current eligibility results, and campaign audit trail entries.
 
 `POST /approve` re-runs campaign eligibility before activation. If the seller or promoted products no longer qualify, the endpoint returns a validation problem and leaves the campaign in `PendingReview`. Successful approval moves the campaign to `Active`, records the approving admin user id, writes an `AdCampaignApproved` audit-log entry, and creates a best-effort seller notification.
 
@@ -1981,6 +2109,33 @@ The `/seller` Angular dashboard calls this endpoint only after the onboarding re
 
 Seller analytics endpoints require the `Seller` JWT role and return only aggregate seller-owned data. Buyer identities and personal details are not included.
 
+First-party storefront funnel events are captured through an anonymous-safe endpoint. Authentication is optional; when a buyer JWT is present, the API derives the buyer id server-side. The server stores a hashed anonymous visitor id and seller/product/cart/order context only. Event failures are reporting-only and must not block buyer browsing, cart, checkout, payment, payout, carrier, or inventory workflows.
+
+```http
+POST /api/analytics/storefront-events
+```
+
+Request:
+
+```json
+{
+  "eventType": "ProductViewed",
+  "productId": "00000000-0000-0000-0000-000000000000",
+  "cartId": null,
+  "sellerStoreSlug": null,
+  "anonymousVisitorId": "client-generated-id",
+  "sourceRoute": "/product/rose-linen-midi-dress",
+  "idempotencyKey": "optional-stable-client-event-key",
+  "utmSource": "newsletter",
+  "utmMedium": "email",
+  "utmCampaign": "winter-edit",
+  "referrerHost": "mail.example.test",
+  "sourceCategory": "Email"
+}
+```
+
+Client-submitted event types are `StorefrontViewed`, `ProductViewed`, `ProductAddedToCart`, and `CheckoutStarted`. `OrderCreated` is recorded server-side during successful `POST /api/orders/from-cart`; `OrderPaid` is recorded only after existing signed payment webhook settlement. Idempotency and short-window dedupe prevent repeated route reloads, repeated add-to-cart signals, duplicate order creation, and duplicate paid webhooks from inflating core funnel counts. Attribution is first-party only: the browser sends UTM fields, source route, and referrer host only, never a full referrer URL. Supported `sourceCategory` values are `Direct`, `Search`, `Social`, `Email`, `Ads`, `Referral`, and `Unknown`.
+
 ```http
 GET /api/seller/analytics/summary
 ```
@@ -1993,7 +2148,7 @@ Response:
   "totalSales": 998.00,
   "orderCount": 1,
   "averageOrderValue": 998.00,
-  "conversionRatePlaceholder": 0,
+  "conversionRatePlaceholder": 0.10,
   "productsSold": 2,
   "totalRefunded": 100.00,
   "refundRate": 1.0,
@@ -2035,14 +2190,16 @@ Response:
 }
 ```
 
-`totalSales` is gross sales from paid-or-later seller order states, excluding pending-payment and cancelled/refunded orders. Refund and return rates are count-based against seller paid-or-later order count. `conversionRatePlaceholder` remains zero until a dedicated storefront/session conversion model exists.
+`totalSales` is gross sales from paid-or-later seller order states, excluding pending-payment and cancelled/refunded orders. Refund and return rates are count-based against seller paid-or-later order count. `conversionRatePlaceholder` is now populated from first-party product-view-to-paid-order funnel data where events exist, and remains zero for sellers with no captured funnel events.
 
 Richer seller analytics are exposed as additive read-only endpoints. `fromUtc` and `toUtc` default to the last 30 days, the maximum range is 366 days, and `bucket` defaults to `Day`. Supported buckets are `Day` and `Week`.
 
 ```http
-GET /api/seller/analytics/performance?fromUtc=2026-05-01T00:00:00.000Z&toUtc=2026-05-31T23:59:59.000Z&bucket=Day
-GET /api/seller/analytics/export.csv?report=Products&fromUtc=2026-05-01T00:00:00.000Z&toUtc=2026-05-31T23:59:59.000Z&bucket=Day
+GET /api/seller/analytics/performance?fromUtc=2026-05-01T00:00:00.000Z&toUtc=2026-05-31T23:59:59.000Z&bucket=Day&sourceCategory=Email
+GET /api/seller/analytics/export.csv?report=Products&fromUtc=2026-05-01T00:00:00.000Z&toUtc=2026-05-31T23:59:59.000Z&bucket=Day&sourceCategory=Email
 ```
+
+`sourceCategory` is optional and filters funnel metrics only. Sales, inventory, ads, and customer-care sections remain seller-owned operational read models for the selected date range.
 
 Performance response:
 
@@ -2090,11 +2247,83 @@ Performance response:
     "openSupportTicketCount": 1,
     "disputeCount": 1,
     "activeDisputeCount": 1
-  }
+  },
+  "funnelSummary": {
+    "storefrontViews": 120,
+    "productViews": 340,
+    "addToCartCount": 28,
+    "checkoutStartCount": 12,
+    "orderCreatedCount": 8,
+    "paidOrderCount": 6,
+    "productViewToCartRate": 0.0824,
+    "checkoutToPaidRate": 0.5
+  },
+  "funnelTrend": [],
+  "productFunnel": [
+    {
+      "productId": "00000000-0000-0000-0000-000000000000",
+      "productTitle": "Seller One Product",
+      "productSlug": "seller-one-product",
+      "productViews": 10,
+      "addToCartCount": 2,
+      "paidOrderCount": 1,
+      "revenue": 998.00,
+      "productViewToCartRate": 0.2,
+      "productViewToPaidRate": 0.1,
+      "dominantSourceCategory": "Email",
+      "topUtmSource": "newsletter",
+      "topReferrerHost": "mail.example.test"
+    }
+  ],
+  "sourceBreakdown": [
+    {
+      "sourceCategory": "Email",
+      "storefrontViews": 3,
+      "productViews": 10,
+      "addToCartCount": 2,
+      "checkoutStartCount": 1,
+      "orderCreatedCount": 1,
+      "paidOrderCount": 1,
+      "productViewToCartRate": 0.2,
+      "checkoutToPaidRate": 1.0,
+      "topUtmSource": "newsletter",
+      "topReferrerHost": "mail.example.test"
+    }
+  ]
 }
 ```
 
-CSV reports return `text/csv` with stable headers. Supported report values are `Sales`, `Products`, `Inventory`, `Ads`, and `Returns`. These exports are evidence views only; they do not mutate orders, payments, ads, inventory, returns, refunds, or payouts.
+CSV reports return `text/csv` with stable headers. Supported report values are `Sales`, `Products`, `Inventory`, `Ads`, `Returns`, and `Funnel`. Funnel CSV rows include product-level source columns (`dominantSourceCategory`, `topUtmSource`, `topReferrerHost`). These exports are evidence views only; they do not mutate orders, payments, ads, inventory, returns, refunds, or payouts.
+
+Scheduled analytics reports are opt-in for verified sellers. They reuse the seller notification/email delivery infrastructure and queue digest notifications with links back to `/seller/analytics`; CSV files are not attached to emails.
+
+```http
+GET /api/seller/analytics/report-schedule
+PUT /api/seller/analytics/report-schedule
+POST /api/seller/analytics/report-schedule/send-test
+```
+
+Schedule request:
+
+```json
+{
+  "isEnabled": true,
+  "frequency": "Weekly",
+  "reportRange": "Last30Days",
+  "sendDayOfWeek": "Monday",
+  "sendDayOfMonth": null,
+  "sendTimeLocal": "08:00",
+  "timeZoneId": "Africa/Johannesburg"
+}
+```
+
+Schedule responses add `scheduleId`, `nextRunAtUtc`, `lastSentAtUtc`, `lastReportPeriodStartUtc`, `lastReportPeriodEndUtc`, `lastFailureReason`, and `lastFailedAtUtc`. `frequency` is `Weekly` or `Monthly`; `reportRange` is `Last7Days`, `Last30Days`, or `MonthToDate`. Monthly schedules accept day-of-month values from 1 to 28. Enabling a schedule for an unverified seller returns conflict.
+
+Seller notification preferences now include an additive `Reports` category:
+
+```json
+{ "category": "Reports", "isEnabled": true, "emailEnabled": true }
+```
 
 Angular seller analytics route:
 
@@ -2388,6 +2617,7 @@ Angular admin route `/admin/payouts` lists pending/on-hold payouts and calls the
 Admin product review endpoints require an `Admin` or `SuperAdmin` JWT role.
 
 ```http
+GET /api/admin/products/moderation-items
 GET /api/admin/products/pending-review
 GET /api/admin/products/{productId}
 POST /api/admin/products/{productId}/approve
@@ -2403,7 +2633,9 @@ POST /api/admin/products/variant-revisions/{revisionId}/approve
 POST /api/admin/products/variant-revisions/{revisionId}/reject
 ```
 
-`GET /pending-review` returns products in `PendingReview` or `NeedsAdminReview`. Product detail responses include seller status, attributes, variants, images, AI moderation results, and product audit trail entries.
+`GET /api/admin/products/moderation-items` is the unified all-state operational list used by `/admin/products`. It accepts `view=NeedsAttention|All` (default `NeedsAttention`), optional exact `status`, `search`, `sellerId`, `page`, `pageSize`, and `sort`. `NeedsAttention` returns product `PendingReview`/`NeedsAdminReview`, listing-revision `PendingReview`, and variant-revision `PendingReview` items. Items include `itemType=Product|ListingRevision|VariantRevision`, IDs, seller summary, title/status, risk or staged-item counts, timestamps, and the correct existing admin detail route.
+
+`GET /pending-review` remains available for compatibility and returns products in `PendingReview` or `NeedsAdminReview`. Product detail responses include seller status, attributes, variants, images, AI moderation results, product audit trail entries, and seller-managed merchandising/SEO/care/disclaimer review context.
 
 `POST /approve` publishes the product only when the seller is verified. Products with unresolved high-risk moderation results require an override reason:
 
@@ -2423,9 +2655,9 @@ POST /api/admin/products/variant-revisions/{revisionId}/reject
 
 Rejecting moves the product to `Rejected`; requesting changes moves it to `ChangesRequested`, which remains seller-editable so the seller can fix and resubmit the listing. Every approval, rejection, and change request writes an audit-log entry and creates a best-effort seller notification.
 
-Angular admin product routes `/admin/products` and `/admin/products/{productId}` use these endpoints unchanged. The queue applies client-side search/status/seller/risk filters over the pending-review response. The detail screen presents seller context, listing data, image review with thumbnail selection and fallback, attributes, variants, AI moderation flags, unchanged review-action payloads, and audit trail.
+Angular admin product routes `/admin/products`, `/admin/products/{productId}`, `/admin/products/revisions/{revisionId}`, and `/admin/products/variant-revisions/{revisionId}` use these endpoints unchanged. The queue now uses the unified operational list for server-side view/status/search/seller filtering, pagination, status counts, and detail routing. The detail screens present seller context, listing data, image review with thumbnail selection and fallback, attributes, variants, AI moderation flags, unchanged review-action payloads, and audit trail.
 
-Published listing revisions are reviewed separately from initial product submissions. `GET /pending-revisions` returns seller-submitted revisions for live published products. Admin approval applies the staged listing fields, attributes, tags, and proposed final image set to the live product, writes an audit log, refreshes search indexing and embeddings, and creates a best-effort seller notification. Admin rejection stores the rejection reason, writes an audit log, creates a best-effort seller notification, and leaves the live buyer-visible product unchanged.
+Published listing revisions are reviewed separately from initial product submissions. `GET /pending-revisions` returns seller-submitted revisions for live published products. Admin approval applies the staged listing fields, merchandising/SEO/care/disclaimer fields, attributes, tags, and proposed final image set to the live product, writes an audit log, refreshes search indexing and embeddings, and creates a best-effort seller notification. Admin rejection stores the rejection reason, writes an audit log, creates a best-effort seller notification, and leaves the live buyer-visible product unchanged.
 
 Published variant/pricing revisions are reviewed separately from listing/image revisions. `GET /pending-variant-revisions` returns seller-submitted SKU, size, colour, price, compare-at price, barcode, new-variant, and deactivation changes for published products. Admin approval applies the staged variant changes atomically, refreshes active cart item snapshots for changed SKU/size/colour/price fields, writes audit logs, refreshes search indexing and embeddings, and creates a best-effort seller notification. Historical order items remain unchanged because they already snapshot purchased variant data. Admin rejection stores the rejection reason, writes audit logs, creates a best-effort seller notification, and leaves live variants unchanged.
 
@@ -2456,11 +2688,15 @@ POST /api/seller/products/{id}/revision/submit-review
 POST /api/seller/products/{id}/revision/cancel
 GET /api/seller/products/{id}/variant-revision
 PUT /api/seller/products/{id}/variant-revision
+GET /api/seller/products/{id}/variant-revision/export.csv
+GET /api/seller/products/{id}/variant-revision/import-template.csv
+POST /api/seller/products/{id}/variant-revision/import/preview
+POST /api/seller/products/{id}/variant-revision/bulk-stage
 POST /api/seller/products/{id}/variant-revision/submit-review
 POST /api/seller/products/{id}/variant-revision/cancel
 ```
 
-Product drafts support category-specific attributes as a JSON object. Stored product image records reference uploaded images by URL/storage key; image binary data is not stored in PostgreSQL. New uploads create `media_assets` metadata plus `thumb`, `card`, and `detail` WebP variants, and product image URLs point at the `detail` variant. The legacy image-reference endpoint remains for compatibility, while the Angular editor uses multipart upload.
+Product drafts support category-specific attributes as a JSON object plus seller-managed merchandising and SEO presentation fields: `seoTitle`, `seoDescription`, `merchandisingLabel`, `careInstructions`, and `productDisclaimer`. Stored product image records reference uploaded images by URL/storage key; image binary data is not stored in PostgreSQL. New uploads create `media_assets` metadata plus `thumb`, `card`, and `detail` WebP variants, and product image URLs point at the `detail` variant. The legacy image-reference endpoint remains for compatibility, while the Angular editor uses multipart upload.
 
 `POST /api/seller/products/{id}/images/upload` accepts multipart fields `file`, `altText`, `sortOrder`, and `isPrimary`. It accepts JPEG, PNG, and WebP only, rejects empty, oversized, mismatched, undecodable, over-dimensioned, or scanner-rejected files, requires a seller-owned editable product (`Draft`, `Rejected`, or `ChangesRequested`), and clears existing primary images when a new primary image is uploaded.
 
@@ -2478,7 +2714,7 @@ Request:
 
 Response: the existing `SellerProductDetailResponse`.
 
-Published product listing changes use the revision endpoints instead of mutating the live product directly. A seller-owned published product can have one active revision where proposed title, slug, category, brand, descriptions, tags, category attributes, and final image set are staged. Uploading revision images uses the same media validation, scanning, storage, and variant generation path as draft uploads. Submitting a revision moves it to admin review; cancelling leaves the published product unchanged.
+Published product listing changes use the revision endpoints instead of mutating the live product directly. A seller-owned published product can have one active revision where proposed title, slug, category, brand, descriptions, merchandising/SEO/care/disclaimer fields, tags, category attributes, and final image set are staged. Uploading revision images uses the same media validation, scanning, storage, and variant generation path as draft uploads. Submitting a revision moves it to admin review; cancelling leaves the published product unchanged.
 
 Published product variant and pricing changes use the separate `variant-revision` endpoints. A seller-owned published product can have one active draft, pending, or rejected variant revision. The request stores a seller reason plus staged items:
 
@@ -2502,6 +2738,39 @@ Published product variant and pricing changes use the separate `variant-revision
 ```
 
 Supported operations are `Add`, `Update`, and `Deactivate`. Existing variant stock and reserved quantity cannot be changed through this workflow; use seller inventory for stock. New variants require non-negative `initialStockQuantity`. Validation keeps final SKU and size/colour combinations unique, requires positive prices, requires compare-at price above price when present, blocks deactivation for variants with active reservations or active cart items, and requires at least one final active sellable variant.
+
+Bulk published variant revision staging uses CSV helpers on the same `variant-revision` workflow. `GET /export.csv` returns current live variants with editable staging columns, while `GET /import-template.csv` returns only stable headers:
+
+```text
+operation,sourceVariantId,sku,size,colour,price,compareAtPrice,initialStockQuantity,barcode
+```
+
+`POST /import/preview` accepts a multipart `file` and returns parsed row validation without changing data. `POST /bulk-stage` accepts JSON rows in the same shape as revision items plus an optional `sellerReason`; it replaces the current draft/rejected staged items with changed valid rows and leaves the seller to call the existing `submit-review` endpoint. Pending-review revisions cannot be mutated. Update/deactivate rows match by `sourceVariantId`, unique current SKU, or unique current barcode; when multiple identifiers are supplied they must refer to the same current variant. The 500-row cap, final-set validation, and no-stock-mutation rule apply to both preview and bulk-stage.
+
+Bulk-stage response:
+
+```json
+{
+  "totalRows": 2,
+  "validRows": 2,
+  "errorRows": 0,
+  "changedRows": 1,
+  "unchangedRows": 1,
+  "rows": [
+    {
+      "rowNumber": 2,
+      "operation": "Update",
+      "sourceVariantId": "00000000-0000-0000-0000-000000000000",
+      "currentSku": "DRESS-M-BLACK",
+      "proposedSku": "DRESS-M-BLACK",
+      "proposedPrice": 799.99,
+      "rowStatus": "Changed",
+      "validationMessages": []
+    }
+  ],
+  "proposedFinalVariants": []
+}
+```
 
 Seller product detail and revision responses include a seller-safe `moderationEvents` collection derived from product and revision audit logs. The events expose action type, reviewer role, reason, and timestamp so the seller editor can show rejection, change-request, and revision review context without exposing admin-only internals.
 
@@ -2756,7 +3025,7 @@ Supported `fieldsToApply` values are `title`, `shortDescription`, `fullDescripti
 
 ## Current Scope
 
-Health/readiness, identity foundation with HttpOnly refresh cookies, seller onboarding, seller inventory adjustment and bulk CSV import/export, seller delivery-method/rate management including pickup-point delivery methods, seller store settings UI with payout-profile change re-verification and seller notification preferences, admin seller payout-profile change review, admin seller approval and Angular moderation polish, admin product review and Angular moderation polish, admin buyer-review moderation, admin audit-log UI polish, admin dashboard summary, admin category/attribute catalog management, admin platform pickup-point management, admin marketplace finance reports, admin order/payment read APIs and Angular read screens, public product search, public verified-buyer product review reads, buyer-facing shop/category/product/seller/cart/checkout/assistant/visual-search pages, buyer account order/return/dispute/support/wishlist/review/notification/settings Angular routes, buyer profile settings, saved delivery addresses with local address verification, delivery instructions, order delivery-address verification snapshots, order delivery-method and pickup-point snapshots, fulfilment exception tracking, in-app notification preferences, buyer transactional email notification outbox delivery, buyer SignalR notification live updates, seller transactional in-app/email notifications, seller SignalR notification live updates, and seller notification UI, seller product draft endpoints with production-hardened media uploads and image metadata updates, S3-compatible image storage configuration, media scanning abstraction, WebP image variants, media cleanup, moderation-aware published listing revisions, polished seller product editor UX, buyer cart endpoints with saved-for-later wishlist moves, product image metadata, and seller shipping-option quotes, buyer wishlist/review/notification backend APIs with saved-state hydration and wishlist-to-cart moves, inventory reservation services, order creation from cart, provider-neutral carrier booking/tracking with Manual and Fake providers, carrier provider comparison notes, payment provider abstractions with fake and PayFast providers, local payment persistence with retryable checkout URLs, idempotent payment webhook handling including duplicate race fallback and paid-cart cleanup, payment reconciliation review evidence, seller delivery confirmation, successful-payment ledger entries, seller balance/payout read APIs, admin payout hold/release/make-available/process/reconcile with a fake payout provider, refund workflow with ledger reversals, payout adjustments, and manual PayFast refund confirmation, finance dual-control policies, dispute workflow with evidence/messages/admin resolution, admin finance Angular routes for refunds/payouts/disputes, support ticket workflow with private internal notes and Angular support queue/detail routes, seller ad campaign draft/submission API and Angular dashboard, seller analytics dashboard, admin ad campaign review, ad event tracking and seller campaign metrics, product moderation, AI suggestion persistence/DTOs, the backend AI listing assistant service abstraction, seller AI suggestion generation/apply endpoints, the Angular seller AI assistant UI, buyer AI shopping intent extraction/recommendations, buyer visual search with a fake vision provider, and private product embedding generation exist. PayFast sandbox verification, payment-provider status-query settlement, automatic PayFast refunds, real payout provider integration, real carrier provider integration, carrier-provided rate calculation, external address verification/geocoding, pickup-network APIs, production vision AI, buyer-favoured dispute money movement, admin order/payment mutation workflows, SMS/push notification delivery, admin email workflows, hard-delete taxonomy operations, bulk category import, and taxonomy versioning are intentionally not implemented yet.
+Health/readiness, identity foundation with HttpOnly refresh cookies, seller onboarding, seller inventory adjustment and bulk CSV import/export, seller delivery-method/rate management including pickup-point delivery methods, seller store settings UI with payout-profile change re-verification and seller notification preferences, admin seller payout-profile change review, admin seller approval and Angular moderation polish, admin product review and Angular moderation polish, admin buyer-review moderation, admin audit-log UI polish, admin dashboard summary, admin category/attribute catalog management, admin platform pickup-point management, admin marketplace finance reports, admin order/payment read APIs and Angular read screens, public product search, public verified-buyer product review reads, buyer-facing shop/category/product/seller/cart/checkout/assistant/visual-search pages, buyer account order/return/dispute/support/wishlist/review/notification/settings Angular routes, buyer profile settings, saved delivery addresses with local address verification, delivery instructions, order delivery-address verification snapshots, order delivery-method and pickup-point snapshots, fulfilment exception tracking, in-app notification preferences, buyer transactional email notification outbox delivery, buyer SignalR notification live updates, seller transactional in-app/email notifications, seller SignalR notification live updates, and seller notification UI, seller product draft endpoints with production-hardened media uploads and image metadata updates, S3-compatible image storage configuration, media scanning abstraction, WebP image variants, media cleanup, moderation-aware published listing revisions, polished seller product editor UX, buyer cart endpoints with saved-for-later wishlist moves, product image metadata, and seller shipping-option quotes, buyer wishlist/review/notification backend APIs with saved-state hydration and wishlist-to-cart moves, inventory reservation services, order creation from cart, provider-neutral carrier booking/tracking with Manual and Fake providers, carrier provider comparison notes, payment provider abstractions with fake and PayFast providers, local payment persistence with retryable checkout URLs, idempotent payment webhook handling including duplicate race fallback and paid-cart cleanup, payment reconciliation review evidence, seller delivery confirmation, successful-payment ledger entries, seller balance/payout read APIs, admin payout hold/release/make-available/process/reconcile with a fake payout provider, refund workflow with ledger reversals, payout adjustments, and manual PayFast refund confirmation, finance dual-control policies, dispute workflow with evidence/messages/admin resolution, admin finance Angular routes for refunds/payouts/disputes, support ticket workflow with private internal notes and Angular support queue/detail routes, seller ad campaign draft/submission API and Angular dashboard, seller analytics dashboard with first-party storefront funnel and source reporting, admin ad campaign review, ad event tracking and seller campaign metrics, product moderation, AI suggestion persistence/DTOs, the backend AI listing assistant service abstraction, seller AI suggestion generation/apply endpoints, the Angular seller AI assistant UI, buyer AI shopping intent extraction/recommendations, buyer visual search with a fake vision provider, and private product embedding generation exist. PayFast sandbox verification, payment-provider status-query settlement, automatic PayFast refunds, real payout provider integration, real carrier provider integration, carrier-provided rate calculation, external address verification/geocoding, pickup-network APIs, production vision AI, buyer-favoured dispute money movement, admin order/payment mutation workflows, SMS/push notification delivery, admin email workflows, hard-delete taxonomy operations, bulk category import, taxonomy versioning, and third-party analytics integrations are intentionally not implemented yet.
 
 ## API Rules
 
@@ -2778,6 +3047,7 @@ Current policies:
 - `Webhook`: anonymous payment webhooks.
 - `AdImpression`: anonymous ad impression tracking.
 - `AdClick`: anonymous ad click tracking.
+- `StorefrontAnalytics`: anonymous-safe first-party storefront funnel tracking.
 - `Search`: public product search.
 
 When a policy is exceeded, the API returns HTTP `429` with a small ProblemDetails-style JSON response:

@@ -849,13 +849,13 @@
 
 .admin-support-filters {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.5fr) minmax(150px, 0.5fr) auto;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 0.75rem;
   align-items: center;
 }
 
 .admin-support-table-row {
-  grid-template-columns: minmax(220px, 1.4fr) minmax(170px, 0.9fr) minmax(150px, 0.8fr) minmax(150px, 0.8fr) minmax(100px, 0.5fr);
+  grid-template-columns: minmax(220px, 1.3fr) minmax(150px, 0.8fr) minmax(130px, 0.7fr) minmax(150px, 0.8fr) minmax(120px, 0.6fr) minmax(170px, 0.8fr);
 }
 
 .admin-support-messages,
@@ -1621,6 +1621,22 @@
 .hf-admin-finance-panel {
   position: sticky;
   top: 96px;
+}
+
+@media (max-width: 820px) {
+  .hf-admin-review-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hf-admin-queue-card,
+  .hf-admin-evidence-panel,
+  .hf-admin-finance-panel {
+    min-width: 0;
+  }
+
+  .admin-moderation-table-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .admin-evidence-list {
