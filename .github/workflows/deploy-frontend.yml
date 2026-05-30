@@ -1,0 +1,80 @@
+name: Deploy Frontend
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - frontend/swyftly-web/**
+      - .github/workflows/deploy-frontend.yml
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Cloudflare Pages
+    runs-on: ubuntu-latest
+    environment: production
+
+    defaults:
+      run:
+        working-directory: frontend/swyftly-web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/swyftly-web/package-lock.json
+
+      - name: Validate deployment configuration
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT_NAME: ${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }}
+          SWYFTLY_API_BASE_URL: ${{ vars.SWYFTLY_API_BASE_URL }}
+        run: |
+          missing=0
+          require() {
+            if [ -z "${!1:-}" ]; then
+              echo "::error::$1 is required for Cloudflare Pages deployment"
+              missing=1
+            fi
+          }
+
+          require CLOUDFLARE_API_TOKEN
+          require CLOUDFLARE_ACCOUNT_ID
+          require CLOUDFLARE_PAGES_PROJECT_NAME
+          require SWYFTLY_API_BASE_URL
+
+          if ! [[ "$SWYFTLY_API_BASE_URL" =~ ^https:// ]]; then
+            echo "::error::SWYFTLY_API_BASE_URL must be an HTTPS API origin"
+            missing=1
+          fi
+
+          exit "$missing"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm run test:ci
+
+      - name: Build static Cloudflare output
+        env:
+          SWYFTLY_API_BASE_URL: ${{ vars.SWYFTLY_API_BASE_URL }}
+        run: npm run build:cloudflare
+
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT_NAME: ${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }}
+        run: npx --yes wrangler pages deploy dist/swyftly-web/browser --project-name "$CLOUDFLARE_PAGES_PROJECT_NAME" --branch "$GITHUB_REF_NAME"

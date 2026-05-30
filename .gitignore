@@ -295,6 +295,7 @@ tmp/
 out-tsc/
 bazel-out/
 **/.angular/cache/
+frontend/swyftly-web/src/environments/environment.cloudflare.ts
 coverage/
 typings/
 connect.lock

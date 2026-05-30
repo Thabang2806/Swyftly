@@ -11,6 +11,8 @@ This repository is a monorepo with:
 
 Prompt execution progress is tracked in `docs/codex-prompt-progress.md`.
 
+Deployment notes for Cloudflare Pages, AWS Lightsail Docker Compose, and Lightsail managed PostgreSQL live in `docs/deployment-cloudflare-lightsail.md`.
+
 ## Prerequisites
 
 - .NET SDK 9

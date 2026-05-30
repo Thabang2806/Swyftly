@@ -380,6 +380,7 @@ public static class DependencyInjection
             options.ProviderName = section["ProviderName"] ?? options.ProviderName;
             options.FakeOutcome = section["FakeOutcome"] ?? options.FakeOutcome;
         });
+        services.AddScoped<DisabledPaymentProvider>();
         services.AddScoped<FakePaymentProvider>();
         services.AddSingleton<HttpClient>();
         services.AddScoped<PayFastPaymentProvider>();
@@ -387,6 +388,11 @@ public static class DependencyInjection
         services.AddScoped<IPaymentProvider>(serviceProvider =>
         {
             var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<PaymentProviderOptions>>().Value;
+            if (string.Equals(options.ProviderName, DisabledPaymentProvider.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                return serviceProvider.GetRequiredService<DisabledPaymentProvider>();
+            }
+
             return string.Equals(options.ProviderName, PayFastPaymentProvider.Name, StringComparison.OrdinalIgnoreCase)
                 ? serviceProvider.GetRequiredService<PayFastPaymentProvider>()
                 : serviceProvider.GetRequiredService<FakePaymentProvider>();

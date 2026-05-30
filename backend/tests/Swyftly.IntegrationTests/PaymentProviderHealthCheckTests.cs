@@ -22,6 +22,19 @@ public sealed class PaymentProviderHealthCheckTests
     }
 
     [Fact]
+    public async Task CheckHealthAsync_ReturnsHealthyForDisabledProvider()
+    {
+        var healthCheck = new PaymentProviderHealthCheck(
+            Options.Create(new PaymentProviderOptions { ProviderName = DisabledPaymentProvider.Name }),
+            Options.Create(new PayFastOptions()));
+
+        var result = await healthCheck.CheckHealthAsync(new HealthCheckContext());
+
+        Assert.Equal(HealthStatus.Healthy, result.Status);
+        Assert.Contains("disabled", result.Description, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task CheckHealthAsync_ReturnsUnhealthyForIncompletePayFastConfiguration()
     {
         var healthCheck = new PaymentProviderHealthCheck(

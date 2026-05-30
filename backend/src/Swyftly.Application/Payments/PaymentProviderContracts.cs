@@ -114,3 +114,8 @@ public static class FakePaymentOutcomes
 
     public const string Failure = "Failure";
 }
+
+public static class PaymentProviderNames
+{
+    public const string Disabled = "Disabled";
+}

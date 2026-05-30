@@ -1,0 +1,44 @@
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file:
+      - .env.production
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  api:
+    image: ${API_IMAGE}
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    volumes:
+      - swyftly-storage:/app/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  worker:
+    image: ${WORKER_IMAGE}
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    volumes:
+      - swyftly-storage:/app/storage
+    depends_on:
+      - api
+
+volumes:
+  caddy-data:
+  caddy-config:
+  swyftly-storage:

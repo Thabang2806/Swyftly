@@ -50,6 +50,7 @@ public sealed class SecurityConfigurationValidatorTests
             ["AuthCookies:RefreshTokenPath"] = "/api/auth",
             ["AuthCookies:CsrfPath"] = "/",
             ["AuthCookies:Domain"] = ".swyftly.example",
+            ["Cors:AllowedOrigins:0"] = "https://swyftly.example",
             ["EmailDelivery:ProviderName"] = "Smtp",
             ["EmailDelivery:FromAddress"] = "no-reply@swyftly.example",
             ["EmailDelivery:Smtp:Host"] = "smtp.swyftly.example",
@@ -73,6 +74,22 @@ public sealed class SecurityConfigurationValidatorTests
             () => SecurityConfigurationValidator.ValidateProductionConfiguration(configuration));
 
         Assert.Contains("cannot be Fake", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateProductionConfiguration_AllowsDisabledPaymentProvider()
+    {
+        var configuration = BuildValidProductionConfiguration();
+        configuration["PaymentProvider:ProviderName"] = "Disabled";
+        configuration["PayFast:MerchantId"] = null;
+        configuration["PayFast:MerchantKey"] = null;
+        configuration["PayFast:Passphrase"] = null;
+        configuration["PayFast:ProcessUrl"] = null;
+        configuration["PayFast:NotifyUrl"] = null;
+        configuration["PayFast:CheckoutBridgeBaseUrl"] = null;
+        configuration["PayFast:ValidateUrl"] = null;
+
+        SecurityConfigurationValidator.ValidateProductionConfiguration(configuration);
     }
 
     [Fact]
@@ -160,6 +177,30 @@ public sealed class SecurityConfigurationValidatorTests
     }
 
     [Fact]
+    public void ValidateProductionConfiguration_RejectsMissingCorsOrigins()
+    {
+        var configuration = BuildValidProductionConfiguration();
+        configuration["Cors:AllowedOrigins:0"] = null;
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => SecurityConfigurationValidator.ValidateProductionConfiguration(configuration));
+
+        Assert.Contains("Cors:AllowedOrigins", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateProductionConfiguration_RejectsWildcardCorsOrigins()
+    {
+        var configuration = BuildValidProductionConfiguration();
+        configuration["Cors:AllowedOrigins:0"] = "https://*.swyftly.example";
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => SecurityConfigurationValidator.ValidateProductionConfiguration(configuration));
+
+        Assert.Contains("Cors:AllowedOrigins", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ValidateProductionConfiguration_RejectsFakeCarrierProvider()
     {
         var configuration = BuildValidProductionConfiguration();
@@ -195,6 +236,7 @@ public sealed class SecurityConfigurationValidatorTests
             ["AuthCookies:RefreshTokenPath"] = "/api/auth",
             ["AuthCookies:CsrfPath"] = "/",
             ["AuthCookies:Domain"] = ".swyftly.example",
+            ["Cors:AllowedOrigins:0"] = "https://swyftly.example",
             ["EmailDelivery:ProviderName"] = "Smtp",
             ["EmailDelivery:FromAddress"] = "no-reply@swyftly.example",
             ["EmailDelivery:Smtp:Host"] = "smtp.swyftly.example",
