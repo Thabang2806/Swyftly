@@ -43,7 +43,9 @@ Response when healthy:
 }
 ```
 
-The readiness endpoint returns HTTP `503` with the same response shape when PostgreSQL or a required dependency check is unavailable. It includes a search placeholder plus real `image-storage`, `payment-provider`, and `email-delivery` configuration checks. The payment check is healthy for the local fake provider and validates required PayFast configuration when `PaymentProvider__ProviderName=PayFast`. The image-storage check validates local storage or S3-compatible storage configuration and enforces the configured production media-scanner policy. The email check is healthy for local `LogOnly` delivery outside production and validates SMTP configuration when `EmailDelivery__ProviderName=Smtp`; production must not use `LogOnly`. Carrier provider mode is validated by production startup configuration checks: `Manual` is allowed as the production fallback, and `Fake` is rejected in production.
+The readiness endpoint returns HTTP `503` with the same response shape when PostgreSQL or a required dependency check is unavailable. It includes a search placeholder plus real `image-storage`, `payment-provider`, and `email-delivery` configuration checks. The payment check is healthy for the local fake provider, intentionally disabled provider, and validates required PayFast configuration when `PaymentProvider__ProviderName=PayFast`. The image-storage check validates local storage or S3-compatible storage configuration and enforces the configured production media-scanner policy. The email check is healthy for local `LogOnly` delivery outside production and validates SMTP configuration when `EmailDelivery__ProviderName=Smtp`; production must not use `LogOnly`. Carrier provider mode is validated by production startup configuration checks: `Manual` is allowed as the production fallback, and `Fake` is rejected in production.
+
+Production CORS is configured with `Cors__AllowedOrigins__*`. Values must be explicit external HTTPS frontend origins such as `https://swyftly.co.za`; wildcard, localhost, and placeholder origins are rejected in production because authenticated API calls and SignalR use credentials. Localhost origins remain available outside production for Angular development.
 
 ## Authentication
 
@@ -1283,6 +1285,20 @@ EmailDelivery__Smtp__Host=
 EmailDelivery__Smtp__Port=587
 EmailDelivery__Smtp__Username=
 EmailDelivery__Smtp__Password=
+EmailDelivery__Smtp__EnableSsl=true
+```
+
+Production Resend SMTP configuration uses the existing `Smtp` provider and worker-processed email outbox:
+
+```text
+EmailDelivery__ProviderName=Smtp
+EmailDelivery__FromAddress=no-reply@mail.swyftly.co.za
+EmailDelivery__FromName=Swyftly
+EmailDelivery__AppBaseUrl=https://swyftly.co.za
+EmailDelivery__Smtp__Host=smtp.resend.com
+EmailDelivery__Smtp__Port=587
+EmailDelivery__Smtp__Username=resend
+EmailDelivery__Smtp__Password=<Resend API key>
 EmailDelivery__Smtp__EnableSsl=true
 ```
 
@@ -2560,7 +2576,7 @@ Payment provider integration is prepared behind Application-layer contracts:
 - `PaymentWebhookEvent`
 - `PaymentProviderOptions`
 
-Runtime payment providers are selected with `PaymentProvider__ProviderName`. `FakePaymentProvider` remains the default outside explicit provider configuration. Phase 8C adds `PayFastPaymentProvider` as the first real adapter foundation behind the same abstraction. It returns a Swyftly-hosted checkout bridge URL, renders a signed PayFast hosted-checkout form server-side, verifies PayFast ITN signatures, optionally performs PayFast remote ITN validation, and keeps PayFast refunds as manual provider actions until an automatic refund API is verified.
+Runtime payment providers are selected with `PaymentProvider__ProviderName`. `FakePaymentProvider` remains the default outside explicit provider configuration. `Disabled` is allowed for production deployments before PayFast is configured; payment initiation, verification, webhooks, and refunds return `Payments.ProviderDisabled` without pretending provider settlement is available. Phase 8C adds `PayFastPaymentProvider` as the first real adapter foundation behind the same abstraction. It returns a Swyftly-hosted checkout bridge URL, renders a signed PayFast hosted-checkout form server-side, verifies PayFast ITN signatures, optionally performs PayFast remote ITN validation, and keeps PayFast refunds as manual provider actions until an automatic refund API is verified.
 
 Configuration keys:
 
@@ -2602,7 +2618,7 @@ PayU__PaymentPageUrl
 PayU__WebhookSigningKey
 ```
 
-Provider comparison and implementation notes live in `docs/payment-provider-comparison.md` and `docs/payment-provider-implementation-notes.md`. No provider SDK or payment-provider database migration is active. Production startup rejects `PaymentProvider__ProviderName=Fake` and requires external HTTPS PayFast URLs plus remote validation when `PaymentProvider__ProviderName=PayFast`.
+Supported `PaymentProvider__ProviderName` values are `Fake`, `Disabled`, and `PayFast`. Provider comparison and implementation notes live in `docs/payment-provider-comparison.md` and `docs/payment-provider-implementation-notes.md`. No provider SDK or payment-provider database migration is active. Production startup rejects `PaymentProvider__ProviderName=Fake`, allows `Disabled`, and requires external HTTPS PayFast URLs plus remote validation when `PaymentProvider__ProviderName=PayFast`.
 
 ## Payments And Webhooks
 

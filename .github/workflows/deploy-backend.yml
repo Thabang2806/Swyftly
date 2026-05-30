@@ -1,0 +1,274 @@
+name: Deploy Backend
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - backend/**
+      - deploy/lightsail/**
+      - .github/workflows/deploy-backend.yml
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE_NAME: swyftly-api
+  WORKER_IMAGE_NAME: swyftly-worker
+
+jobs:
+  deploy:
+    name: Lightsail Docker Compose
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Normalize image owner
+        shell: bash
+        run: echo "IMAGE_OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Validate deployment configuration
+        shell: bash
+        env:
+          API_DOMAIN: ${{ vars.API_DOMAIN }}
+          FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN }}
+          AUTH_COOKIE_DOMAIN: ${{ vars.AUTH_COOKIE_DOMAIN }}
+          ACME_EMAIL: ${{ vars.ACME_EMAIL }}
+          LIGHTSAIL_DEPLOY_PATH: ${{ vars.LIGHTSAIL_DEPLOY_PATH }}
+          LIGHTSAIL_SSH_PORT: ${{ vars.LIGHTSAIL_SSH_PORT }}
+          EMAIL_FROM_ADDRESS: ${{ vars.EMAIL_FROM_ADDRESS }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          LIGHTSAIL_SSH_USER: ${{ secrets.LIGHTSAIL_SSH_USER }}
+          LIGHTSAIL_SSH_PRIVATE_KEY: ${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}
+          PROD_DB_CONNECTION_STRING: ${{ secrets.PROD_DB_CONNECTION_STRING }}
+          PROD_JWT_SIGNING_KEY: ${{ secrets.PROD_JWT_SIGNING_KEY }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: |
+          missing=0
+          require() {
+            if [ -z "${!1:-}" ]; then
+              echo "::error::$1 is required for Lightsail deployment"
+              missing=1
+            fi
+          }
+
+          require API_DOMAIN
+          require FRONTEND_ORIGIN
+          require AUTH_COOKIE_DOMAIN
+          require ACME_EMAIL
+          require LIGHTSAIL_HOST
+          require LIGHTSAIL_SSH_USER
+          require LIGHTSAIL_SSH_PRIVATE_KEY
+          require PROD_DB_CONNECTION_STRING
+          require PROD_JWT_SIGNING_KEY
+          require GHCR_USERNAME
+          require GHCR_TOKEN
+          require EMAIL_FROM_ADDRESS
+          require SMTP_HOST
+          require SMTP_USERNAME
+          require SMTP_PASSWORD
+
+          if ! [[ "$FRONTEND_ORIGIN" =~ ^https:// ]]; then
+            echo "::error::FRONTEND_ORIGIN must be an HTTPS origin"
+            missing=1
+          fi
+
+          if [ "${#PROD_JWT_SIGNING_KEY}" -lt 32 ]; then
+            echo "::error::PROD_JWT_SIGNING_KEY must be at least 32 characters"
+            missing=1
+          fi
+
+          if [ -n "${LIGHTSAIL_SSH_PORT:-}" ] && ! [[ "$LIGHTSAIL_SSH_PORT" =~ ^[0-9]+$ ]]; then
+            echo "::error::LIGHTSAIL_SSH_PORT must be numeric"
+            missing=1
+          fi
+
+          if [ -n "${SMTP_PORT:-}" ] && ! [[ "$SMTP_PORT" =~ ^[0-9]+$ ]]; then
+            echo "::error::SMTP_PORT must be numeric"
+            missing=1
+          fi
+
+          exit "$missing"
+
+      - name: Restore .NET tools
+        run: dotnet tool restore
+
+      - name: Restore backend
+        run: dotnet restore backend/Swyftly.sln
+
+      - name: Build backend
+        run: dotnet build backend/Swyftly.sln --no-restore --configuration Release
+
+      - name: Test backend
+        run: dotnet test backend/Swyftly.sln --no-build --configuration Release
+
+      - name: Build EF migration bundle
+        run: |
+          mkdir -p deploy-artifacts
+          dotnet ef migrations bundle \
+            --project backend/src/Swyftly.Infrastructure \
+            --startup-project backend/src/Swyftly.Api \
+            --context SwyftlyDbContext \
+            --configuration Release \
+            --self-contained \
+            --runtime linux-x64 \
+            --output deploy-artifacts/swyftly-migrate
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/src/Swyftly.Api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER_LC }}/${{ env.API_IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER_LC }}/${{ env.API_IMAGE_NAME }}:latest
+
+      - name: Build and push Worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/src/Swyftly.Worker/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER_LC }}/${{ env.WORKER_IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER_LC }}/${{ env.WORKER_IMAGE_NAME }}:latest
+
+      - name: Render production environment file
+        shell: bash
+        env:
+          API_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER_LC }}/${{ env.API_IMAGE_NAME }}:${{ github.sha }}
+          WORKER_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER_LC }}/${{ env.WORKER_IMAGE_NAME }}:${{ github.sha }}
+        run: |
+          {
+          printf 'API_IMAGE=%s\n' "$API_IMAGE"
+          printf 'WORKER_IMAGE=%s\n' "$WORKER_IMAGE"
+          cat <<'ENV'
+          API_DOMAIN=${{ vars.API_DOMAIN }}
+          ACME_EMAIL=${{ vars.ACME_EMAIL }}
+          ASPNETCORE_ENVIRONMENT=Production
+          ASPNETCORE_URLS=http://+:8080
+          ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+          AllowedHosts=${{ vars.API_DOMAIN }}
+          Cors__AllowedOrigins__0=${{ vars.FRONTEND_ORIGIN }}
+          ConnectionStrings__DefaultConnection=${{ secrets.PROD_DB_CONNECTION_STRING }}
+          Jwt__Issuer=Swyftly.Api
+          Jwt__Audience=Swyftly.Web
+          Jwt__SigningKey=${{ secrets.PROD_JWT_SIGNING_KEY }}
+          AuthCookies__RefreshTokenPath=/api/auth
+          AuthCookies__CsrfPath=/
+          AuthCookies__Domain=${{ vars.AUTH_COOKIE_DOMAIN }}
+          AuthCookies__SameSite=Lax
+          AuthCookies__Secure=true
+          PaymentProvider__ProviderName=Disabled
+          PaymentProvider__DefaultCurrency=ZAR
+          PaymentProvider__SuccessRedirectUrl=${{ vars.FRONTEND_ORIGIN }}/checkout/success
+          PaymentProvider__FailureRedirectUrl=${{ vars.FRONTEND_ORIGIN }}/checkout/failed
+          EmailDelivery__ProviderName=Smtp
+          EmailDelivery__FromAddress=${{ vars.EMAIL_FROM_ADDRESS }}
+          EmailDelivery__FromName=Swyftly
+          EmailDelivery__AppBaseUrl=${{ vars.FRONTEND_ORIGIN }}
+          EmailDelivery__Smtp__Host=${{ secrets.SMTP_HOST }}
+          EmailDelivery__Smtp__Port=${{ vars.SMTP_PORT || '587' }}
+          EmailDelivery__Smtp__Username=${{ secrets.SMTP_USERNAME }}
+          EmailDelivery__Smtp__Password=${{ secrets.SMTP_PASSWORD }}
+          EmailDelivery__Smtp__EnableSsl=true
+          ImageStorage__ProviderName=Local
+          ImageStorage__LocalRootPath=/app/storage/product-images
+          ImageStorage__PublicBasePath=/media/product-images
+          SellerVerificationEvidence__LocalRootPath=/app/storage/seller-verification-evidence
+          MediaScanning__ProviderName=TrustLocalClean
+          MediaScanning__RequireExternalScannerInProduction=false
+          CarrierProvider__ProviderName=Manual
+          PayoutProvider__ProviderName=Fake
+          ENV
+          } > deploy-artifacts/.env.production
+          sed -i 's/^          //' deploy-artifacts/.env.production
+          cat > deploy-artifacts/.ghcr-username <<'ENV'
+          ${{ secrets.GHCR_USERNAME }}
+          ENV
+          cat > deploy-artifacts/.ghcr-token <<'ENV'
+          ${{ secrets.GHCR_TOKEN }}
+          ENV
+          sed -i 's/^          //' deploy-artifacts/.ghcr-username deploy-artifacts/.ghcr-token
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}" > ~/.ssh/lightsail
+          chmod 600 ~/.ssh/lightsail
+          ssh-keyscan -p "${{ vars.LIGHTSAIL_SSH_PORT || '22' }}" "${{ secrets.LIGHTSAIL_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Copy deployment assets
+        shell: bash
+        run: |
+          ssh -i ~/.ssh/lightsail -p "${{ vars.LIGHTSAIL_SSH_PORT || '22' }}" "${{ secrets.LIGHTSAIL_SSH_USER }}@${{ secrets.LIGHTSAIL_HOST }}" "mkdir -p /tmp/swyftly-deploy"
+          scp -i ~/.ssh/lightsail -P "${{ vars.LIGHTSAIL_SSH_PORT || '22' }}" deploy/lightsail/docker-compose.yml deploy/lightsail/Caddyfile deploy-artifacts/swyftly-migrate deploy-artifacts/.env.production deploy-artifacts/.ghcr-username deploy-artifacts/.ghcr-token "${{ secrets.LIGHTSAIL_SSH_USER }}@${{ secrets.LIGHTSAIL_HOST }}:/tmp/swyftly-deploy/"
+
+      - name: Deploy on Lightsail
+        shell: bash
+        run: |
+          ssh -i ~/.ssh/lightsail -p "${{ vars.LIGHTSAIL_SSH_PORT || '22' }}" "${{ secrets.LIGHTSAIL_SSH_USER }}@${{ secrets.LIGHTSAIL_HOST }}" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+
+          DEPLOY_PATH="${{ vars.LIGHTSAIL_DEPLOY_PATH || '/opt/swyftly' }}"
+          mkdir -p "$DEPLOY_PATH"
+          cp /tmp/swyftly-deploy/docker-compose.yml "$DEPLOY_PATH/docker-compose.yml"
+          cp /tmp/swyftly-deploy/Caddyfile "$DEPLOY_PATH/Caddyfile"
+          cp /tmp/swyftly-deploy/.env.production "$DEPLOY_PATH/.env.production"
+          cp /tmp/swyftly-deploy/.ghcr-username "$DEPLOY_PATH/.ghcr-username"
+          cp /tmp/swyftly-deploy/.ghcr-token "$DEPLOY_PATH/.ghcr-token"
+          cp /tmp/swyftly-deploy/swyftly-migrate "$DEPLOY_PATH/swyftly-migrate"
+          chmod +x "$DEPLOY_PATH/swyftly-migrate"
+          chmod 600 "$DEPLOY_PATH/.env.production" "$DEPLOY_PATH/.ghcr-token"
+
+          cd "$DEPLOY_PATH"
+          DB_CONNECTION_STRING="$(awk '/^ConnectionStrings__DefaultConnection=/{sub(/^ConnectionStrings__DefaultConnection=/,""); print; exit}' .env.production)"
+          ./swyftly-migrate --connection "$DB_CONNECTION_STRING"
+
+          cat .ghcr-token | docker login ghcr.io -u "$(cat .ghcr-username)" --password-stdin
+          docker compose --env-file .env.production pull
+          docker compose --env-file .env.production up -d
+          docker image prune -f
+
+          for endpoint in health health/ready; do
+            for attempt in $(seq 1 30); do
+              if curl -fsS "https://${{ vars.API_DOMAIN }}/${endpoint}"; then
+                break
+              fi
+
+              if [ "$attempt" -eq 30 ]; then
+                echo "Smoke check failed for /${endpoint}" >&2
+                docker compose --env-file .env.production ps
+                docker compose --env-file .env.production logs --tail=200 api caddy
+                exit 1
+              fi
+
+              sleep 5
+            done
+          done
+          REMOTE

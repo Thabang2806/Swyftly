@@ -1,12 +1,13 @@
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using Swyftly.Api.Advertising;
 using Swyftly.Api.Admin;
+using Swyftly.Api.Advertising;
 using Swyftly.Api.Ai;
 using Swyftly.Api.Analytics;
 using Swyftly.Api.Authentication;
@@ -21,8 +22,8 @@ using Swyftly.Api.Payments;
 using Swyftly.Api.Payouts;
 using Swyftly.Api.Refunds;
 using Swyftly.Api.Returns;
-using Swyftly.Api.Sellers;
 using Swyftly.Api.Security;
+using Swyftly.Api.Sellers;
 using Swyftly.Api.Storage;
 using Swyftly.Api.Support;
 using Swyftly.Application.Abstractions;
@@ -32,6 +33,7 @@ using Swyftly.Infrastructure;
 using Swyftly.Infrastructure.Identity;
 using Swyftly.Infrastructure.Persistence;
 using Swyftly.Infrastructure.Storage;
+using System.Text;
 using System.Threading.RateLimiting;
 
 const int ReadinessTimeoutSeconds = 5;
@@ -46,16 +48,29 @@ builder.Logging.AddSimpleConsole(options =>
     options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ ";
 });
 
+var configuredFrontendOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? [];
+var allowedFrontendOrigins = new[]
+    {
+        "http://localhost:4200",
+        "https://localhost:4200",
+        "http://localhost:4201",
+        "https://localhost:4201",
+        "https://swyftly.co.za"
+    }
+    .Concat(configuredFrontendOrigins)
+    .Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Select(origin => origin.Trim().TrimEnd('/'))
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("LocalFrontend", policy =>
+    options.AddPolicy("Frontend", policy =>
     {
         policy
-            .WithOrigins(
-                "http://localhost:4200",
-                "https://localhost:4200",
-                "http://localhost:4201",
-                "https://localhost:4201")
+            .WithOrigins(allowedFrontendOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -206,6 +221,7 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+
 var imageStorageOptions = builder.Configuration
     .GetSection(ImageStorageOptions.SectionName)
     .Get<ImageStorageOptions>() ?? new ImageStorageOptions();
@@ -245,7 +261,22 @@ if (useLocalImageStorage)
 }
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
-app.UseCors("LocalFrontend");
+app.UseCors("Frontend");
+
+// 1.Configure the Forwarded Headers Middleware
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+
+// Security Note: By default, .NET only trusts requests coming from 'localhost' (127.0.0.1).
+// Since Cloudflare is sending the requests, we clear the KnownProxies and KnownNetworks
+// restrictions so it accepts the headers from Cloudflare's edge IPs.
+forwardedHeadersOptions.KnownProxies.Clear();
+forwardedHeadersOptions.KnownNetworks.Clear();
+
+app.UseForwardedHeaders(forwardedHeadersOptions);
+
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

@@ -19,6 +19,12 @@ public sealed class PaymentProviderHealthCheck(
             return Task.FromResult(HealthCheckResult.Healthy("Fake payment provider is selected."));
         }
 
+        if (string.Equals(providerName, DisabledPaymentProvider.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            return Task.FromResult(HealthCheckResult.Healthy(
+                "Payment provider is intentionally disabled; buyer payment initiation will return a clear unavailable response."));
+        }
+
         if (string.Equals(providerName, PayFastPaymentProvider.Name, StringComparison.OrdinalIgnoreCase))
         {
             return Task.FromResult(CheckPayFastOptions(payFastOptions.Value));

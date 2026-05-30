@@ -62,6 +62,7 @@ public static class SecurityConfigurationValidator
 
         ValidatePaymentProviderConfiguration(configuration);
         ValidateAuthCookieConfiguration(configuration);
+        ValidateCorsConfiguration(configuration);
         ValidateEmailDeliveryConfiguration(configuration);
         ValidateCarrierProviderConfiguration(configuration);
     }
@@ -75,10 +76,15 @@ public static class SecurityConfigurationValidator
                 "Production PaymentProvider:ProviderName cannot be Fake. Configure a real provider before running in production.");
         }
 
+        if (string.Equals(providerName, DisabledPaymentProvider.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         if (!string.Equals(providerName, PayFastPaymentProvider.Name, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException(
-                $"Production PaymentProvider:ProviderName '{providerName}' is not supported.");
+                $"Production PaymentProvider:ProviderName '{providerName}' is not supported. Use Disabled until PayFast is configured.");
         }
 
         ValidatePayFastConfiguration(configuration);
@@ -141,6 +147,31 @@ public static class SecurityConfigurationValidator
             {
                 throw new InvalidOperationException(
                     "Production AuthCookies:Domain must be a production host or parent domain, not localhost or a placeholder.");
+            }
+        }
+    }
+
+    private static void ValidateCorsConfiguration(IConfiguration configuration)
+    {
+        var origins = configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>() ?? [];
+        if (origins.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "Production Cors:AllowedOrigins must include the public frontend HTTPS origin.");
+        }
+
+        foreach (var origin in origins)
+        {
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                || !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase)
+                || ContainsUnsafeMarker(origin)
+                || origin.Contains('*', StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Production Cors:AllowedOrigins must contain only explicit external HTTPS frontend origins.");
             }
         }
     }
