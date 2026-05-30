@@ -394,6 +394,9 @@ app.MapBuyerVisualSearchEndpoints();
 app.MapHub<NotificationHub>("/hubs/notifications")
     .RequireAuthorization(SwyftlyPolicies.BuyerOrSeller);
 
+app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/ready");
+
 app.Run();
 
 static RateLimitPartition<string> CreateFixedWindowLimiter(
