@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Pgvector;
 
@@ -17,7 +17,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "product_embeddings",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -33,7 +33,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_product_embeddings_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -41,25 +41,25 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_embeddings_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_embeddings",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_embeddings_ModelUsed",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_embeddings",
                 column: "ModelUsed");
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_embeddings_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_embeddings",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_embeddings_ProductId_ModelUsed",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_embeddings",
                 columns: new[] { "ProductId", "ModelUsed" },
                 unique: true);
@@ -70,7 +70,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "product_embeddings",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.AlterDatabase()
                 .OldAnnotation("Npgsql:PostgresExtension:vector", ",,");

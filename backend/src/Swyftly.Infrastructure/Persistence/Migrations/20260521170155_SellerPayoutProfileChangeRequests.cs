@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "seller_payout_profile_change_requests",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -37,7 +37,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_seller_payout_profile_change_requests_seller_profiles_Selle~",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -45,7 +45,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_payout_profile_change_requests_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_payout_profile_change_requests",
                 column: "SellerId",
                 unique: true,
@@ -57,7 +57,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "seller_payout_profile_change_requests",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

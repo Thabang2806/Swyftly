@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "return_requests",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -39,21 +39,21 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_return_requests_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_return_requests_orders_OrderId",
                         column: x => x.OrderId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_return_requests_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -61,7 +61,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "return_items",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -80,28 +80,28 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_return_items_order_items_OrderItemId",
                         column: x => x.OrderItemId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "order_items",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_return_items_product_variants_ProductVariantId",
                         column: x => x.ProductVariantId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "product_variants",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_return_items_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_return_items_return_requests_ReturnRequestId",
                         column: x => x.ReturnRequestId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "return_requests",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -109,7 +109,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "return_messages",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -125,7 +125,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_return_messages_return_requests_ReturnRequestId",
                         column: x => x.ReturnRequestId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "return_requests",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -133,79 +133,79 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_items_OrderItemId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_items",
                 column: "OrderItemId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_items_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_items",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_items_ProductVariantId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_items",
                 column: "ProductVariantId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_items_ReturnRequestId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_items",
                 column: "ReturnRequestId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_messages_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_messages",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_messages_ReturnRequestId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_messages",
                 column: "ReturnRequestId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_messages_SenderUserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_messages",
                 column: "SenderUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_requests_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_requests",
                 column: "BuyerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_requests_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_requests",
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_requests_Reason",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_requests",
                 column: "Reason");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_requests_RequestedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_requests",
                 column: "RequestedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_requests_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_requests",
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_requests_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_requests",
                 column: "Status");
         }
@@ -215,15 +215,15 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "return_items",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "return_messages",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "return_requests",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

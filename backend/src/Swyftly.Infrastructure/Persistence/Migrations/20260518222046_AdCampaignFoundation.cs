@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "ad_campaigns",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -39,7 +39,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_ad_campaigns_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -47,7 +47,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "seller_ad_credits",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -63,7 +63,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_seller_ad_credits_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -71,7 +71,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ad_budgets",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -90,7 +90,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_ad_budgets_ad_campaigns_AdCampaignId",
                         column: x => x.AdCampaignId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "ad_campaigns",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -98,7 +98,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ad_campaign_products",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -112,14 +112,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_ad_campaign_products_ad_campaigns_AdCampaignId",
                         column: x => x.AdCampaignId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "ad_campaigns",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_ad_campaign_products_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -127,7 +127,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ad_clicks",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -143,21 +143,21 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_ad_clicks_ad_campaigns_AdCampaignId",
                         column: x => x.AdCampaignId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "ad_campaigns",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_ad_clicks_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ad_clicks_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -165,7 +165,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ad_impressions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -181,14 +181,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_ad_impressions_ad_campaigns_AdCampaignId",
                         column: x => x.AdCampaignId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "ad_campaigns",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_ad_impressions_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -196,7 +196,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ad_charges",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -213,14 +213,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_ad_charges_ad_campaigns_AdCampaignId",
                         column: x => x.AdCampaignId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "ad_campaigns",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_ad_charges_ad_clicks_AdClickId",
                         column: x => x.AdClickId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "ad_clicks",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -228,7 +228,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ad_conversions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -245,21 +245,21 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_ad_conversions_ad_campaigns_AdCampaignId",
                         column: x => x.AdCampaignId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "ad_campaigns",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_ad_conversions_ad_clicks_AdClickId",
                         column: x => x.AdClickId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "ad_clicks",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ad_conversions_orders_OrderId",
                         column: x => x.OrderId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -267,142 +267,142 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_budgets_AdCampaignId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_budgets",
                 column: "AdCampaignId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_campaign_products_AdCampaignId_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_campaign_products",
                 columns: new[] { "AdCampaignId", "ProductId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_campaign_products_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_campaign_products",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_campaigns_CampaignType",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_campaigns",
                 column: "CampaignType");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_campaigns_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_campaigns",
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_campaigns_StartsAtUtc_EndsAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_campaigns",
                 columns: new[] { "StartsAtUtc", "EndsAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_campaigns_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_campaigns",
                 column: "Status");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_charges_AdCampaignId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_charges",
                 column: "AdCampaignId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_charges_AdClickId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_charges",
                 column: "AdClickId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_charges_ChargedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_charges",
                 column: "ChargedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_clicks_AdCampaignId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_clicks",
                 column: "AdCampaignId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_clicks_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_clicks",
                 column: "BuyerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_clicks_OccurredAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_clicks",
                 column: "OccurredAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_clicks_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_clicks",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_conversions_AdCampaignId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_conversions",
                 column: "AdCampaignId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_conversions_AdClickId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_conversions",
                 column: "AdClickId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_conversions_OccurredAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_conversions",
                 column: "OccurredAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_conversions_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_conversions",
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_impressions_AdCampaignId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_impressions",
                 column: "AdCampaignId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_impressions_AdCampaignId_AnonymousVisitorId_OccurredAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_impressions",
                 columns: new[] { "AdCampaignId", "AnonymousVisitorId", "OccurredAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_impressions_OccurredAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_impressions",
                 column: "OccurredAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ad_impressions_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ad_impressions",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_ad_credits_SellerId_Currency",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_ad_credits",
                 columns: new[] { "SellerId", "Currency" },
                 unique: true);
@@ -413,35 +413,35 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "ad_budgets",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "ad_campaign_products",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "ad_charges",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "ad_conversions",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "ad_impressions",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "seller_ad_credits",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "ad_clicks",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "ad_campaigns",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,79 +13,79 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<Guid>(
                 name: "CartId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "PaymentId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "RefundId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "ReservationId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "ReturnRequestId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_inventory_movements_CartId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements",
                 column: "CartId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_inventory_movements_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements",
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_inventory_movements_PaymentId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements",
                 column: "PaymentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_inventory_movements_RefundId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements",
                 column: "RefundId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_inventory_movements_ReservationId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements",
                 column: "ReservationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_inventory_movements_ReturnRequestId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements",
                 column: "ReturnRequestId");
         }
@@ -95,62 +95,62 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropIndex(
                 name: "IX_inventory_movements_CartId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements");
 
             migrationBuilder.DropIndex(
                 name: "IX_inventory_movements_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements");
 
             migrationBuilder.DropIndex(
                 name: "IX_inventory_movements_PaymentId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements");
 
             migrationBuilder.DropIndex(
                 name: "IX_inventory_movements_RefundId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements");
 
             migrationBuilder.DropIndex(
                 name: "IX_inventory_movements_ReservationId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements");
 
             migrationBuilder.DropIndex(
                 name: "IX_inventory_movements_ReturnRequestId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements");
 
             migrationBuilder.DropColumn(
                 name: "CartId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements");
 
             migrationBuilder.DropColumn(
                 name: "OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements");
 
             migrationBuilder.DropColumn(
                 name: "PaymentId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements");
 
             migrationBuilder.DropColumn(
                 name: "RefundId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements");
 
             migrationBuilder.DropColumn(
                 name: "ReservationId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements");
 
             migrationBuilder.DropColumn(
                 name: "ReturnRequestId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_movements");
         }
     }

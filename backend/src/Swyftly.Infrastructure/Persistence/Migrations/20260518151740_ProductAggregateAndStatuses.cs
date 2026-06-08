@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "products",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -36,14 +36,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_products_categories_CategoryId",
                         column: x => x.CategoryId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "categories",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_products_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -51,13 +51,13 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_products_CategoryId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products",
                 column: "CategoryId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_products_SellerId_Slug",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products",
                 columns: new[] { "SellerId", "Slug" },
                 unique: true,
@@ -65,7 +65,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_products_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products",
                 column: "Status");
         }
@@ -75,7 +75,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "products",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

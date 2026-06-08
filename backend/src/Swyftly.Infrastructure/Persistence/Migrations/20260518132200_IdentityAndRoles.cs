@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -13,11 +13,11 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
-                name: "swyftly");
+                name: "mabuntle");
 
             migrationBuilder.CreateTable(
                 name: "AspNetRoles",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -32,7 +32,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUsers",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -60,7 +60,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "buyer_profiles",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -75,7 +75,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "seller_profiles",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -91,7 +91,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -106,7 +106,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_AspNetRoleClaims_AspNetRoles_RoleId",
                         column: x => x.RoleId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "AspNetRoles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -114,7 +114,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUserClaims",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -129,7 +129,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_AspNetUserClaims_AspNetUsers_UserId",
                         column: x => x.UserId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -137,7 +137,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUserLogins",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     LoginProvider = table.Column<string>(type: "text", nullable: false),
@@ -151,7 +151,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_AspNetUserLogins_AspNetUsers_UserId",
                         column: x => x.UserId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -159,7 +159,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUserRoles",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
@@ -171,14 +171,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_AspNetUserRoles_AspNetRoles_RoleId",
                         column: x => x.RoleId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "AspNetRoles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_AspNetUserRoles_AspNetUsers_UserId",
                         column: x => x.UserId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -186,7 +186,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUserTokens",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
@@ -200,7 +200,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_AspNetUserTokens_AspNetUsers_UserId",
                         column: x => x.UserId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -208,7 +208,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "refresh_tokens",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -225,7 +225,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_refresh_tokens_AspNetUsers_UserId",
                         column: x => x.UserId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -233,71 +233,71 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "AspNetRoleClaims",
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
                 name: "RoleNameIndex",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "AspNetRoles",
                 column: "NormalizedName",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserClaims_UserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "AspNetUserClaims",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserLogins_UserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "AspNetUserLogins",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserRoles_RoleId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "AspNetUserRoles",
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
                 name: "EmailIndex",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "AspNetUsers",
                 column: "NormalizedEmail");
 
             migrationBuilder.CreateIndex(
                 name: "UserNameIndex",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "AspNetUsers",
                 column: "NormalizedUserName",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_profiles_UserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_profiles",
                 column: "UserId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_refresh_tokens_TokenHash",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refresh_tokens",
                 column: "TokenHash",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_refresh_tokens_UserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refresh_tokens",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_profiles_UserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_profiles",
                 column: "UserId",
                 unique: true);
@@ -308,43 +308,43 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "AspNetUserClaims",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "AspNetUserLogins",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "AspNetUserRoles",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "AspNetUserTokens",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "buyer_profiles",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "refresh_tokens",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "seller_profiles",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

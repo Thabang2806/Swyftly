@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "support_tickets",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -42,42 +42,42 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_support_tickets_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_support_tickets_orders_LinkedOrderId",
                         column: x => x.LinkedOrderId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_support_tickets_payments_LinkedPaymentId",
                         column: x => x.LinkedPaymentId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "payments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_support_tickets_products_LinkedProductId",
                         column: x => x.LinkedProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_support_tickets_seller_profiles_LinkedSellerId",
                         column: x => x.LinkedSellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_support_tickets_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -85,7 +85,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "support_messages",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -102,7 +102,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_support_messages_support_tickets_SupportTicketId",
                         column: x => x.SupportTicketId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "support_tickets",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -110,85 +110,85 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_messages_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_messages",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_messages_IsInternal",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_messages",
                 column: "IsInternal");
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_messages_SenderUserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_messages",
                 column: "SenderUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_messages_SupportTicketId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_messages",
                 column: "SupportTicketId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_tickets_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 column: "BuyerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_tickets_Category",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 column: "Category");
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_tickets_CreatedByUserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 column: "CreatedByUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_tickets_LinkedOrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 column: "LinkedOrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_tickets_LinkedPaymentId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 column: "LinkedPaymentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_tickets_LinkedProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 column: "LinkedProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_tickets_LinkedSellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 column: "LinkedSellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_tickets_OpenedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 column: "OpenedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_tickets_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_support_tickets_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 column: "Status");
         }
@@ -198,11 +198,11 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "support_messages",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "support_tickets",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

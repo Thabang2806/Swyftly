@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -12,7 +12,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "tags_json",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products",
                 type: "jsonb",
                 nullable: false,
@@ -24,7 +24,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "tags_json",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products");
         }
     }

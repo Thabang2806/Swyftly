@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -12,7 +12,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryInstructions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(500)",
                 maxLength: 500,
@@ -20,7 +20,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryInstructions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_delivery_addresses",
                 type: "character varying(500)",
                 maxLength: 500,
@@ -32,12 +32,12 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "DeliveryInstructions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryInstructions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_delivery_addresses");
         }
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "product_attribute_values",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -27,7 +27,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_product_attribute_values_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -35,7 +35,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "product_images",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -53,7 +53,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_product_images_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -61,7 +61,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "product_variants",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -84,7 +84,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_product_variants_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -92,14 +92,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_attribute_values_ProductId_Key",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_attribute_values",
                 columns: new[] { "ProductId", "Key" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_images_ProductId_IsPrimary",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_images",
                 columns: new[] { "ProductId", "IsPrimary" },
                 unique: true,
@@ -107,27 +107,27 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_images_ProductId_SortOrder",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_images",
                 columns: new[] { "ProductId", "SortOrder" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variants_ProductId_Size_Colour",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variants",
                 columns: new[] { "ProductId", "Size", "Colour" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variants_ProductId_Sku",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variants",
                 columns: new[] { "ProductId", "Sku" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variants_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variants",
                 column: "Status");
         }
@@ -137,15 +137,15 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "product_attribute_values",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "product_images",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "product_variants",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

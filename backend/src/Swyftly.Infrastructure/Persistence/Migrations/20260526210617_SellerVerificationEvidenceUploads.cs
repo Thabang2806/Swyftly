@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "seller_verification_evidence",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -39,7 +39,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_seller_verification_evidence_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -47,19 +47,19 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_verification_evidence_RemovedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_verification_evidence",
                 column: "RemovedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_verification_evidence_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_verification_evidence",
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_verification_evidence_SellerId_EvidenceType",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_verification_evidence",
                 columns: new[] { "SellerId", "EvidenceType" });
         }
@@ -69,7 +69,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "seller_verification_evidence",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

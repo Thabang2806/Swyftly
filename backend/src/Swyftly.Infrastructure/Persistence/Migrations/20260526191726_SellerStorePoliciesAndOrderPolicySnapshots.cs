@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "SellerPolicyCareInstructions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(1000)",
                 maxLength: 1000,
@@ -21,7 +21,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "SellerPolicyExchangePolicy",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(2000)",
                 maxLength: 2000,
@@ -29,7 +29,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "SellerPolicyFulfilmentPolicy",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(1000)",
                 maxLength: 1000,
@@ -37,7 +37,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "SellerPolicyProductDisclaimer",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(1000)",
                 maxLength: 1000,
@@ -45,7 +45,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "SellerPolicyReturnPolicy",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(2000)",
                 maxLength: 2000,
@@ -53,21 +53,21 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<int>(
                 name: "SellerPolicyReturnWindowDays",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "integer",
                 nullable: true);
 
             migrationBuilder.AddColumn<DateTimeOffset>(
                 name: "SellerPolicySnapshotAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "timestamp with time zone",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "SellerPolicySupportPolicy",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(1000)",
                 maxLength: 1000,
@@ -75,7 +75,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "seller_store_policies",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -96,7 +96,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_seller_store_policies_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -104,7 +104,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_store_policies_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_store_policies",
                 column: "SellerId",
                 unique: true);
@@ -115,46 +115,46 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "seller_store_policies",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropColumn(
                 name: "SellerPolicyCareInstructions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "SellerPolicyExchangePolicy",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "SellerPolicyFulfilmentPolicy",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "SellerPolicyProductDisclaimer",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "SellerPolicyReturnPolicy",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "SellerPolicyReturnWindowDays",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "SellerPolicySnapshotAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "SellerPolicySupportPolicy",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
         }
     }

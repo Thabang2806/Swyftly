@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "admin_queue_saved_views",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -40,7 +40,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_admin_queue_saved_views_AspNetUsers_AdminUserId",
                         column: x => x.AdminUserId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -48,13 +48,13 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_admin_queue_saved_views_AdminUserId_Queue_IsDefault",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "admin_queue_saved_views",
                 columns: new[] { "AdminUserId", "Queue", "IsDefault" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_admin_queue_saved_views_AdminUserId_Queue_Name",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "admin_queue_saved_views",
                 columns: new[] { "AdminUserId", "Queue", "Name" },
                 unique: true);
@@ -65,7 +65,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "admin_queue_saved_views",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

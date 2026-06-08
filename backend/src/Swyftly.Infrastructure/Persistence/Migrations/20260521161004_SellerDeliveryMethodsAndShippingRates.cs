@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,28 +13,28 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<int>(
                 name: "DeliveryEstimatedMaxDays",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "integer",
                 nullable: true);
 
             migrationBuilder.AddColumn<int>(
                 name: "DeliveryEstimatedMinDays",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "integer",
                 nullable: true);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "DeliveryMethodId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryMethodName",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(120)",
                 maxLength: 120,
@@ -42,7 +42,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryMethodType",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(40)",
                 maxLength: 40,
@@ -50,7 +50,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "seller_delivery_methods",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -75,7 +75,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_seller_delivery_methods_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -83,19 +83,19 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_delivery_methods_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_delivery_methods",
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_delivery_methods_SellerId_CountryCode_Province",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_delivery_methods",
                 columns: new[] { "SellerId", "CountryCode", "Province" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_delivery_methods_SellerId_IsActive_DisplayOrder",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_delivery_methods",
                 columns: new[] { "SellerId", "IsActive", "DisplayOrder" });
         }
@@ -105,31 +105,31 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "seller_delivery_methods",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryEstimatedMaxDays",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryEstimatedMinDays",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryMethodId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryMethodName",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryMethodType",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
         }
     }

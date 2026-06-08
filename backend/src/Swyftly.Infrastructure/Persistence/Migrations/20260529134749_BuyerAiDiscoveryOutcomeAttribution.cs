@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "buyer_growth_outcomes",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -35,35 +35,35 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_buyer_growth_outcomes_buyer_growth_events_SourceEventId",
                         column: x => x.SourceEventId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_growth_events",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_buyer_growth_outcomes_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_buyer_growth_outcomes_carts_CartId",
                         column: x => x.CartId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "carts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_buyer_growth_outcomes_orders_OrderId",
                         column: x => x.OrderId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_buyer_growth_outcomes_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
@@ -71,44 +71,44 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_growth_outcomes_BuyerId_OutcomeType_OccurredAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_growth_outcomes",
                 columns: new[] { "BuyerId", "OutcomeType", "OccurredAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_growth_outcomes_BuyerId_OutcomeType_SourceTool_Produc~",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_growth_outcomes",
                 columns: new[] { "BuyerId", "OutcomeType", "SourceTool", "ProductId", "CartId", "OrderId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_growth_outcomes_CartId_OutcomeType",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_growth_outcomes",
                 columns: new[] { "CartId", "OutcomeType" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_growth_outcomes_OrderId_OutcomeType",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_growth_outcomes",
                 columns: new[] { "OrderId", "OutcomeType" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_growth_outcomes_OutcomeType_SourceTool_OccurredAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_growth_outcomes",
                 columns: new[] { "OutcomeType", "SourceTool", "OccurredAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_growth_outcomes_ProductId_OutcomeType_OccurredAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_growth_outcomes",
                 columns: new[] { "ProductId", "OutcomeType", "OccurredAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_growth_outcomes_SourceEventId_OutcomeType",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_growth_outcomes",
                 columns: new[] { "SourceEventId", "OutcomeType" },
                 unique: true,
@@ -120,7 +120,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "buyer_growth_outcomes",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

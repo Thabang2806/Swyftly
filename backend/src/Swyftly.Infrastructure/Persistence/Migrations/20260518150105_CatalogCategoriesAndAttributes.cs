@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -15,7 +15,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "categories",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -31,7 +31,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_categories_categories_ParentCategoryId",
                         column: x => x.ParentCategoryId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "categories",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -39,7 +39,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "category_attributes",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -58,14 +58,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_category_attributes_categories_CategoryId",
                         column: x => x.CategoryId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "categories",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.InsertData(
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "categories",
                 columns: new[] { "Id", "DisplayOrder", "IsActive", "Name", "ParentCategoryId", "Slug" },
                 values: new object[,]
@@ -92,7 +92,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.InsertData(
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "category_attributes",
                 columns: new[] { "Id", "allowed_values_json", "CategoryId", "DataType", "DisplayOrder", "IsActive", "IsRequired", "Key", "Name" },
                 values: new object[,]
@@ -122,26 +122,26 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_ParentCategoryId_DisplayOrder",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "categories",
                 columns: new[] { "ParentCategoryId", "DisplayOrder" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_Slug",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "categories",
                 column: "Slug",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_category_attributes_CategoryId_DisplayOrder",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "category_attributes",
                 columns: new[] { "CategoryId", "DisplayOrder" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_category_attributes_CategoryId_Key",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "category_attributes",
                 columns: new[] { "CategoryId", "Key" },
                 unique: true);
@@ -152,11 +152,11 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "category_attributes",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "categories",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

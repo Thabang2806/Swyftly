@@ -206,7 +206,7 @@ public sealed class SwyftlyDbContext(DbContextOptions<SwyftlyDbContext> options)
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema("swyftly");
+        modelBuilder.HasDefaultSchema("mabuntle");
         modelBuilder.HasPostgresExtension("vector");
         base.OnModelCreating(modelBuilder);
 

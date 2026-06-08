@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "product_variant_revisions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -34,14 +34,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_product_variant_revisions_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_product_variant_revisions_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -49,7 +49,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "product_variant_revision_items",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -71,14 +71,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_product_variant_revision_items_product_variant_revisions_Re~",
                         column: x => x.RevisionId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "product_variant_revisions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_product_variant_revision_items_product_variants_SourceVaria~",
                         column: x => x.SourceVariantId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "product_variants",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -86,37 +86,37 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variant_revision_items_RevisionId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variant_revision_items",
                 column: "RevisionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variant_revision_items_RevisionId_Size_Colour",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variant_revision_items",
                 columns: new[] { "RevisionId", "Size", "Colour" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variant_revision_items_RevisionId_Sku",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variant_revision_items",
                 columns: new[] { "RevisionId", "Sku" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variant_revision_items_SourceVariantId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variant_revision_items",
                 column: "SourceVariantId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variant_revisions_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variant_revisions",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variant_revisions_ProductId_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variant_revisions",
                 columns: new[] { "ProductId", "Status" },
                 unique: true,
@@ -124,13 +124,13 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variant_revisions_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variant_revisions",
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_variant_revisions_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variant_revisions",
                 column: "Status");
         }
@@ -140,11 +140,11 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "product_variant_revision_items",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "product_variant_revisions",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

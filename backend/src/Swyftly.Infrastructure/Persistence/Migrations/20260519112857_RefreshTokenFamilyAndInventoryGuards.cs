@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,17 +13,17 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<Guid>(
                 name: "family_id",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refresh_tokens",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.Sql(
-                "UPDATE swyftly.refresh_tokens SET family_id = \"Id\" WHERE family_id IS NULL;");
+                "UPDATE mabuntle.refresh_tokens SET family_id = \"Id\" WHERE family_id IS NULL;");
 
             migrationBuilder.AlterColumn<Guid>(
                 name: "family_id",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refresh_tokens",
                 type: "uuid",
                 nullable: false,
@@ -33,7 +33,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "revoked_reason",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refresh_tokens",
                 type: "character varying(120)",
                 maxLength: 120,
@@ -41,19 +41,19 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_refresh_tokens_UserId_family_id",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refresh_tokens",
                 columns: new[] { "UserId", "family_id" });
 
             migrationBuilder.AddCheckConstraint(
                 name: "CK_product_variants_reserved_quantity_non_negative",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variants",
                 sql: "\"ReservedQuantity\" >= 0");
 
             migrationBuilder.AddCheckConstraint(
                 name: "CK_product_variants_reserved_quantity_not_above_stock",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variants",
                 sql: "\"ReservedQuantity\" <= \"StockQuantity\"");
         }
@@ -63,27 +63,27 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropIndex(
                 name: "IX_refresh_tokens_UserId_family_id",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refresh_tokens");
 
             migrationBuilder.DropCheckConstraint(
                 name: "CK_product_variants_reserved_quantity_non_negative",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variants");
 
             migrationBuilder.DropCheckConstraint(
                 name: "CK_product_variants_reserved_quantity_not_above_stock",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_variants");
 
             migrationBuilder.DropColumn(
                 name: "family_id",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refresh_tokens");
 
             migrationBuilder.DropColumn(
                 name: "revoked_reason",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refresh_tokens");
         }
     }
