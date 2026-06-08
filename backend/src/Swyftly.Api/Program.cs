@@ -56,7 +56,7 @@ var allowedFrontendOrigins = new[]
         "https://localhost:4200",
         "http://localhost:4201",
         "https://localhost:4201",
-        "https://swyftly.co.za"
+        "https://mabuntle.com"
     }
     .Concat(configuredFrontendOrigins)
     .Where(origin => !string.IsNullOrWhiteSpace(origin))

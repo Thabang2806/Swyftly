@@ -20,7 +20,7 @@ Required Cloudflare/GitHub configuration:
 | `CLOUDFLARE_API_TOKEN` | GitHub secret | Token with Cloudflare Pages deploy access. |
 | `CLOUDFLARE_ACCOUNT_ID` | GitHub secret | Cloudflare account id. |
 | `CLOUDFLARE_PAGES_PROJECT_NAME` | GitHub environment variable | Pages project name. |
-| `SWYFTLY_API_BASE_URL` | GitHub environment variable | External API origin, `https://api.swyftly.co.za`. |
+| `SWYFTLY_API_BASE_URL` | GitHub environment variable | External API origin, `https://api.mabuntle.com`. |
 
 The Cloudflare build uses `scripts/write-production-api-url.mjs` to write the production Angular API origin at build time. The public `_redirects` file provides SPA fallback routing for routes that were not prerendered.
 
@@ -29,7 +29,7 @@ If a Cloudflare build fails with `Could not detect a directory containing static
 - Root directory: `frontend/swyftly-web`
 - Build command: `npm ci && npm run build:cloudflare`
 - Build output directory: `dist/swyftly-web/browser`
-- Environment variables: `NODE_VERSION=22`, `SWYFTLY_API_BASE_URL=https://api.swyftly.co.za`
+- Environment variables: `NODE_VERSION=22`, `SWYFTLY_API_BASE_URL=https://api.mabuntle.com`
 
 Do not use `npx wrangler deploy` for the Angular static site. Cloudflare Pages should upload the generated `dist/swyftly-web/browser` directory.
 
@@ -56,11 +56,11 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 sudo usermod -aG docker ubuntu
-sudo mkdir -p /opt/swyftly
-sudo chown -R ubuntu:ubuntu /opt/swyftly
+sudo mkdir -p /opt/mabuntle
+sudo chown -R ubuntu:ubuntu /opt/mabuntle
 ```
 
-Open inbound ports `80` and `443` on the Lightsail instance. Point the API DNS record, `api.swyftly.co.za`, to the Lightsail public IP before the first Caddy start so TLS can issue. Point the public frontend domain, `swyftly.co.za`, at Cloudflare Pages through the Pages custom domain setup.
+Open inbound ports `80` and `443` on the Lightsail instance. Point the API DNS record, `api.mabuntle.com`, to the Lightsail public IP before the first Caddy start so TLS can issue. Point the public frontend domain, `mabuntle.com`, at Cloudflare Pages through the Pages custom domain setup.
 
 ## GitHub Production Environment
 
@@ -68,13 +68,13 @@ Create a GitHub Environment named `production` and require manual approval befor
 
 | Variable | Example |
 |---|---|
-| `API_DOMAIN` | `api.swyftly.co.za` |
-| `FRONTEND_ORIGIN` | `https://swyftly.co.za` |
-| `AUTH_COOKIE_DOMAIN` | `.swyftly.co.za` |
-| `ACME_EMAIL` | `ops@swyftly.co.za` |
-| `LIGHTSAIL_DEPLOY_PATH` | `/opt/swyftly` |
+| `API_DOMAIN` | `api.mabuntle.com` |
+| `FRONTEND_ORIGIN` | `https://mabuntle.com` |
+| `AUTH_COOKIE_DOMAIN` | `.mabuntle.com` |
+| `ACME_EMAIL` | `ops@mabuntle.com` |
+| `LIGHTSAIL_DEPLOY_PATH` | `/opt/mabuntle` |
 | `LIGHTSAIL_SSH_PORT` | `22` |
-| `EMAIL_FROM_ADDRESS` | `no-reply@mail.swyftly.co.za` |
+| `EMAIL_FROM_ADDRESS` | `no-reply@mail.mabuntle.com` |
 | `SMTP_PORT` | `587` |
 
 Add these secrets:
@@ -100,13 +100,13 @@ Swyftly uses the existing SMTP email provider for Resend. No Resend-specific bac
 
 Before deploying email delivery:
 
-1. Verify `mail.swyftly.co.za` in Resend.
-2. Add the Resend DNS records in Cloudflare for `mail.swyftly.co.za`.
+1. Verify `mail.mabuntle.com` in Resend.
+2. Add the Resend DNS records in Cloudflare for `mail.mabuntle.com`.
 3. Create a Resend API key.
 4. Set GitHub production values:
 
 ```text
-EMAIL_FROM_ADDRESS=no-reply@mail.swyftly.co.za
+EMAIL_FROM_ADDRESS=no-reply@mail.mabuntle.com
 SMTP_HOST=smtp.resend.com
 SMTP_PORT=587
 SMTP_USERNAME=resend
@@ -131,8 +131,8 @@ Enable automated backups in Lightsail. Keep the connection string in GitHub Secr
 After deployment:
 
 ```bash
-curl -fsS https://api.swyftly.co.za/health
-curl -fsS https://api.swyftly.co.za/health/ready
+curl -fsS https://api.mabuntle.com/health
+curl -fsS https://api.mabuntle.com/health/ready
 ```
 
 Then verify from the browser:

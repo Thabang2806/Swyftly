@@ -45,7 +45,7 @@ Response when healthy:
 
 The readiness endpoint returns HTTP `503` with the same response shape when PostgreSQL or a required dependency check is unavailable. It includes a search placeholder plus real `image-storage`, `payment-provider`, and `email-delivery` configuration checks. The payment check is healthy for the local fake provider, intentionally disabled provider, and validates required PayFast configuration when `PaymentProvider__ProviderName=PayFast`. The image-storage check validates local storage or S3-compatible storage configuration and enforces the configured production media-scanner policy. The email check is healthy for local `LogOnly` delivery outside production and validates SMTP configuration when `EmailDelivery__ProviderName=Smtp`; production must not use `LogOnly`. Carrier provider mode is validated by production startup configuration checks: `Manual` is allowed as the production fallback, and `Fake` is rejected in production.
 
-Production CORS is configured with `Cors__AllowedOrigins__*`. Values must be explicit external HTTPS frontend origins such as `https://swyftly.co.za`; wildcard, localhost, and placeholder origins are rejected in production because authenticated API calls and SignalR use credentials. Localhost origins remain available outside production for Angular development.
+Production CORS is configured with `Cors__AllowedOrigins__*`. Values must be explicit external HTTPS frontend origins such as `https://mabuntle.com`; wildcard, localhost, and placeholder origins are rejected in production because authenticated API calls and SignalR use credentials. Localhost origins remain available outside production for Angular development.
 
 ## Authentication
 
@@ -1292,9 +1292,9 @@ Production Resend SMTP configuration uses the existing `Smtp` provider and worke
 
 ```text
 EmailDelivery__ProviderName=Smtp
-EmailDelivery__FromAddress=no-reply@mail.swyftly.co.za
+EmailDelivery__FromAddress=no-reply@mail.mabuntle.com
 EmailDelivery__FromName=Swyftly
-EmailDelivery__AppBaseUrl=https://swyftly.co.za
+EmailDelivery__AppBaseUrl=https://mabuntle.com
 EmailDelivery__Smtp__Host=smtp.resend.com
 EmailDelivery__Smtp__Port=587
 EmailDelivery__Smtp__Username=resend

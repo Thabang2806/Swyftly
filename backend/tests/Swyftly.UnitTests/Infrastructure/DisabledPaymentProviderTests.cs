@@ -16,8 +16,8 @@ public sealed class DisabledPaymentProviderTests
             100m,
             "ZAR",
             "Swyftly order",
-            new Uri("https://swyftly.co.za/checkout/success"),
-            new Uri("https://swyftly.co.za/checkout/failed"),
+            new Uri("https://mabuntle.com/checkout/success"),
+            new Uri("https://mabuntle.com/checkout/failed"),
             new Dictionary<string, string>()));
 
         Assert.True(result.IsFailure);

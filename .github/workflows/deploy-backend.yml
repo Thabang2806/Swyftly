@@ -226,8 +226,8 @@ jobs:
       - name: Copy deployment assets
         shell: bash
         run: |
-          ssh -i ~/.ssh/lightsail -p "${{ vars.LIGHTSAIL_SSH_PORT || '22' }}" "${{ secrets.LIGHTSAIL_SSH_USER }}@${{ secrets.LIGHTSAIL_HOST }}" "mkdir -p /tmp/swyftly-deploy"
-          scp -i ~/.ssh/lightsail -P "${{ vars.LIGHTSAIL_SSH_PORT || '22' }}" deploy/lightsail/docker-compose.yml deploy/lightsail/Caddyfile deploy-artifacts/swyftly-migrate deploy-artifacts/.env.production deploy-artifacts/.ghcr-username deploy-artifacts/.ghcr-token "${{ secrets.LIGHTSAIL_SSH_USER }}@${{ secrets.LIGHTSAIL_HOST }}:/tmp/swyftly-deploy/"
+          ssh -i ~/.ssh/lightsail -p "${{ vars.LIGHTSAIL_SSH_PORT || '22' }}" "${{ secrets.LIGHTSAIL_SSH_USER }}@${{ secrets.LIGHTSAIL_HOST }}" "mkdir -p /tmp/mabuntle-deploy"
+          scp -i ~/.ssh/lightsail -P "${{ vars.LIGHTSAIL_SSH_PORT || '22' }}" deploy/lightsail/docker-compose.yml deploy/lightsail/Caddyfile deploy-artifacts/swyftly-migrate deploy-artifacts/.env.production deploy-artifacts/.ghcr-username deploy-artifacts/.ghcr-token "${{ secrets.LIGHTSAIL_SSH_USER }}@${{ secrets.LIGHTSAIL_HOST }}:/tmp/mabuntle-deploy/"
 
       - name: Deploy on Lightsail
         shell: bash
@@ -235,14 +235,14 @@ jobs:
           ssh -i ~/.ssh/lightsail -p "${{ vars.LIGHTSAIL_SSH_PORT || '22' }}" "${{ secrets.LIGHTSAIL_SSH_USER }}@${{ secrets.LIGHTSAIL_HOST }}" 'bash -s' <<'REMOTE'
           set -euo pipefail
 
-          DEPLOY_PATH="${{ vars.LIGHTSAIL_DEPLOY_PATH || '/opt/swyftly' }}"
+          DEPLOY_PATH="${{ vars.LIGHTSAIL_DEPLOY_PATH || '/opt/mabuntle' }}"
           mkdir -p "$DEPLOY_PATH"
-          cp /tmp/swyftly-deploy/docker-compose.yml "$DEPLOY_PATH/docker-compose.yml"
-          cp /tmp/swyftly-deploy/Caddyfile "$DEPLOY_PATH/Caddyfile"
-          cp /tmp/swyftly-deploy/.env.production "$DEPLOY_PATH/.env.production"
-          cp /tmp/swyftly-deploy/.ghcr-username "$DEPLOY_PATH/.ghcr-username"
-          cp /tmp/swyftly-deploy/.ghcr-token "$DEPLOY_PATH/.ghcr-token"
-          cp /tmp/swyftly-deploy/swyftly-migrate "$DEPLOY_PATH/swyftly-migrate"
+          cp /tmp/mabuntle-deploy/docker-compose.yml "$DEPLOY_PATH/docker-compose.yml"
+          cp /tmp/mabuntle-deploy/Caddyfile "$DEPLOY_PATH/Caddyfile"
+          cp /tmp/mabuntle-deploy/.env.production "$DEPLOY_PATH/.env.production"
+          cp /tmp/mabuntle-deploy/.ghcr-username "$DEPLOY_PATH/.ghcr-username"
+          cp /tmp/mabuntle-deploy/.ghcr-token "$DEPLOY_PATH/.ghcr-token"
+          cp /tmp/mabuntle-deploy/swyftly-migrate "$DEPLOY_PATH/swyftly-migrate"
           chmod +x "$DEPLOY_PATH/swyftly-migrate"
           chmod 600 "$DEPLOY_PATH/.env.production" "$DEPLOY_PATH/.ghcr-token"
 
