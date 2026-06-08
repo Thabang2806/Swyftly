@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,21 +13,21 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<DateTimeOffset>(
                 name: "ModeratedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_reviews",
                 type: "timestamp with time zone",
                 nullable: true);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "ModeratedByUserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_reviews",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "ModerationReason",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_reviews",
                 type: "character varying(1000)",
                 maxLength: 1000,
@@ -39,17 +39,17 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "ModeratedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_reviews");
 
             migrationBuilder.DropColumn(
                 name: "ModeratedByUserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_reviews");
 
             migrationBuilder.DropColumn(
                 name: "ModerationReason",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_reviews");
         }
     }

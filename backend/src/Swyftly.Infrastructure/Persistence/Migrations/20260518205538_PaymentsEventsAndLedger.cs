@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "commission_rules",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -32,7 +32,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "payments",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -54,14 +54,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_payments_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_payments_orders_OrderId",
                         column: x => x.OrderId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -69,7 +69,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "seller_balances",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -87,7 +87,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_seller_balances_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -95,7 +95,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ledger_entries",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -117,35 +117,35 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_ledger_entries_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ledger_entries_order_items_OrderItemId",
                         column: x => x.OrderItemId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "order_items",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ledger_entries_orders_OrderId",
                         column: x => x.OrderId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ledger_entries_payments_PaymentId",
                         column: x => x.PaymentId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "payments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ledger_entries_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -153,7 +153,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "payment_events",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -173,7 +173,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_payment_events_payments_PaymentId",
                         column: x => x.PaymentId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "payments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
@@ -181,104 +181,104 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_commission_rules_IsActive",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "commission_rules",
                 column: "IsActive");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ledger_entries_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ledger_entries",
                 column: "BuyerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ledger_entries_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ledger_entries",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ledger_entries_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ledger_entries",
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ledger_entries_OrderItemId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ledger_entries",
                 column: "OrderItemId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ledger_entries_PaymentId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ledger_entries",
                 column: "PaymentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ledger_entries_PaymentId_Type",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ledger_entries",
                 columns: new[] { "PaymentId", "Type" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_ledger_entries_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ledger_entries",
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_payment_events_PaymentId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payment_events",
                 column: "PaymentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_payment_events_Provider_ProviderEventId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payment_events",
                 columns: new[] { "Provider", "ProviderEventId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_payment_events_ReceivedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payment_events",
                 column: "ReceivedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_payments_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payments",
                 column: "BuyerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_payments_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payments",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_payments_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payments",
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_payments_ProviderReference",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payments",
                 column: "ProviderReference");
 
             migrationBuilder.CreateIndex(
                 name: "IX_payments_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payments",
                 column: "Status");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_balances_SellerId_Currency",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_balances",
                 columns: new[] { "SellerId", "Currency" },
                 unique: true);
@@ -289,23 +289,23 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "commission_rules",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "ledger_entries",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "payment_events",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "seller_balances",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "payments",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "admin_queue_triage",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -34,7 +34,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_admin_queue_triage_AspNetUsers_AssignedToUserId",
                         column: x => x.AssignedToUserId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
@@ -42,7 +42,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "admin_queue_triage_notes",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -57,14 +57,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_admin_queue_triage_notes_AspNetUsers_ActorUserId",
                         column: x => x.ActorUserId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_admin_queue_triage_notes_admin_queue_triage_TriageId",
                         column: x => x.TriageId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "admin_queue_triage",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -72,38 +72,38 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_admin_queue_triage_AssignedToUserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "admin_queue_triage",
                 column: "AssignedToUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_admin_queue_triage_ItemType_ItemId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "admin_queue_triage",
                 columns: new[] { "ItemType", "ItemId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_admin_queue_triage_Priority",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "admin_queue_triage",
                 column: "Priority");
 
             migrationBuilder.CreateIndex(
                 name: "IX_admin_queue_triage_notes_ActorUserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "admin_queue_triage_notes",
                 column: "ActorUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_admin_queue_triage_notes_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "admin_queue_triage_notes",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_admin_queue_triage_notes_TriageId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "admin_queue_triage_notes",
                 column: "TriageId");
         }
@@ -113,11 +113,11 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "admin_queue_triage_notes",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "admin_queue_triage",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

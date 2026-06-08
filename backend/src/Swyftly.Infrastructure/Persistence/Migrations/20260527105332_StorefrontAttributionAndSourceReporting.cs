@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -12,7 +12,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "ReferrerHost",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events",
                 type: "character varying(150)",
                 maxLength: 150,
@@ -20,7 +20,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "SourceCategory",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events",
                 type: "character varying(40)",
                 maxLength: 40,
@@ -28,7 +28,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "UtmCampaign",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events",
                 type: "character varying(150)",
                 maxLength: 150,
@@ -36,7 +36,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "UtmMedium",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events",
                 type: "character varying(100)",
                 maxLength: 100,
@@ -44,7 +44,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "UtmSource",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events",
                 type: "character varying(100)",
                 maxLength: 100,
@@ -52,7 +52,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_funnel_events_SellerId_SourceCategory_OccurredAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events",
                 columns: new[] { "SellerId", "SourceCategory", "OccurredAtUtc" });
         }
@@ -62,32 +62,32 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropIndex(
                 name: "IX_seller_funnel_events_SellerId_SourceCategory_OccurredAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events");
 
             migrationBuilder.DropColumn(
                 name: "ReferrerHost",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events");
 
             migrationBuilder.DropColumn(
                 name: "SourceCategory",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events");
 
             migrationBuilder.DropColumn(
                 name: "UtmCampaign",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events");
 
             migrationBuilder.DropColumn(
                 name: "UtmMedium",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events");
 
             migrationBuilder.DropColumn(
                 name: "UtmSource",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events");
         }
     }

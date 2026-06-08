@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,21 +13,21 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<DateTimeOffset>(
                 name: "EscalatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 type: "timestamp with time zone",
                 nullable: true);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "EscalatedByUserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "EscalationReason",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 type: "character varying(1000)",
                 maxLength: 1000,
@@ -35,7 +35,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "Priority",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets",
                 type: "character varying(80)",
                 maxLength: 80,
@@ -49,22 +49,22 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "EscalatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets");
 
             migrationBuilder.DropColumn(
                 name: "EscalatedByUserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets");
 
             migrationBuilder.DropColumn(
                 name: "EscalationReason",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets");
 
             migrationBuilder.DropColumn(
                 name: "Priority",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "support_tickets");
         }
     }

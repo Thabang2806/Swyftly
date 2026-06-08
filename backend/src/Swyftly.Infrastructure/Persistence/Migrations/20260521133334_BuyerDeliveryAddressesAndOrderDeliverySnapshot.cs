@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryAddressLine1",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(240)",
                 maxLength: 240,
@@ -21,7 +21,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryAddressLine2",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(240)",
                 maxLength: 240,
@@ -29,7 +29,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryCity",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(120)",
                 maxLength: 120,
@@ -37,7 +37,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryCountryCode",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(2)",
                 maxLength: 2,
@@ -45,7 +45,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryPhoneNumber",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(64)",
                 maxLength: 64,
@@ -53,7 +53,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryPostalCode",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(32)",
                 maxLength: 32,
@@ -61,7 +61,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryProvince",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(120)",
                 maxLength: 120,
@@ -69,7 +69,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryRecipientName",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(160)",
                 maxLength: 160,
@@ -77,7 +77,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "DeliverySuburb",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(120)",
                 maxLength: 120,
@@ -85,7 +85,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "buyer_delivery_addresses",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -110,7 +110,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_buyer_delivery_addresses_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -118,13 +118,13 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_delivery_addresses_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_delivery_addresses",
                 column: "BuyerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_delivery_addresses_BuyerId_IsDefault",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_delivery_addresses",
                 columns: new[] { "BuyerId", "IsDefault" });
         }
@@ -134,51 +134,51 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "buyer_delivery_addresses",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryAddressLine1",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryAddressLine2",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryCity",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryCountryCode",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryPhoneNumber",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryPostalCode",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryProvince",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryRecipientName",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliverySuburb",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
         }
     }

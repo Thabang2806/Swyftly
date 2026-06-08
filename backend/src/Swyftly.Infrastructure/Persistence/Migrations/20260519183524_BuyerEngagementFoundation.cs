@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "buyer_wishlist_items",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -27,14 +27,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_buyer_wishlist_items_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_buyer_wishlist_items_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -42,7 +42,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "notifications",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -61,7 +61,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_notifications_AspNetUsers_RecipientUserId",
                         column: x => x.RecipientUserId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -69,7 +69,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "product_reviews",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -91,35 +91,35 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_product_reviews_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_product_reviews_order_items_OrderItemId",
                         column: x => x.OrderItemId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "order_items",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_product_reviews_orders_OrderId",
                         column: x => x.OrderId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_product_reviews_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_product_reviews_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -127,69 +127,69 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_wishlist_items_BuyerId_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_wishlist_items",
                 columns: new[] { "BuyerId", "ProductId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_wishlist_items_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_wishlist_items",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_wishlist_items_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_wishlist_items",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_notifications_RecipientUserId_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "notifications",
                 columns: new[] { "RecipientUserId", "CreatedAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_notifications_RecipientUserId_ReadAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "notifications",
                 columns: new[] { "RecipientUserId", "ReadAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_reviews_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_reviews",
                 column: "BuyerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_reviews_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_reviews",
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_reviews_OrderItemId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_reviews",
                 column: "OrderItemId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_reviews_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_reviews",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_reviews_ProductId_Status_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_reviews",
                 columns: new[] { "ProductId", "Status", "CreatedAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_reviews_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_reviews",
                 column: "SellerId");
         }
@@ -199,15 +199,15 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "buyer_wishlist_items",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "notifications",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "product_reviews",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

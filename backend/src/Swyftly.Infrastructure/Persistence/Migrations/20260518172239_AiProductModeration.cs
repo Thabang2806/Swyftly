@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "ai_moderation_results",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -34,14 +34,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_ai_moderation_results_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_ai_moderation_results_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -49,25 +49,25 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_moderation_results_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_moderation_results",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_moderation_results_NeedsAdminReview",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_moderation_results",
                 column: "NeedsAdminReview");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_moderation_results_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_moderation_results",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_moderation_results_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_moderation_results",
                 column: "SellerId");
         }
@@ -77,7 +77,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "ai_moderation_results",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

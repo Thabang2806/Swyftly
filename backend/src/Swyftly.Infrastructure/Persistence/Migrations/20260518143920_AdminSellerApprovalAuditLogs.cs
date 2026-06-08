@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "audit_logs",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -35,13 +35,13 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_audit_logs_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "audit_logs",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_audit_logs_EntityType_EntityId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "audit_logs",
                 columns: new[] { "EntityType", "EntityId" });
         }
@@ -51,7 +51,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "audit_logs",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

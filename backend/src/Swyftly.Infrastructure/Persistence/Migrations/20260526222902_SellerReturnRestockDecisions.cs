@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "return_restock_decisions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -34,35 +34,35 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_return_restock_decisions_product_variants_ProductVariantId",
                         column: x => x.ProductVariantId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "product_variants",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_return_restock_decisions_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_return_restock_decisions_return_items_ReturnItemId",
                         column: x => x.ReturnItemId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "return_items",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_return_restock_decisions_return_requests_ReturnRequestId",
                         column: x => x.ReturnRequestId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "return_requests",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_return_restock_decisions_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -70,32 +70,32 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_restock_decisions_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_restock_decisions",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_restock_decisions_ProductVariantId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_restock_decisions",
                 column: "ProductVariantId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_restock_decisions_ReturnItemId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_restock_decisions",
                 column: "ReturnItemId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_restock_decisions_ReturnRequestId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_restock_decisions",
                 column: "ReturnRequestId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_return_restock_decisions_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "return_restock_decisions",
                 column: "SellerId");
         }
@@ -105,7 +105,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "return_restock_decisions",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

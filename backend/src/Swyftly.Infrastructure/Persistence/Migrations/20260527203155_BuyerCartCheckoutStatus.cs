@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -12,24 +12,24 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.Sql(
                 """
-                UPDATE swyftly.carts AS c
+                UPDATE mabuntle.carts AS c
                 SET "Status" = 'CheckedOut'
                 WHERE c."Status" = 'Active'
                   AND EXISTS (
                       SELECT 1
-                      FROM swyftly.orders AS o
+                      FROM mabuntle.orders AS o
                       WHERE o."CartId" = c."Id"
                   );
                 """);
 
             migrationBuilder.DropIndex(
                 name: "IX_carts_BuyerId_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "carts");
 
             migrationBuilder.CreateIndex(
                 name: "IX_carts_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "carts",
                 column: "BuyerId",
                 unique: true,
@@ -41,12 +41,12 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropIndex(
                 name: "IX_carts_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "carts");
 
             migrationBuilder.CreateIndex(
                 name: "IX_carts_BuyerId_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "carts",
                 columns: new[] { "BuyerId", "Status" },
                 unique: true);

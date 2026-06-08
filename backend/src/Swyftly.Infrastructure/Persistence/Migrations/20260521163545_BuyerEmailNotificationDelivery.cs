@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<bool>(
                 name: "IsInAppVisible",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "notifications",
                 type: "boolean",
                 nullable: false,
@@ -21,7 +21,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<bool>(
                 name: "EmailEnabled",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_notification_preferences",
                 type: "boolean",
                 nullable: false,
@@ -29,7 +29,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "notification_email_deliveries",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -51,7 +51,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_notification_email_deliveries_notifications_NotificationId",
                         column: x => x.NotificationId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "notifications",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -59,13 +59,13 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_notification_email_deliveries_NotificationId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "notification_email_deliveries",
                 column: "NotificationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_notification_email_deliveries_Status_NextAttemptAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "notification_email_deliveries",
                 columns: new[] { "Status", "NextAttemptAtUtc" });
         }
@@ -75,16 +75,16 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "notification_email_deliveries",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropColumn(
                 name: "IsInAppVisible",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "notifications");
 
             migrationBuilder.DropColumn(
                 name: "EmailEnabled",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_notification_preferences");
         }
     }

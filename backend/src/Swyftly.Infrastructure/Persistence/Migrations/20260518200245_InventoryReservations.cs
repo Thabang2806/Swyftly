@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "inventory_reservations",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -34,21 +34,21 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_inventory_reservations_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_inventory_reservations_carts_CartId",
                         column: x => x.CartId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "carts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_inventory_reservations_product_variants_ProductVariantId",
                         column: x => x.ProductVariantId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "product_variants",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -56,31 +56,31 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_inventory_reservations_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_reservations",
                 column: "BuyerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_inventory_reservations_CartId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_reservations",
                 column: "CartId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_inventory_reservations_ExpiresAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_reservations",
                 column: "ExpiresAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_inventory_reservations_ProductVariantId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_reservations",
                 column: "ProductVariantId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_inventory_reservations_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "inventory_reservations",
                 column: "Status");
         }
@@ -90,7 +90,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "inventory_reservations",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

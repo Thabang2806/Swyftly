@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -12,7 +12,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "CareInstructions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products",
                 type: "character varying(1000)",
                 maxLength: 1000,
@@ -20,7 +20,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "MerchandisingLabel",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products",
                 type: "character varying(60)",
                 maxLength: 60,
@@ -28,7 +28,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "ProductDisclaimer",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products",
                 type: "character varying(1000)",
                 maxLength: 1000,
@@ -36,7 +36,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "SeoDescription",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products",
                 type: "character varying(170)",
                 maxLength: 170,
@@ -44,7 +44,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "SeoTitle",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products",
                 type: "character varying(70)",
                 maxLength: 70,
@@ -52,7 +52,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "CareInstructions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revisions",
                 type: "character varying(1000)",
                 maxLength: 1000,
@@ -60,7 +60,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "MerchandisingLabel",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revisions",
                 type: "character varying(60)",
                 maxLength: 60,
@@ -68,7 +68,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "ProductDisclaimer",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revisions",
                 type: "character varying(1000)",
                 maxLength: 1000,
@@ -76,7 +76,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "SeoDescription",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revisions",
                 type: "character varying(170)",
                 maxLength: 170,
@@ -84,7 +84,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "SeoTitle",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revisions",
                 type: "character varying(70)",
                 maxLength: 70,
@@ -96,52 +96,52 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "CareInstructions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products");
 
             migrationBuilder.DropColumn(
                 name: "MerchandisingLabel",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products");
 
             migrationBuilder.DropColumn(
                 name: "ProductDisclaimer",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products");
 
             migrationBuilder.DropColumn(
                 name: "SeoDescription",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products");
 
             migrationBuilder.DropColumn(
                 name: "SeoTitle",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "products");
 
             migrationBuilder.DropColumn(
                 name: "CareInstructions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revisions");
 
             migrationBuilder.DropColumn(
                 name: "MerchandisingLabel",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revisions");
 
             migrationBuilder.DropColumn(
                 name: "ProductDisclaimer",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revisions");
 
             migrationBuilder.DropColumn(
                 name: "SeoDescription",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revisions");
 
             migrationBuilder.DropColumn(
                 name: "SeoTitle",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revisions");
         }
     }

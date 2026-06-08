@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "shipments",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -35,21 +35,21 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_shipments_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_shipments_orders_OrderId",
                         column: x => x.OrderId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_shipments_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -57,7 +57,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "shipment_events",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -75,7 +75,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_shipment_events_shipments_ShipmentId",
                         column: x => x.ShipmentId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "shipments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -83,61 +83,61 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_shipment_events_EventType",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "shipment_events",
                 column: "EventType");
 
             migrationBuilder.CreateIndex(
                 name: "IX_shipment_events_OccurredAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "shipment_events",
                 column: "OccurredAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_shipment_events_ShipmentId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "shipment_events",
                 column: "ShipmentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_shipment_events_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "shipment_events",
                 column: "Status");
 
             migrationBuilder.CreateIndex(
                 name: "IX_shipments_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "shipments",
                 column: "BuyerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_shipments_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "shipments",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_shipments_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "shipments",
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_shipments_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "shipments",
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_shipments_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "shipments",
                 column: "Status");
 
             migrationBuilder.CreateIndex(
                 name: "IX_shipments_TrackingNumber",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "shipments",
                 column: "TrackingNumber");
         }
@@ -147,11 +147,11 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "shipment_events",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "shipments",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

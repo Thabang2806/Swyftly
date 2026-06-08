@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "seller_payouts",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -36,7 +36,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_seller_payouts_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -44,7 +44,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "seller_payout_items",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -62,28 +62,28 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_seller_payout_items_ledger_entries_LedgerEntryId",
                         column: x => x.LedgerEntryId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "ledger_entries",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_seller_payout_items_orders_OrderId",
                         column: x => x.OrderId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_seller_payout_items_payments_PaymentId",
                         column: x => x.PaymentId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "payments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_seller_payout_items_seller_payouts_SellerPayoutId",
                         column: x => x.SellerPayoutId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_payouts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -91,44 +91,44 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_payout_items_LedgerEntryId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_payout_items",
                 column: "LedgerEntryId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_payout_items_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_payout_items",
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_payout_items_PaymentId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_payout_items",
                 column: "PaymentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_payout_items_SellerPayoutId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_payout_items",
                 column: "SellerPayoutId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_payouts_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_payouts",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_payouts_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_payouts",
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_payouts_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_payouts",
                 column: "Status");
         }
@@ -138,11 +138,11 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "seller_payout_items",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "seller_payouts",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

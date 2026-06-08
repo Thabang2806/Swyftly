@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "buyer_ai_discovery_history",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -34,7 +34,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_buyer_ai_discovery_history_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -42,7 +42,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "buyer_ai_discovery_preferences",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -56,7 +56,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_buyer_ai_discovery_preferences_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -64,19 +64,19 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_ai_discovery_history_BuyerId_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_ai_discovery_history",
                 columns: new[] { "BuyerId", "CreatedAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_ai_discovery_history_BuyerId_SourceTool_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_ai_discovery_history",
                 columns: new[] { "BuyerId", "SourceTool", "CreatedAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_ai_discovery_preferences_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_ai_discovery_preferences",
                 column: "BuyerId",
                 unique: true);
@@ -87,11 +87,11 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "buyer_ai_discovery_history",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "buyer_ai_discovery_preferences",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

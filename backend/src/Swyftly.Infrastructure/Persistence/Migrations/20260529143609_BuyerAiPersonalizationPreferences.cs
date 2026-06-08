@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -12,7 +12,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<bool>(
                 name: "PersonalizationEnabled",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_ai_discovery_preferences",
                 type: "boolean",
                 nullable: false,
@@ -24,7 +24,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "PersonalizationEnabled",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_ai_discovery_preferences");
         }
     }

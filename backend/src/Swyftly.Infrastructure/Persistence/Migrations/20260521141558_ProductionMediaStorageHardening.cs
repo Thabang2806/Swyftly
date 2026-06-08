@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,21 +13,21 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<Guid>(
                 name: "MediaAssetId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revision_images",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "MediaAssetId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_images",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.CreateTable(
                 name: "media_assets",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -58,21 +58,21 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_media_assets_product_listing_revisions_ProductListingRevisi~",
                         column: x => x.ProductListingRevisionId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "product_listing_revisions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_media_assets_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_media_assets_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -80,7 +80,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "media_asset_variants",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -100,7 +100,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_media_asset_variants_media_assets_MediaAssetId",
                         column: x => x.MediaAssetId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "media_assets",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -108,83 +108,83 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_listing_revision_images_MediaAssetId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revision_images",
                 column: "MediaAssetId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_product_images_MediaAssetId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_images",
                 column: "MediaAssetId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_media_asset_variants_MediaAssetId_Kind",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "media_asset_variants",
                 columns: new[] { "MediaAssetId", "Kind" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_media_asset_variants_StorageKey",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "media_asset_variants",
                 column: "StorageKey",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_media_assets_LifecycleStatus",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "media_assets",
                 column: "LifecycleStatus");
 
             migrationBuilder.CreateIndex(
                 name: "IX_media_assets_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "media_assets",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_media_assets_ProductListingRevisionId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "media_assets",
                 column: "ProductListingRevisionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_media_assets_ScanStatus",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "media_assets",
                 column: "ScanStatus");
 
             migrationBuilder.CreateIndex(
                 name: "IX_media_assets_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "media_assets",
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_media_assets_StorageKey",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "media_assets",
                 column: "StorageKey",
                 unique: true);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_product_images_media_assets_MediaAssetId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_images",
                 column: "MediaAssetId",
-                principalSchema: "swyftly",
+                principalSchema: "mabuntle",
                 principalTable: "media_assets",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.SetNull);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_product_listing_revision_images_media_assets_MediaAssetId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revision_images",
                 column: "MediaAssetId",
-                principalSchema: "swyftly",
+                principalSchema: "mabuntle",
                 principalTable: "media_assets",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.SetNull);
@@ -195,40 +195,40 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropForeignKey(
                 name: "FK_product_images_media_assets_MediaAssetId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_images");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_product_listing_revision_images_media_assets_MediaAssetId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revision_images");
 
             migrationBuilder.DropTable(
                 name: "media_asset_variants",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "media_assets",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropIndex(
                 name: "IX_product_listing_revision_images_MediaAssetId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revision_images");
 
             migrationBuilder.DropIndex(
                 name: "IX_product_images_MediaAssetId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_images");
 
             migrationBuilder.DropColumn(
                 name: "MediaAssetId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_listing_revision_images");
 
             migrationBuilder.DropColumn(
                 name: "MediaAssetId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "product_images");
         }
     }

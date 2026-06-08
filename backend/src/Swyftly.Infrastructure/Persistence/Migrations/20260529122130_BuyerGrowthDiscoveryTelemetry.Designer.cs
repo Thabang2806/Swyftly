@@ -17,7 +17,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasDefaultSchema("swyftly")
+                .HasDefaultSchema("mabuntle")
                 .HasAnnotation("ProductVersion", "9.0.0");
 #pragma warning restore 612, 618
         }

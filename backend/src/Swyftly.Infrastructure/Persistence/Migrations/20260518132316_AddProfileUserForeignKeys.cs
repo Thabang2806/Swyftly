@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -12,20 +12,20 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddForeignKey(
                 name: "FK_buyer_profiles_AspNetUsers_UserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_profiles",
                 column: "UserId",
-                principalSchema: "swyftly",
+                principalSchema: "mabuntle",
                 principalTable: "AspNetUsers",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_seller_profiles_AspNetUsers_UserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_profiles",
                 column: "UserId",
-                principalSchema: "swyftly",
+                principalSchema: "mabuntle",
                 principalTable: "AspNetUsers",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
@@ -36,12 +36,12 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropForeignKey(
                 name: "FK_buyer_profiles_AspNetUsers_UserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_profiles");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_seller_profiles_AspNetUsers_UserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_profiles");
         }
     }

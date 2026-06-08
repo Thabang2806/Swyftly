@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "payment_reconciliation_reviews",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -35,7 +35,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_payment_reconciliation_reviews_payments_PaymentId",
                         column: x => x.PaymentId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "payments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -43,25 +43,25 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_payment_reconciliation_reviews_NextReviewAfterUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payment_reconciliation_reviews",
                 column: "NextReviewAfterUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_payment_reconciliation_reviews_Outcome",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payment_reconciliation_reviews",
                 column: "Outcome");
 
             migrationBuilder.CreateIndex(
                 name: "IX_payment_reconciliation_reviews_PaymentId_ReviewedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payment_reconciliation_reviews",
                 columns: new[] { "PaymentId", "ReviewedAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_payment_reconciliation_reviews_Provider_ProviderReference",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payment_reconciliation_reviews",
                 columns: new[] { "Provider", "ProviderReference" });
         }
@@ -71,7 +71,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "payment_reconciliation_reviews",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

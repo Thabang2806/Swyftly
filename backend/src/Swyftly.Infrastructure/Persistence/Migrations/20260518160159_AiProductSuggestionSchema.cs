@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "ai_product_suggestions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -44,14 +44,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_ai_product_suggestions_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ai_product_suggestions_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -59,7 +59,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ai_prompt_versions",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -76,7 +76,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ai_usage_logs",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -98,7 +98,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_ai_usage_logs_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
@@ -106,7 +106,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ai_suggestion_field_audits",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -124,7 +124,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_ai_suggestion_field_audits_ai_product_suggestions_Suggestio~",
                         column: x => x.SuggestionId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "ai_product_suggestions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -132,62 +132,62 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_product_suggestions_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_product_suggestions",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_product_suggestions_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_product_suggestions",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_product_suggestions_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_product_suggestions",
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_product_suggestions_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_product_suggestions",
                 column: "Status");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_prompt_versions_FeatureName_Version",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_prompt_versions",
                 columns: new[] { "FeatureName", "Version" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_suggestion_field_audits_SuggestionId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_suggestion_field_audits",
                 column: "SuggestionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_usage_logs_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_usage_logs",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_usage_logs_FeatureName",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_usage_logs",
                 column: "FeatureName");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_usage_logs_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_usage_logs",
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_usage_logs_UserId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "ai_usage_logs",
                 column: "UserId");
         }
@@ -197,19 +197,19 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "ai_prompt_versions",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "ai_suggestion_field_audits",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "ai_usage_logs",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "ai_product_suggestions",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

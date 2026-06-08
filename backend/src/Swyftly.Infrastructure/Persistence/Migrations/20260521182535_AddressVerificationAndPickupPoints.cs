@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryVerificationProvider",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(80)",
                 maxLength: 80,
@@ -21,7 +21,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryVerificationStatus",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(40)",
                 maxLength: 40,
@@ -30,21 +30,21 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "DeliveryVerificationWarningsJson",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "jsonb",
                 nullable: true);
 
             migrationBuilder.AddColumn<DateTimeOffset>(
                 name: "DeliveryVerifiedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "timestamp with time zone",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "PickupPointAddressLine1",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(240)",
                 maxLength: 240,
@@ -52,7 +52,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "PickupPointAddressLine2",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(240)",
                 maxLength: 240,
@@ -60,7 +60,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "PickupPointCity",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(120)",
                 maxLength: 120,
@@ -68,7 +68,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "PickupPointCode",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(80)",
                 maxLength: 80,
@@ -76,7 +76,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "PickupPointCountryCode",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(2)",
                 maxLength: 2,
@@ -84,14 +84,14 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<Guid>(
                 name: "PickupPointId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "uuid",
                 nullable: true);
 
             migrationBuilder.AddColumn<decimal>(
                 name: "PickupPointLatitude",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "numeric(9,6)",
                 precision: 9,
@@ -100,7 +100,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<decimal>(
                 name: "PickupPointLongitude",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "numeric(9,6)",
                 precision: 9,
@@ -109,7 +109,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "PickupPointName",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(160)",
                 maxLength: 160,
@@ -117,7 +117,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "PickupPointOpeningHours",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(500)",
                 maxLength: 500,
@@ -125,7 +125,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "PickupPointPostalCode",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(32)",
                 maxLength: 32,
@@ -133,7 +133,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "PickupPointProviderName",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(80)",
                 maxLength: 80,
@@ -141,7 +141,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "PickupPointProvince",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(120)",
                 maxLength: 120,
@@ -149,7 +149,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "PickupPointSuburb",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 type: "character varying(120)",
                 maxLength: 120,
@@ -157,7 +157,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "VerificationProvider",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_delivery_addresses",
                 type: "character varying(80)",
                 maxLength: 80,
@@ -165,7 +165,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "VerificationStatus",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_delivery_addresses",
                 type: "character varying(40)",
                 maxLength: 40,
@@ -174,21 +174,21 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "VerificationWarningsJson",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_delivery_addresses",
                 type: "jsonb",
                 nullable: true);
 
             migrationBuilder.AddColumn<DateTimeOffset>(
                 name: "VerifiedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_delivery_addresses",
                 type: "timestamp with time zone",
                 nullable: true);
 
             migrationBuilder.CreateTable(
                 name: "pickup_points",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -216,19 +216,19 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_orders_PickupPointId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders",
                 column: "PickupPointId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_pickup_points_CountryCode_Province_IsActive",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "pickup_points",
                 columns: new[] { "CountryCode", "Province", "IsActive" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_pickup_points_ProviderName_Code",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "pickup_points",
                 columns: new[] { "ProviderName", "Code" },
                 unique: true);
@@ -239,121 +239,121 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "pickup_points",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropIndex(
                 name: "IX_orders_PickupPointId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryVerificationProvider",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryVerificationStatus",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryVerificationWarningsJson",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "DeliveryVerifiedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointAddressLine1",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointAddressLine2",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointCity",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointCode",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointCountryCode",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointLatitude",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointLongitude",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointName",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointOpeningHours",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointPostalCode",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointProviderName",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointProvince",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "PickupPointSuburb",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "orders");
 
             migrationBuilder.DropColumn(
                 name: "VerificationProvider",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_delivery_addresses");
 
             migrationBuilder.DropColumn(
                 name: "VerificationStatus",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_delivery_addresses");
 
             migrationBuilder.DropColumn(
                 name: "VerificationWarningsJson",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_delivery_addresses");
 
             migrationBuilder.DropColumn(
                 name: "VerifiedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_delivery_addresses");
         }
     }

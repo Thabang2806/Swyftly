@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "DisplayName",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_profiles",
                 type: "character varying(160)",
                 maxLength: 160,
@@ -21,7 +21,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "PhoneNumber",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_profiles",
                 type: "character varying(64)",
                 maxLength: 64,
@@ -29,7 +29,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "buyer_notification_preferences",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -45,7 +45,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_buyer_notification_preferences_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -53,7 +53,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_buyer_notification_preferences_BuyerId_Category",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_notification_preferences",
                 columns: new[] { "BuyerId", "Category" },
                 unique: true);
@@ -64,16 +64,16 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "buyer_notification_preferences",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropColumn(
                 name: "DisplayName",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_profiles");
 
             migrationBuilder.DropColumn(
                 name: "PhoneNumber",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "buyer_profiles");
         }
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "seller_funnel_events",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -34,35 +34,35 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_seller_funnel_events_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_seller_funnel_events_carts_CartId",
                         column: x => x.CartId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "carts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_seller_funnel_events_orders_OrderId",
                         column: x => x.OrderId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_seller_funnel_events_products_ProductId",
                         column: x => x.ProductId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_seller_funnel_events_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -70,31 +70,31 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_funnel_events_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events",
                 column: "BuyerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_funnel_events_CartId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events",
                 column: "CartId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_funnel_events_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events",
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_funnel_events_ProductId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_funnel_events_SellerId_EventType_IdempotencyKey",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events",
                 columns: new[] { "SellerId", "EventType", "IdempotencyKey" },
                 unique: true,
@@ -102,13 +102,13 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_funnel_events_SellerId_EventType_OccurredAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events",
                 columns: new[] { "SellerId", "EventType", "OccurredAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_seller_funnel_events_SellerId_ProductId_EventType_OccurredA~",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "seller_funnel_events",
                 columns: new[] { "SellerId", "ProductId", "EventType", "OccurredAtUtc" });
         }
@@ -118,7 +118,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "seller_funnel_events",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

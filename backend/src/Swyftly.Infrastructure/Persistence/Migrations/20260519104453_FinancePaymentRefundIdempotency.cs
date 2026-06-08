@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -12,12 +12,12 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropIndex(
                 name: "IX_payments_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payments");
 
             migrationBuilder.AddColumn<int>(
                 name: "ConcurrencyVersion",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refunds",
                 type: "integer",
                 nullable: false,
@@ -25,7 +25,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_payments_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payments",
                 column: "OrderId",
                 unique: true,
@@ -37,17 +37,17 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropIndex(
                 name: "IX_payments_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payments");
 
             migrationBuilder.DropColumn(
                 name: "ConcurrencyVersion",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refunds");
 
             migrationBuilder.CreateIndex(
                 name: "IX_payments_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payments",
                 column: "OrderId");
         }

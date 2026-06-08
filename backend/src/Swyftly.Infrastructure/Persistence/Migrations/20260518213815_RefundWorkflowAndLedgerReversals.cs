@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "refunds",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -42,35 +42,35 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_refunds_buyer_profiles_BuyerId",
                         column: x => x.BuyerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "buyer_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_refunds_orders_OrderId",
                         column: x => x.OrderId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_refunds_payments_PaymentId",
                         column: x => x.PaymentId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "payments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_refunds_return_requests_ReturnRequestId",
                         column: x => x.ReturnRequestId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "return_requests",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_refunds_seller_profiles_SellerId",
                         column: x => x.SellerId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "seller_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -78,7 +78,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "refund_events",
-                schema: "swyftly",
+                schema: "mabuntle",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -94,7 +94,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_refund_events_refunds_RefundId",
                         column: x => x.RefundId,
-                        principalSchema: "swyftly",
+                        principalSchema: "mabuntle",
                         principalTable: "refunds",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -102,67 +102,67 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_refund_events_CreatedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refund_events",
                 column: "CreatedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_refund_events_EventType",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refund_events",
                 column: "EventType");
 
             migrationBuilder.CreateIndex(
                 name: "IX_refund_events_RefundId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refund_events",
                 column: "RefundId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_refund_events_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refund_events",
                 column: "Status");
 
             migrationBuilder.CreateIndex(
                 name: "IX_refunds_BuyerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refunds",
                 column: "BuyerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_refunds_OrderId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refunds",
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_refunds_PaymentId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refunds",
                 column: "PaymentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_refunds_RequestedAtUtc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refunds",
                 column: "RequestedAtUtc");
 
             migrationBuilder.CreateIndex(
                 name: "IX_refunds_ReturnRequestId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refunds",
                 column: "ReturnRequestId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_refunds_SellerId",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refunds",
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_refunds_Status",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "refunds",
                 column: "Status");
         }
@@ -172,11 +172,11 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "refund_events",
-                schema: "swyftly");
+                schema: "mabuntle");
 
             migrationBuilder.DropTable(
                 name: "refunds",
-                schema: "swyftly");
+                schema: "mabuntle");
         }
     }
 }

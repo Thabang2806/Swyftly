@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -13,7 +13,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.AddColumn<DateTimeOffset>(
                 name: "raw_payload_redacted_at_utc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payment_events",
                 type: "timestamp with time zone",
                 nullable: true);
@@ -24,7 +24,7 @@ namespace Swyftly.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "raw_payload_redacted_at_utc",
-                schema: "swyftly",
+                schema: "mabuntle",
                 table: "payment_events");
         }
     }
