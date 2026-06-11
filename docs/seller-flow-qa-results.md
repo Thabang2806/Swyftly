@@ -48,9 +48,9 @@ Headless Chrome was run against the local API and Angular dev server at desktop 
 
 Evidence files were written under the local temp folder:
 
-- `%TEMP%\swyftly-10q-browser-qa\qa-summary.json`
-- `%TEMP%\swyftly-10q-browser-qa\qa-summary.md`
-- `%TEMP%\swyftly-10q-browser-qa\*.png`
+- `%TEMP%\mabuntle-10q-browser-qa\qa-summary.json`
+- `%TEMP%\mabuntle-10q-browser-qa\qa-summary.md`
+- `%TEMP%\mabuntle-10q-browser-qa\*.png`
 
 Final sweep summary:
 
@@ -80,12 +80,12 @@ Commands run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\verify-dev-environment.ps1
-dotnet restore backend\Swyftly.sln
-dotnet build backend\Swyftly.sln --no-restore
-dotnet test backend\Swyftly.sln --no-build
-dotnet dotnet-ef migrations has-pending-model-changes --project backend\src\Swyftly.Infrastructure --startup-project backend\src\Swyftly.Api --context SwyftlyDbContext --no-build
+dotnet restore backend\Mabuntle.sln
+dotnet build backend\Mabuntle.sln --no-restore
+dotnet test backend\Mabuntle.sln --no-build
+dotnet dotnet-ef migrations has-pending-model-changes --project backend\src\Mabuntle.Infrastructure --startup-project backend\src\Mabuntle.Api --context MabuntleDbContext --no-build
 powershell -ExecutionPolicy Bypass -File scripts\seed-dev-users.ps1 -Password "UseYourOwnDevPassword1!" -ResetPasswords -ApplyMigrations -SeedSampleProducts -SeedSellerFlowDemo
-cd frontend\swyftly-web
+cd frontend\mabuntle-web
 cmd /c npm run build
 cmd /c npm run test:ci
 ```
@@ -103,7 +103,7 @@ Results:
 | Browser QA | Passed 48 desktop/mobile route checks after the two small fixes. |
 | Angular build | Passed. Prerendered 52 static routes. Initial bundle total is `650.84 kB`, over the unchanged `650.00 kB` budget by 842 bytes. |
 | Angular tests | Passed: 290 specs in Chrome Headless. |
-| Frontend source hygiene | Mojibake scan returned no matches in `frontend/swyftly-web/src`. |
+| Frontend source hygiene | Mojibake scan returned no matches in `frontend/mabuntle-web/src`. |
 
 ## Deferred Follow-Ups
 

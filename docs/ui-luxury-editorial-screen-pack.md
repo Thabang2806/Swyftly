@@ -6,7 +6,7 @@ The active high-fidelity visual target is the deterministic screen pack at `Docu
 
 ## Direction
 
-The direction is a Swyftly-specific luxury editorial hybrid inspired by the broad commerce language of Luxity, Apsley, NET-A-PORTER, and Mytheresa. The mockups use warm ivory surfaces, restrained black typography, champagne rules, plum dashboard navigation, rose accents, editorial product panels, dense marketplace cards, and operational seller/admin workspaces.
+The direction is a Mabuntle-specific luxury editorial hybrid inspired by the broad commerce language of Luxity, Apsley, NET-A-PORTER, and Mytheresa. The mockups use warm ivory surfaces, restrained black typography, champagne rules, plum dashboard navigation, rose accents, editorial product panels, dense marketplace cards, and operational seller/admin workspaces.
 
 No third-party product imagery, brand assets, page layouts, or copy are copied. CSS-generated editorial placeholders are used where live imagery is unavailable.
 

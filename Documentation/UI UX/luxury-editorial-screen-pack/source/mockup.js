@@ -155,8 +155,8 @@
       row('Unsupported claim in body', 'Needs content decision', '2 stars', 'danger', 'Beauty', 'Flagged', 'Open')
     ], 'Review decision', 'Public product pages show only published reviews; buyer edits reset to pending.', ['Approve', 'Reject']),
     'admin/audit-logs': spec('admin', 'Audit logs', 'Immutable operational history for moderation, finance, catalog, support, payment, and seller actions.', ['Events', 'Finance', 'Moderation', 'Failures'], ['1.2k', '88', '340', '4'], ['Audit event', 'Actor', 'Area', 'When', 'Action'], [
-      row('Product approved', 'admin@swyftly.local', 'Complete', 'success', 'Moderation', '10m ago', 'Open'),
-      row('Refund approved', 'finance.approver@swyftly.local', 'Complete', 'success', 'Finance', '1h ago', 'Open'),
+      row('Product approved', 'admin@mabuntle.local', 'Complete', 'success', 'Moderation', '10m ago', 'Open'),
+      row('Refund approved', 'finance.approver@mabuntle.local', 'Complete', 'success', 'Finance', '1h ago', 'Open'),
       row('Payout processing blocked', 'System policy', 'Warning', 'warning', 'Payouts', '2h ago', 'Inspect')
     ], 'Audit filters', 'Filter by actor, action, entity, and date. Exports remain future work unless implemented separately.', ['Search', 'Clear filters']),
     'admin/reports': spec('admin', 'Marketplace reports', 'Marketplace reporting surface for GMV, orders, seller performance, refunds, payouts, ads, and operational health.', ['GMV', 'Orders', 'Refund rate', 'Active sellers'], ['R 482k', '214', '2.8%', '38'], ['Report section', 'Current', 'Change', 'Signal', 'Action'], [
@@ -290,7 +290,7 @@
             <a>New In</a><a>Women</a><a>Beauty</a><a>Jewellery</a><a>Pre-loved Luxe</a>
           </nav>
           <a class="brand">
-            <strong>Swyftly</strong>
+            <strong>Mabuntle</strong>
             <span>Fashion marketplace</span>
           </a>
           <nav class="nav-actions">
@@ -422,7 +422,7 @@
         <section class="auth-card">
           <span class="eyebrow">${isLogin ? 'Account' : isSeller ? 'Seller' : 'Buyer'}</span>
           <h1>${isLogin ? 'Sign in' : isSeller ? 'Create seller account' : 'Create buyer account'}</h1>
-          <p class="lead">${isLogin ? 'Access your Swyftly account.' : 'Create a secure marketplace account with a polished onboarding handoff.'}</p>
+          <p class="lead">${isLogin ? 'Access your Mabuntle account.' : 'Create a secure marketplace account with a polished onboarding handoff.'}</p>
           <div class="field"><label>Email</label><div class="input">you@example.com</div></div>
           <div class="field"><label>Password</label><div class="input">************</div></div>
           ${isLogin ? '' : '<div class="field"><label>Confirm password</label><div class="input">************</div></div>'}
@@ -488,7 +488,7 @@
         <div class="table-row">
           <div><strong>${row}</strong><small>Reference SWY-${1240 + index}</small></div>
           <div><span class="badge ${index === 1 ? 'warning' : 'success'}">${index === 1 ? 'Pending' : 'Open'}</span></div>
-          <div>${index % 2 ? 'Marketplace' : 'Swyftly'}</div>
+          <div>${index % 2 ? 'Marketplace' : 'Mabuntle'}</div>
           <div><small>${index + 1}h ago</small></div>
           <div><a class="text-button">Open</a></div>
         </div>`).join('')}
@@ -508,7 +508,7 @@
     ];
     const sections = area === 'admin' ? adminSections : sellerSections;
     return `<aside class="side-nav">
-      <div class="side-brand"><div class="side-logo">S</div><div><strong>Swyftly</strong><small>${area === 'admin' ? 'Admin console' : 'Seller workspace'}</small></div></div>
+      <div class="side-brand"><div class="side-logo">S</div><div><strong>Mabuntle</strong><small>${area === 'admin' ? 'Admin console' : 'Seller workspace'}</small></div></div>
       ${sections.map(section => `
         <div class="nav-section-title">${section[0]}</div>
         ${section[1].map(item => `<a class="${activePath.startsWith(item[1]) ? 'active' : ''}"><span>${item[0]}</span><span>&gt;</span></a>`).join('')}
@@ -645,15 +645,15 @@
     return publicHero({
       kicker: 'Luxury marketplace',
       title: 'Discover fashion with an editorial eye',
-      description: 'A premium marketplace direction for Swyftly, blending curated South African seller inventory with refined shopping confidence.',
+      description: 'A premium marketplace direction for Mabuntle, blending curated South African seller inventory with refined shopping confidence.',
       primaryAction: 'Shop new arrivals',
       secondaryAction: 'Explore sellers',
-      mediaTitle: 'The Swyftly edit',
+      mediaTitle: 'The Mabuntle edit',
       mediaMeta: 'Fashion, jewellery, beauty, accessories',
       badge: 'Curated'
     });
   }
 
   app.innerHTML = `<div class="screen" data-route="${esc(route)}">${render()}</div>`;
-  window.__SWYFTLY_ROUTES__ = routes;
+  window.__MABUNTLE_ROUTES__ = routes;
 })();

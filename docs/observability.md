@@ -35,12 +35,12 @@ The payment-provider check reports the configured provider. `Fake` is healthy fo
 
 ## Metrics Placeholders
 
-The API exposes a `Swyftly.Api` meter with placeholder counters:
+The API exposes a `Mabuntle.Api` meter with placeholder counters:
 
-- `swyftly.payments.events`
-- `swyftly.ai.requests`
-- `swyftly.orders.created`
-- `swyftly.errors`
+- `mabuntle.payments.events`
+- `mabuntle.ai.requests`
+- `mabuntle.orders.created`
+- `mabuntle.errors`
 
 Only the error counter is incremented by the foundation middleware today. Future payment, AI, and order workflows should increment the corresponding counters where business events are committed.
 

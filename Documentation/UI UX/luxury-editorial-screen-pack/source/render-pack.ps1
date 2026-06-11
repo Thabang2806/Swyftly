@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 $sourceRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $packRoot = Split-Path -Parent $sourceRoot
 $repoRoot = Resolve-Path (Join-Path $packRoot "..\..\..")
-$routeFile = Join-Path $repoRoot "frontend\swyftly-web\src\app\app.routes.ts"
+$routeFile = Join-Path $repoRoot "frontend\mabuntle-web\src\app\app.routes.ts"
 $mockupHtml = Join-Path $sourceRoot "mockup.html"
 $desktopDir = Join-Path $packRoot "desktop"
 $mobileDir = Join-Path $packRoot "mobile"
@@ -118,7 +118,7 @@ function New-ContactSheet([string]$area, [object[]]$items, [string]$viewport) {
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Swyftly $area $viewport contact sheet</title>
+<title>Mabuntle $area $viewport contact sheet</title>
 <style>
 body{margin:0;padding:28px;background:#f7f1eb;color:#181114;font-family:Segoe UI,Arial,sans-serif}
 h1{font-family:Georgia,serif;font-weight:400;letter-spacing:.03em;margin:0 0 20px}
@@ -129,7 +129,7 @@ strong{display:block;margin-top:8px;font-size:11px;letter-spacing:.08em;text-tra
 </style>
 </head>
 <body>
-<h1>Swyftly $area - $viewport</h1>
+<h1>Mabuntle $area - $viewport</h1>
 <div class="grid">$cards</div>
 </body>
 </html>

@@ -1,0 +1,3 @@
+name = "mabuntle"
+pages_build_output_dir = "dist/mabuntle-client/browser"
+compatibility_date = "2026-05-29"

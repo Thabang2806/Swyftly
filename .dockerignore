@@ -13,7 +13,7 @@ coverage
 **/obj
 **/.angular/cache
 storage
-backend/src/Swyftly.Api/storage
+backend/src/Mabuntle.Api/storage
 .env
 .env.*
 *.user

@@ -16,9 +16,9 @@ The seed is idempotent. It reuses the existing development users and matches sam
 
 | Email | Role | Notes |
 |---|---|---|
-| `buyer@swyftly.local` | Buyer | Includes a default saved delivery address when sample products are seeded. |
-| `seller@swyftly.local` | Seller | Verified seller with published storefront, seller balance, standard delivery method, and sample products. |
-| `admin@swyftly.local` | SuperAdmin, Admin | Available for admin checks if needed. |
+| `buyer@mabuntle.local` | Buyer | Includes a default saved delivery address when sample products are seeded. |
+| `seller@mabuntle.local` | Seller | Verified seller with published storefront, seller balance, standard delivery method, and sample products. |
+| `admin@mabuntle.local` | SuperAdmin, Admin | Available for admin checks if needed. |
 
 Use the password you passed to the seed script.
 
@@ -35,13 +35,13 @@ Use the password you passed to the seed script.
 | Hydrating Cream Cleanser | `/product/hydrating-cream-cleanser` |
 | Soft Matte Foundation | `/product/soft-matte-foundation` |
 
-Seller storefront route: `/seller/swyftly-dev-store`.
+Seller storefront route: `/seller/mabuntle-dev-store`.
 
 ## Manual Buyer Flow Checklist
 
 1. Register a new buyer at `/register/buyer`; confirm the success screen links back to `/login`.
-2. Login as `buyer@swyftly.local`.
-3. Browse `/`, `/shop`, product detail pages, category pages, and `/seller/swyftly-dev-store`.
+2. Login as `buyer@mabuntle.local`.
+3. Browse `/`, `/shop`, product detail pages, category pages, and `/seller/mabuntle-dev-store`.
 4. Save at least one product to wishlist from a product card or product detail.
 5. Open `/account/wishlist`, select a variant, and move a saved product to cart.
 6. Open `/cart`, update quantity, remove an item, and save one cart item for later.
@@ -72,14 +72,14 @@ powershell -ExecutionPolicy Bypass -File scripts\create-buyer-post-purchase-demo
 
 The helper:
 
-1. Logs in as `buyer@swyftly.local`.
+1. Logs in as `buyer@mabuntle.local`.
 2. Loads `/api/products/rose-linen-midi-dress` and selects an in-stock variant.
 3. Adds the variant to the buyer cart.
 4. Quotes seller delivery with a Johannesburg address.
 5. Creates an order through `/api/orders/from-cart`.
 6. Initiates payment through `/api/payments/initiate`.
 7. Posts a signed `Fake` paid webhook to `/api/payments/webhook/Fake`.
-8. Logs in as `seller@swyftly.local`.
+8. Logs in as `seller@mabuntle.local`.
 9. Marks the order processing, ready to ship, tracked, shipped, and delivered through seller order APIs.
 10. Prints the order, payment, and browser URLs needed for QA.
 
@@ -134,13 +134,13 @@ Phase 11E buyer refund visibility checks:
 Phase 11F refund-state sign-off:
 
 - Completed with order `71583d35-cdfc-43f3-88d6-14b3b5c78f5b`, return `5774b963-0aad-4477-8fb7-ec1a723ff3cd`, and refund `6f00614d-fe12-4fdf-a4c7-52da46f33393`.
-- Use `finance.operator@swyftly.local` to create refund requests and `finance.approver@swyftly.local` to approve them; finance dual control rejects approval by the same actor.
+- Use `finance.operator@mabuntle.local` to create refund requests and `finance.approver@mabuntle.local` to approve them; finance dual control rejects approval by the same actor.
 - For return-linked refund QA, create the return from the buyer order detail first, approve it as the seller, then create the refund through `/api/admin/returns/{returnRequestId}/refunds`.
 - The latest desktop/mobile evidence is recorded in `docs/buyer-post-purchase-qa-results.md` under Phase 11F.
 
 Phase 11G buyer growth depth checks:
 
-- Login as `buyer@swyftly.local` before opening `/assistant` and `/visual-search`; both growth routes remain buyer-authenticated secondary flows.
+- Login as `buyer@mabuntle.local` before opening `/assistant` and `/visual-search`; both growth routes remain buyer-authenticated secondary flows.
 - On `/assistant`, submit a few fashion/beauty/accessory prompts and confirm the recent prompt chips are browser-local only, capped at six entries, and removable with Clear. Refreshing the browser may keep local recents, but there is no backend prompt-history list to verify.
 - Confirm assistant confidence copy explains why products matched the current prompt, using buyer-safe signals such as category, attributes, style, colour, material, price, or occasion.
 - Use the assistant shop handoff and confirm it routes to `/shop` with query parameters for the current discovery intent instead of requiring a persisted recommendation record.
@@ -155,7 +155,7 @@ For Phase 10Z catalog discovery/product confidence, use the existing public APIs
 1. On `/shop`, confirm search, sort, pagination, existing filters, product-card imagery/fallbacks, wishlist state, prices, seller/category labels, and empty/error states.
 2. On `/category/dresses`, confirm the page clearly communicates the active category and reuses the same product-card confidence signals.
 3. On `/product/rose-linen-midi-dress`, confirm gallery/fallback behavior, variant confidence, add-to-cart/wishlist actions, seller link, public review summary/list, and available policy/delivery/returns snippets.
-4. On `/seller/swyftly-dev-store`, confirm seller verification/trust copy, policy snippets, product grid confidence, and storefront empty/loading/error behavior.
+4. On `/seller/mabuntle-dev-store`, confirm seller verification/trust copy, policy snippets, product grid confidence, and storefront empty/loading/error behavior.
 5. Avoid adding backend-only expectations during this pass. Server facet counts, storefront product pagination, aggregate seller ratings, and dedicated similar-products APIs are deferred backend work.
 
 ## API Smoke Checks
@@ -171,7 +171,7 @@ Checkout shipping options require an authenticated buyer session, so verify that
 
 Recommended authenticated smoke path:
 
-1. Login as `buyer@swyftly.local`.
+1. Login as `buyer@mabuntle.local`.
 2. Load `/api/products/rose-linen-midi-dress` and select an active variant.
 3. Add the product to the wishlist.
 4. Move the wishlist item to cart.
@@ -188,7 +188,7 @@ The cart-after-order check is important: order creation now marks the source car
 - The seed does not create carts, orders, payments, returns, reviews, or wishlists.
 - Fake payment remains local/provider-neutral. Paid status still requires the existing signed webhook flow.
 - Paid, delivered, return, review, refund, and dispute paths should be created through existing payment webhook, seller fulfilment, buyer return/review, and admin finance/support workflows rather than through hidden seed shortcuts.
-- Product images are local static SVG assets under `frontend/swyftly-web/public/assets/sample-products`.
+- Product images are local static SVG assets under `frontend/mabuntle-web/public/assets/sample-products`.
 
 ## Latest Audit Evidence
 
@@ -210,14 +210,14 @@ Phase 11G implemented buyer growth depth for `/assistant` and `/visual-search`: 
 
 Phase 11H buyer growth telemetry checks:
 
-- Login as `buyer@swyftly.local`, open `/assistant`, submit a prompt, open a returned product, use the shop handoff, and submit one structured usefulness reason. These actions should not block navigation if telemetry fails.
+- Login as `buyer@mabuntle.local`, open `/assistant`, submit a prompt, open a returned product, use the shop handoff, and submit one structured usefulness reason. These actions should not block navigation if telemetry fails.
 - Repeat the same flow on `/visual-search` with a text reference or uploaded test image. Confirm recent text references remain browser-local and uploaded image data/previews are not persisted in local history.
-- As `admin@swyftly.local`, open `/admin/reports` and confirm the buyer AI discovery section shows aggregate search, product-open, shop-handoff, feedback, context, and trend data.
+- As `admin@mabuntle.local`, open `/admin/reports` and confirm the buyer AI discovery section shows aggregate search, product-open, shop-handoff, feedback, context, and trend data.
 - API spot check: `POST /api/buyer/growth-events` requires a buyer token and rejects admin/seller tokens. `GET /api/admin/reports/buyer-growth?bucket=Day` requires Admin or SuperAdmin and must not return buyer ids, raw prompts, image/base64 content, provider payloads, or full AI responses.
 
 Phase 11I AI discovery history checks:
 
-- Login as `buyer@swyftly.local`, open `/account/settings`, confirm AI discovery history is off by default, and confirm the copy says prompts, images, previews, base64 content, provider payloads, and full AI responses are not stored.
+- Login as `buyer@mabuntle.local`, open `/account/settings`, confirm AI discovery history is off by default, and confirm the copy says prompts, images, previews, base64 content, provider payloads, and full AI responses are not stored.
 - Enable AI discovery history in settings, then submit one `/assistant` search and one `/visual-search` search.
 - Open `/account/ai-history` and confirm rows show only source tool, derived category/colour/material, confidence, result count, product links where visible, source route, and repeat-in-shop handoff.
 - Delete one row, then use Clear server history and confirm browser-local recent prompt/reference chips remain controlled only from `/assistant` and `/visual-search`.
@@ -225,8 +225,8 @@ Phase 11I AI discovery history checks:
 
 Phase 11J AI discovery outcome-attribution checks:
 
-- Login as `buyer@swyftly.local`, use `/assistant` or `/visual-search`, open a returned product, add that product to cart, quote shipping in `/checkout`, create an order, initiate fake payment, and post the signed fake paid webhook through the existing local helper path when possible.
-- As `admin@swyftly.local`, open `/admin/reports` and confirm the buyer AI discovery section includes outcome funnel cards and source-tool rows for product opens, cart adds, checkout starts, orders, and paid orders.
+- Login as `buyer@mabuntle.local`, use `/assistant` or `/visual-search`, open a returned product, add that product to cart, quote shipping in `/checkout`, create an order, initiate fake payment, and post the signed fake paid webhook through the existing local helper path when possible.
+- As `admin@mabuntle.local`, open `/admin/reports` and confirm the buyer AI discovery section includes outcome funnel cards and source-tool rows for product opens, cart adds, checkout starts, orders, and paid orders.
 - API spot check: `GET /api/admin/reports/buyer-growth?bucket=Day` must remain aggregate-only and must not include buyer ids, raw prompts, uploaded image/base64 data, provider payloads, or full AI responses.
 - Attribution is best-effort. Missing rows are acceptable when the buyer did not recently open or hand off from an AI discovery result within the 7-day attribution window.
 
@@ -246,7 +246,7 @@ powershell -ExecutionPolicy Bypass -File scripts\create-buyer-ai-attribution-dem
 
 Phase 11L AI personalization boundary checks:
 
-- Login as `buyer@swyftly.local`, open `/account/settings`, and confirm AI discovery history and Personalized AI discovery are separate controls and both default off for buyers without saved preferences.
+- Login as `buyer@mabuntle.local`, open `/account/settings`, and confirm AI discovery history and Personalized AI discovery are separate controls and both default off for buyers without saved preferences.
 - With personalization off, use `/assistant` and `/visual-search`; product cards should not show Personalized badges or `why recommended` reason chips.
 - Save a product to wishlist or add a product to cart, enable Personalized AI discovery, then repeat an assistant or visual-search query that returns the same product/category.
 - Confirm result cards can show only buyer-safe reasons such as `Similar to saved items`, `Matches recent cart interest`, or `Aligned with your enabled AI history`.

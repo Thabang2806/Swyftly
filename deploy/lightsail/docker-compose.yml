@@ -20,7 +20,7 @@ services:
     env_file:
       - .env.production
     volumes:
-      - swyftly-storage:/app/storage
+      - mabuntle-storage:/app/storage
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
       interval: 30s
@@ -34,11 +34,11 @@ services:
     env_file:
       - .env.production
     volumes:
-      - swyftly-storage:/app/storage
+      - mabuntle-storage:/app/storage
     depends_on:
       - api
 
 volumes:
   caddy-data:
   caddy-config:
-  swyftly-storage:
+  mabuntle-storage:

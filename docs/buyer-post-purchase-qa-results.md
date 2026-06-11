@@ -45,7 +45,7 @@ Latest helper smoke:
 
 The Phase 11C pass used the delivered-order helper against the local API and Angular app. Screenshots and the raw browser result JSON were written under:
 
-`C:\Users\thaba\AppData\Local\Temp\swyftly-phase11c-qa-1780047758345`
+`C:\Users\thaba\AppData\Local\Temp\mabuntle-phase11c-qa-1780047758345`
 
 Latest browser sign-off order:
 
@@ -79,7 +79,7 @@ Phase 11D completed buyer account trust polish/action sign-off. The planning-age
 
 Screenshots and raw browser result JSON were written under:
 
-`C:\Users\thaba\AppData\Local\Temp\swyftly-phase11d-qa-1780049753231`
+`C:\Users\thaba\AppData\Local\Temp\mabuntle-phase11d-qa-1780049753231`
 
 | Field | Value |
 |---|---|
@@ -121,7 +121,7 @@ Phase 11F completed the deferred refund-state browser evidence using only existi
 
 Screenshots and raw browser result JSON were written under:
 
-`C:\Users\thaba\AppData\Local\Temp\swyftly-phase11f-qa-1780054746662`
+`C:\Users\thaba\AppData\Local\Temp\mabuntle-phase11f-qa-1780054746662`
 
 | Field | Value |
 |---|---|
@@ -139,8 +139,8 @@ Refund workflow evidence:
 - Created the delivered order through `scripts/create-buyer-post-purchase-demo.ps1 -SkipCertificateCheck`.
 - Created a buyer return through `POST /api/buyer/orders/{orderId}/returns`.
 - Approved the return through `POST /api/seller/returns/{returnRequestId}/approve`.
-- Created a return-linked refund as `finance.operator@swyftly.local` through `POST /api/admin/returns/{returnRequestId}/refunds`.
-- Approved the refund as `finance.approver@swyftly.local` through `POST /api/admin/refunds/{refundId}/approve`; fake-provider refund completion moved the buyer-visible status to `Refunded`.
+- Created a return-linked refund as `finance.operator@mabuntle.local` through `POST /api/admin/returns/{returnRequestId}/refunds`.
+- Approved the refund as `finance.approver@mabuntle.local` through `POST /api/admin/refunds/{refundId}/approve`; fake-provider refund completion moved the buyer-visible status to `Refunded`.
 
 Route checks:
 

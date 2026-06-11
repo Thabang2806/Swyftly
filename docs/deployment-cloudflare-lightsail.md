@@ -8,11 +8,11 @@ Cloudflare Pages projects:
 
 | Domain | Pages project | Build command | Build output directory |
 |---|---|---|---|
-| `mabuntle.com` | `mabuntle` | `npm ci && npm run build:client:cloudflare` | `dist/swyftly-client/browser` |
-| `seller.mabuntle.com` | `mabuntle-seller` | `npm ci && npm run build:seller:cloudflare` | `dist/swyftly-seller/browser` |
-| `admin.mabuntle.com` | `mabuntle-admin` | `npm ci && npm run build:admin:cloudflare` | `dist/swyftly-admin/browser` |
+| `mabuntle.com` | `mabuntle` | `npm ci && npm run build:client:cloudflare` | `dist/mabuntle-client/browser` |
+| `seller.mabuntle.com` | `mabuntle-seller` | `npm ci && npm run build:seller:cloudflare` | `dist/mabuntle-seller/browser` |
+| `admin.mabuntle.com` | `mabuntle-admin` | `npm ci && npm run build:admin:cloudflare` | `dist/mabuntle-admin/browser` |
 
-Use root directory `frontend/swyftly-web` and Node version `22` for all three projects.
+Use root directory `frontend/mabuntle-web` and Node version `22` for all three projects.
 
 Required Cloudflare/GitHub configuration:
 
@@ -23,28 +23,28 @@ Required Cloudflare/GitHub configuration:
 | `CLOUDFLARE_PAGES_PROJECT_CLIENT` | GitHub environment variable | Client Pages project, `mabuntle`. |
 | `CLOUDFLARE_PAGES_PROJECT_SELLER` | GitHub environment variable | Seller Pages project, `mabuntle-seller`. |
 | `CLOUDFLARE_PAGES_PROJECT_ADMIN` | GitHub environment variable | Admin Pages project, `mabuntle-admin`. |
-| `SWYFTLY_API_BASE_URL` | GitHub environment variable | External API origin, `https://api.mabuntle.com`. |
+| `MABUNTLE_API_BASE_URL` | GitHub environment variable | External API origin, `https://api.mabuntle.com`. |
 
 The Cloudflare build uses `scripts/write-production-api-url.mjs` to write the production Angular API origin at build time. App-specific `_redirects` files provide SPA fallback routing and compatibility redirects for old `/seller/*` and `/admin/*` URLs.
 
 If a Cloudflare build fails with `Could not detect a directory containing static files` and shows `Deploy command: npx wrangler deploy`, the project was configured like a Worker deployment or is running from the repository root without building Angular first. Fix the Cloudflare project settings to use the values above, especially:
 
-- Root directory: `frontend/swyftly-web`
+- Root directory: `frontend/mabuntle-web`
 - Build command: one of the three commands listed above.
-- Build output directory: the matching `dist/swyftly-*/browser` directory.
-- Environment variables: `NODE_VERSION=22`, `SWYFTLY_API_BASE_URL=https://api.mabuntle.com`
+- Build output directory: the matching `dist/mabuntle-*/browser` directory.
+- Environment variables: `NODE_VERSION=22`, `MABUNTLE_API_BASE_URL=https://api.mabuntle.com`
 
-Do not use `npx wrangler deploy` for the Angular static site. Cloudflare Pages should upload the generated `dist/swyftly-*/browser` directory, or GitHub Actions should run `wrangler pages deploy` for each project.
+Do not use `npx wrangler deploy` for the Angular static site. Cloudflare Pages should upload the generated `dist/mabuntle-*/browser` directory, or GitHub Actions should run `wrangler pages deploy` for each project.
 
 ### Local Frontend Development
 
 The split Cloudflare apps also have local live-reload serve targets. Start the API first:
 
 ```powershell
-dotnet run --project backend\src\Swyftly.Api
+dotnet run --project backend\src\Mabuntle.Api
 ```
 
-Then run each frontend from `frontend/swyftly-web`:
+Then run each frontend from `frontend/mabuntle-web`:
 
 ```powershell
 cmd /c npm run serve:client
@@ -85,13 +85,13 @@ Do not point `api.mabuntle.com` at a Pages project. The API hostname must point 
 
 The backend deployment uses:
 
-- `backend/src/Swyftly.Api/Dockerfile`
-- `backend/src/Swyftly.Worker/Dockerfile`
+- `backend/src/Mabuntle.Api/Dockerfile`
+- `backend/src/Mabuntle.Worker/Dockerfile`
 - `deploy/lightsail/docker-compose.yml`
 - `deploy/lightsail/Caddyfile`
 - `.github/workflows/deploy-backend.yml`
 
-The GitHub workflow builds and pushes `swyftly-api` and `swyftly-worker` images to GHCR, builds an EF migration bundle, copies deployment assets to the Lightsail host, applies migrations, pulls the new images, restarts Docker Compose, and smoke-tests `/health` and `/health/ready`.
+The GitHub workflow builds and pushes `mabuntle-api` and `mabuntle-worker` images to GHCR, builds an EF migration bundle, copies deployment assets to the Lightsail host, applies migrations, pulls the new images, restarts Docker Compose, and smoke-tests `/health` and `/health/ready`.
 
 Minimum Lightsail host setup:
 
@@ -154,7 +154,7 @@ The API validates production configuration at startup. Production rejects placeh
 
 ## Resend SMTP
 
-Swyftly uses the existing SMTP email provider for Resend. No Resend-specific backend provider is required.
+Mabuntle uses the existing SMTP email provider for Resend. No Resend-specific backend provider is required.
 
 Before deploying email delivery:
 
@@ -213,6 +213,6 @@ Then verify from the browser:
 ## Operational Notes
 
 - Static Cloudflare Pages hosting is the default. Runtime SSR/functions are intentionally not configured.
-- API-managed product media and seller evidence use the Docker volume `swyftly-storage` unless S3-compatible image storage is configured later.
+- API-managed product media and seller evidence use the Docker volume `mabuntle-storage` unless S3-compatible image storage is configured later.
 - The Worker must run with the API because it processes email outbox, scheduled reports, reservation expiry, media cleanup, webhook payload retention, and carrier tracking sync.
 - Payments are intentionally disabled in the first Lightsail deployment. When PayFast sandbox/live values are ready, change the backend workflow from `PaymentProvider__ProviderName=Disabled` to `PayFast`, restore the PayFast environment values, and use the final API domain for callback URLs before payment verification.

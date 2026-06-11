@@ -17,14 +17,14 @@ $ErrorActionPreference = "Stop"
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Resolve-Path (Join-Path $scriptRoot "..")
-$projectPath = Join-Path $scriptRoot "Swyftly.DevSeed\Swyftly.DevSeed.csproj"
+$projectPath = Join-Path $scriptRoot "Mabuntle.DevSeed\Mabuntle.DevSeed.csproj"
 
 if ([string]::IsNullOrWhiteSpace($ConnectionString)) {
     $ConnectionString = $env:ConnectionStrings__DefaultConnection
 }
 
 if ([string]::IsNullOrWhiteSpace($ConnectionString)) {
-    $appSettingsPath = Join-Path $repoRoot "backend\src\Swyftly.Api\appsettings.Development.json"
+    $appSettingsPath = Join-Path $repoRoot "backend\src\Mabuntle.Api\appsettings.Development.json"
     if (Test-Path $appSettingsPath) {
         $settings = Get-Content $appSettingsPath -Raw | ConvertFrom-Json
         $ConnectionString = $settings.ConnectionStrings.DefaultConnection
@@ -56,7 +56,7 @@ if ($SeedSellerFlowDemo) {
     $seedArgs += "--seed-seller-flow-demo"
 }
 
-$assetsPath = Join-Path $scriptRoot "Swyftly.DevSeed\obj\project.assets.json"
+$assetsPath = Join-Path $scriptRoot "Mabuntle.DevSeed\obj\project.assets.json"
 if (Test-Path $assetsPath) {
     dotnet run --no-restore --project $projectPath -- @seedArgs
 }

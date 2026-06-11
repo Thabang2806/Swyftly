@@ -1,11 +1,11 @@
-# Swyftly
+# Mabuntle
 
-Swyftly is a transactional marketplace foundation for fashion, beauty, jewellery, and accessories.
+Mabuntle is a transactional marketplace foundation for fashion, beauty, jewellery, and accessories.
 
 This repository is a monorepo with:
 
 - `backend/`: ASP.NET Core Web API, worker, domain/application/infrastructure projects, and tests.
-- `frontend/swyftly-web/`: Angular SSR app shell.
+- `frontend/mabuntle-web/`: Angular SSR app shell.
 - `database/`: migration and seed placeholders.
 - `docs/`: concise engineering docs derived from the larger source references in `Documentation/`.
 
@@ -26,10 +26,10 @@ On this Windows machine, PowerShell blocks npm shim scripts. Use `cmd /c npm ...
 
 ```powershell
 dotnet tool restore
-dotnet restore backend\Swyftly.sln
-dotnet build backend\Swyftly.sln
-dotnet test backend\Swyftly.sln
-dotnet run --project backend\src\Swyftly.Api\Swyftly.Api.csproj
+dotnet restore backend\Mabuntle.sln
+dotnet build backend\Mabuntle.sln
+dotnet test backend\Mabuntle.sln
+dotnet run --project backend\src\Mabuntle.Api\Mabuntle.Api.csproj
 ```
 
 Health check:
@@ -60,12 +60,12 @@ POST /api/auth/logout
 GET  /api/auth/me
 ```
 
-Public registration is limited to `Buyer` and `Seller`. Admin, support, and finance roles are seeded as roles only and are not self-assignable. Login and refresh return a short-lived access token; refresh tokens are set as HttpOnly cookies and refresh/logout require the `X-Swyftly-CSRF` header from the non-HttpOnly CSRF cookie.
+Public registration is limited to `Buyer` and `Seller`. Admin, support, and finance roles are seeded as roles only and are not self-assignable. Login and refresh return a short-lived access token; refresh tokens are set as HttpOnly cookies and refresh/logout require the `X-Mabuntle-CSRF` header from the non-HttpOnly CSRF cookie.
 
 ## Frontend
 
 ```powershell
-cd frontend\swyftly-web
+cd frontend\mabuntle-web
 cmd /c npm install
 cmd /c npm run build
 cmd /c npm start
@@ -87,19 +87,19 @@ docker compose up -d
 
 The compose file starts PostgreSQL with pgvector support. Runtime verification requires Docker to be installed locally.
 
-EF Core migrations live in `backend/src/Swyftly.Infrastructure/Persistence/Migrations`.
+EF Core migrations live in `backend/src/Mabuntle.Infrastructure/Persistence/Migrations`.
 
 ```powershell
-dotnet dotnet-ef migrations add MigrationName --project backend\src\Swyftly.Infrastructure --startup-project backend\src\Swyftly.Api --context SwyftlyDbContext --output-dir Persistence\Migrations
-dotnet dotnet-ef database update --project backend\src\Swyftly.Infrastructure --startup-project backend\src\Swyftly.Api --context SwyftlyDbContext
+dotnet dotnet-ef migrations add MigrationName --project backend\src\Mabuntle.Infrastructure --startup-project backend\src\Mabuntle.Api --context MabuntleDbContext --output-dir Persistence\Migrations
+dotnet dotnet-ef database update --project backend\src\Mabuntle.Infrastructure --startup-project backend\src\Mabuntle.Api --context MabuntleDbContext
 ```
 
 PostgreSQL integration tests are opt-in so normal test runs do not fail when Docker or PostgreSQL is unavailable.
 
 ```powershell
-$env:SWYFTLY_RUN_POSTGRES_TESTS='true'
-$env:SWYFTLY_TEST_POSTGRES_CONNECTION='Host=localhost;Port=5432;Database=swyftly_integration_tests;Username=swyftly;Password=change_me'
-dotnet test backend\tests\Swyftly.IntegrationTests\Swyftly.IntegrationTests.csproj --filter PostgreSql
+$env:MABUNTLE_RUN_POSTGRES_TESTS='true'
+$env:MABUNTLE_TEST_POSTGRES_CONNECTION='Host=localhost;Port=5432;Database=mabuntle_integration_tests;Username=mabuntle;Password=change_me'
+dotnet test backend\tests\Mabuntle.IntegrationTests\Mabuntle.IntegrationTests.csproj --filter PostgreSql
 ```
 
 ## Configuration

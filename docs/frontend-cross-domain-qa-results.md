@@ -14,13 +14,13 @@ This was a QA and deployment-smoke pass only. No backend APIs, Angular route con
 
 ## Local Verification
 
-All commands were run from `frontend/swyftly-web` with `SWYFTLY_API_BASE_URL=https://api.mabuntle.com`.
+All commands were run from `frontend/mabuntle-web` with `MABUNTLE_API_BASE_URL=https://api.mabuntle.com`.
 
 | Check | Result | Evidence |
 |---|---|---|
-| Client Cloudflare build | Pass | `cmd /c npm run build:client:cloudflare`; output `dist/swyftly-client/browser`; initial browser total `464.23 kB`; copied client `_redirects`. |
-| Seller Cloudflare build | Pass | `cmd /c npm run build:seller:cloudflare`; output `dist/swyftly-seller/browser`; initial browser total `429.51 kB`; copied seller `_redirects`. |
-| Admin Cloudflare build | Pass | `cmd /c npm run build:admin:cloudflare`; output `dist/swyftly-admin/browser`; initial browser total `366.30 kB`; copied admin `_redirects`. |
+| Client Cloudflare build | Pass | `cmd /c npm run build:client:cloudflare`; output `dist/mabuntle-client/browser`; initial browser total `464.23 kB`; copied client `_redirects`. |
+| Seller Cloudflare build | Pass | `cmd /c npm run build:seller:cloudflare`; output `dist/mabuntle-seller/browser`; initial browser total `429.51 kB`; copied seller `_redirects`. |
+| Admin Cloudflare build | Pass | `cmd /c npm run build:admin:cloudflare`; output `dist/mabuntle-admin/browser`; initial browser total `366.30 kB`; copied admin `_redirects`. |
 | Angular specs | Pass | `cmd /c npm run test:ci`; `349 SUCCESS`. |
 | Mojibake scan | Pass | `rg -n "Â|Ã|â|ð|�" src`; no matches. |
 | Angular Material package/source scan | Pass with expected false positive note | Broad scan reported only `package-lock.json:7655` because the package name `date-format` contains `mat-`. Follow-up scans for `@angular/material`, `@angular/cdk`, `Mat[A-Z]`, `mat[A-Z]`, and source `mat-` usage returned no matches. |

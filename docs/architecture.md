@@ -1,16 +1,16 @@
-# Swyftly Architecture
+# Mabuntle Architecture
 
-Swyftly uses a modular monolith backend and an Angular SSR frontend.
+Mabuntle uses a modular monolith backend and an Angular SSR frontend.
 
 ## Backend
 
 The backend follows Clean Architecture:
 
-- `Swyftly.Domain`: entities, value objects, domain events, and business rules.
-- `Swyftly.Application`: use cases, commands, queries, DTOs, validators, and interfaces.
-- `Swyftly.Infrastructure`: EF Core persistence, provider adapters, storage, search, AI, email, and other integrations.
-- `Swyftly.Api`: HTTP endpoints, auth wiring, middleware, and API response formatting.
-- `Swyftly.Worker`: background processing host.
+- `Mabuntle.Domain`: entities, value objects, domain events, and business rules.
+- `Mabuntle.Application`: use cases, commands, queries, DTOs, validators, and interfaces.
+- `Mabuntle.Infrastructure`: EF Core persistence, provider adapters, storage, search, AI, email, and other integrations.
+- `Mabuntle.Api`: HTTP endpoints, auth wiring, middleware, and API response formatting.
+- `Mabuntle.Worker`: background processing host.
 
 Feature work should use vertical slices inside the application layer where practical.
 

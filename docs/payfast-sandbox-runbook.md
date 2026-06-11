@@ -40,8 +40,8 @@ For local adapter-only testing, `PayFast__RequireRemoteValidation=false` can be 
 Run:
 
 ```powershell
-dotnet build backend\Swyftly.sln --no-restore
-dotnet test backend\Swyftly.sln --no-build --filter "PayFast|PaymentProviderHealthCheck|PaymentEndpoint"
+dotnet build backend\Mabuntle.sln --no-restore
+dotnet test backend\Mabuntle.sln --no-build --filter "PayFast|PaymentProviderHealthCheck|PaymentEndpoint"
 ```
 
 Start the API with the PayFast environment values and call:
@@ -86,7 +86,7 @@ PayFast refunds are manual in this phase.
 
 1. Finance operator creates a refund request.
 2. Finance approver approves it.
-3. Swyftly moves the refund to `Processing` and records `ProviderRefundActionRequired`.
+3. Mabuntle moves the refund to `Processing` and records `ProviderRefundActionRequired`.
 4. Finance completes the refund in the PayFast dashboard.
 5. Finance confirms the provider refund reference through:
 
@@ -94,14 +94,14 @@ PayFast refunds are manual in this phase.
 POST /api/admin/refunds/{refundId}/confirm-manual-provider-refund
 ```
 
-6. Swyftly then writes refund ledger reversals, payout adjustments, payment refund state, order/return updates, and audit logs.
+6. Mabuntle then writes refund ledger reversals, payout adjustments, payment refund state, order/return updates, and audit logs.
 
 ## Manual Reconciliation Review Flow
 
 Dashboard-observed provider status is evidence, not settlement authority.
 
 1. Finance opens `/admin/payments` and reviews stale pending/authorized payments or payments with failed webhook events.
-2. Finance checks the PayFast dashboard, ITN history, and Swyftly support/audit context.
+2. Finance checks the PayFast dashboard, ITN history, and Mabuntle support/audit context.
 3. Finance records a review through:
 
 ```http
@@ -114,7 +114,7 @@ POST /api/admin/payments/{paymentId}/reconciliation-reviews
    - `ProviderPaidMissingWebhook`
    - `ProviderFailedMissingWebhook`
    - `ManualRecoveryRequired`
-5. If the provider status is `COMPLETE` but Swyftly has no valid paid ITN, record `ProviderPaidMissingWebhook` and investigate or replay the PayFast ITN. Do not mark the payment or order paid from an admin screen.
+5. If the provider status is `COMPLETE` but Mabuntle has no valid paid ITN, record `ProviderPaidMissingWebhook` and investigate or replay the PayFast ITN. Do not mark the payment or order paid from an admin screen.
 6. Set `nextReviewAfterUtc` when the case should be snoozed. Snoozed candidates are hidden from the default queue until that timestamp passes.
 
 ## Exit Criteria

@@ -1,0 +1,133 @@
+<div class="app-shell">
+  <header class="topbar">
+    <a class="brand" routerLink="/" aria-label="Mabuntle home">
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <span class="brand-copy">
+        <strong>Mabuntle</strong>
+        <small>Fashion marketplace</small>
+      </span>
+    </a>
+
+    <a class="header-search" routerLink="/shop" aria-label="Search Mabuntle marketplace">
+      <span>Search fashion, jewellery, beauty, and sellers</span>
+    </a>
+
+    <nav class="primary-nav" aria-label="Primary navigation">
+      <div class="nav-group" aria-label="Marketplace">
+        @for (item of publicNavigationItems; track item.route) {
+          <a
+            class="nav-link"
+            [routerLink]="item.route"
+            routerLinkActive="active-link"
+            [routerLinkActiveOptions]="{ exact: true }"
+            ariaCurrentWhenActive="page"
+          >
+            {{ item.label }}
+          </a>
+          }
+      </div>
+
+      <div class="nav-group nav-group--feature" aria-label="Discovery">
+        <a
+          class="nav-link nav-link--featured"
+          [routerLink]="authService.hasAnyRole(['Buyer']) ? '/assistant' : '/login'"
+          routerLinkActive="active-link"
+          ariaCurrentWhenActive="page"
+        >
+          AI Style Finder
+        </a>
+      </div>
+
+      @if (hasWorkspaceNavigation()) {
+        <div class="nav-group nav-group--workspace" aria-label="Workspace">
+          @for (item of buyerNavigationItems(); track item.route) {
+            <a
+              class="nav-link"
+              [routerLink]="item.route"
+              routerLinkActive="active-link"
+              [routerLinkActiveOptions]="{ exact: true }"
+              ariaCurrentWhenActive="page"
+            >
+              <span>{{ item.label }}</span>
+              @if (item.badge && item.badge > 0) {
+                <span class="nav-badge" [attr.aria-label]="item.badge + ' unread notifications'">{{ item.badge }}</span>
+              }
+            </a>
+          }
+
+          @for (item of sellerNavigationItems(); track item.route) {
+            <a
+              class="nav-link"
+              [routerLink]="item.route"
+              routerLinkActive="active-link"
+              [routerLinkActiveOptions]="{ exact: true }"
+              ariaCurrentWhenActive="page"
+            >
+              <span>{{ item.label }}</span>
+              @if (item.badge && item.badge > 0) {
+                <span class="nav-badge" [attr.aria-label]="item.badge + ' unread seller notifications'">{{ item.badge }}</span>
+              }
+            </a>
+          }
+
+          @for (item of adminNavigationItems(); track item.route) {
+            <a
+              class="nav-link"
+              [routerLink]="item.route"
+              routerLinkActive="active-link"
+              [routerLinkActiveOptions]="{ exact: true }"
+              ariaCurrentWhenActive="page"
+            >
+              {{ item.label }}
+            </a>
+          }
+        </div>
+      }
+
+      @if (authNavigationItems().length > 0) {
+        <div class="nav-group nav-group--auth" aria-label="Account">
+          @for (item of authNavigationItems(); track item.route) {
+            <a
+              class="nav-link"
+              [routerLink]="item.route"
+              routerLinkActive="active-link"
+              [routerLinkActiveOptions]="{ exact: true }"
+              ariaCurrentWhenActive="page"
+            >
+              {{ item.label }}
+            </a>
+          }
+        </div>
+      }
+
+      @if (authService.isAuthenticated()) {
+        <div class="nav-group nav-group--auth" aria-label="Session">
+          <button class="nav-link nav-button" type="button" (click)="logout()">Logout</button>
+        </div>
+      }
+    </nav>
+  </header>
+
+  <main class="app-main">
+    <router-outlet />
+  </main>
+
+  <footer class="footer">
+    <span>Mabuntle marketplace</span>
+    <span>Fashion, beauty, jewellery, and accessories</span>
+    <a class="nav-link" routerLink="/sell">Sell on Mabuntle</a>
+  </footer>
+
+  <app-mobile-bottom-nav [items]="mobileNavigationItems()" />
+
+  @if (notificationRealtime.latestNotification(); as notification) {
+    <aside class="notification-toast" aria-live="polite">
+      <div>
+        <strong>{{ notification.title }}</strong>
+        <p>{{ notification.message }}</p>
+      </div>
+      <a [routerLink]="notificationRoute(notification)" (click)="notificationRealtime.dismissLatestNotification()">Open</a>
+      <button type="button" aria-label="Dismiss notification" (click)="notificationRealtime.dismissLatestNotification()">Close</button>
+    </aside>
+  }
+</div>

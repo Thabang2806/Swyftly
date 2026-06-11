@@ -1,4 +1,4 @@
-# Swyftly Scripts
+# Mabuntle Scripts
 
 ## Development environment verification
 
@@ -15,10 +15,10 @@ The helper checks the .NET SDK, NuGet source/connectivity, existing restore asse
 Start the local API first:
 
 ```powershell
-dotnet run --project backend\src\Swyftly.Api
+dotnet run --project backend\src\Mabuntle.Api
 ```
 
-Then run the split Angular apps from `frontend/swyftly-web`:
+Then run the split Angular apps from `frontend/mabuntle-web`:
 
 ```powershell
 cmd /c npm run serve:client
@@ -42,9 +42,9 @@ Common recovery steps:
 | --- | --- |
 | `api.nuget.org` is missing or disabled | Run `dotnet nuget list source`. Re-enable or add the public NuGet source without committing machine-specific credentials. |
 | NuGet restore fails with socket or network policy errors | Verify network access to `api.nuget.org:443`. In sandboxed Codex sessions, run restore with approved outside-sandbox network access. |
-| Stale `obj/project.assets.json` or missing packages | Run `dotnet restore backend\Swyftly.sln`, then rebuild with `dotnet build backend\Swyftly.sln --no-restore`. |
-| Backend DLLs are locked | Stop any running `Swyftly.Api`, Visual Studio debug sessions, or background `dotnet` processes before rebuilding. |
-| PostgreSQL connection is missing | Set `ConnectionStrings__DefaultConnection`, pass `-ConnectionString` to the preflight helper, or update `backend/src/Swyftly.Api/appsettings.Development.json`. |
+| Stale `obj/project.assets.json` or missing packages | Run `dotnet restore backend\Mabuntle.sln`, then rebuild with `dotnet build backend\Mabuntle.sln --no-restore`. |
+| Backend DLLs are locked | Stop any running `Mabuntle.Api`, Visual Studio debug sessions, or background `dotnet` processes before rebuilding. |
+| PostgreSQL connection is missing | Set `ConnectionStrings__DefaultConnection`, pass `-ConnectionString` to the preflight helper, or update `backend/src/Mabuntle.Api/appsettings.Development.json`. |
 | Existing seed accounts use an old password | Re-run the seed with `-ResetPasswords` and the password you want to use for local testing. |
 
 ## Deployment smoke verification
@@ -98,7 +98,7 @@ To seed the seller approval flow demo records as well:
 powershell -ExecutionPolicy Bypass -File scripts\seed-dev-users.ps1 -Password "UseYourOwnDevPassword1!" -ApplyMigrations -SeedSampleProducts -SeedSellerFlowDemo
 ```
 
-The script uses `ConnectionStrings__DefaultConnection` when set, otherwise it falls back to `backend/src/Swyftly.Api/appsettings.Development.json`.
+The script uses `ConnectionStrings__DefaultConnection` when set, otherwise it falls back to `backend/src/Mabuntle.Api/appsettings.Development.json`.
 
 Seed failures now propagate the underlying `dotnet run` exit code, so CI or local scripts can trust a non-zero exit when restore, build, migration, or database work fails.
 
@@ -106,13 +106,13 @@ Seeded accounts:
 
 | Email | Roles and setup |
 | --- | --- |
-| `admin@swyftly.local` | `SuperAdmin`, `Admin` |
-| `finance.operator@swyftly.local` | `FinanceOperator` |
-| `finance.approver@swyftly.local` | `FinanceApprover` |
-| `support@swyftly.local` | `SupportAgent` |
-| `buyer@swyftly.local` | `Buyer` with buyer profile and, when `-SeedSampleProducts` is used, one default saved delivery address |
-| `seller@swyftly.local` | `Seller` with verified seller profile, published storefront, payout placeholder approval, seller balance, standard delivery method, and, when `-SeedSampleProducts` is used, eight published sample products |
-| `seller.pending@swyftly.local` | `Seller` with completed onboarding and an `UnderReview` seller verification when `-SeedSellerFlowDemo` is used |
+| `admin@mabuntle.local` | `SuperAdmin`, `Admin` |
+| `finance.operator@mabuntle.local` | `FinanceOperator` |
+| `finance.approver@mabuntle.local` | `FinanceApprover` |
+| `support@mabuntle.local` | `SupportAgent` |
+| `buyer@mabuntle.local` | `Buyer` with buyer profile and, when `-SeedSampleProducts` is used, one default saved delivery address |
+| `seller@mabuntle.local` | `Seller` with verified seller profile, published storefront, payout placeholder approval, seller balance, standard delivery method, and, when `-SeedSampleProducts` is used, eight published sample products |
+| `seller.pending@mabuntle.local` | `Seller` with completed onboarding and an `UnderReview` seller verification when `-SeedSellerFlowDemo` is used |
 
 `-SeedSellerFlowDemo` also creates one product in `PendingReview` and one ad campaign in `PendingReview` for the verified seller so `/admin/products` and `/admin/ads` can be tested immediately. See `docs/seller-flow-test-runbook.md` for the manual checklist and `docs/seller-flow-qa-results.md` for the latest QA evidence.
 
@@ -124,7 +124,7 @@ After seeding sample products, use `create-buyer-post-purchase-demo.ps1` to crea
 powershell -ExecutionPolicy Bypass -File scripts\create-buyer-post-purchase-demo.ps1 -Password "UseYourOwnDevPassword1!"
 ```
 
-The helper logs in as `buyer@swyftly.local`, adds `rose-linen-midi-dress` to cart, quotes shipping, creates an order, initiates a `Fake` payment, posts a signed fake paid webhook, logs in as `seller@swyftly.local`, and marks the order delivered through seller fulfilment endpoints.
+The helper logs in as `buyer@mabuntle.local`, adds `rose-linen-midi-dress` to cart, quotes shipping, creates an order, initiates a `Fake` payment, posts a signed fake paid webhook, logs in as `seller@mabuntle.local`, and marks the order delivered through seller fulfilment endpoints.
 
 Useful options:
 
@@ -154,7 +154,7 @@ After seeding sample products, use `create-buyer-ai-attribution-demo.ps1` to val
 powershell -ExecutionPolicy Bypass -File scripts\create-buyer-ai-attribution-demo.ps1 -Password "UseYourOwnDevPassword1!" -SkipCertificateCheck
 ```
 
-The helper logs in as `buyer@swyftly.local`, calls the existing assistant and visual-search endpoints, records sanitized growth telemetry through `/api/buyer/growth-events`, adds the attributed product to cart, quotes shipping, creates an order, initiates a `Fake` payment, posts a signed fake paid webhook, then reads the aggregate admin buyer-growth report as `admin@swyftly.local`.
+The helper logs in as `buyer@mabuntle.local`, calls the existing assistant and visual-search endpoints, records sanitized growth telemetry through `/api/buyer/growth-events`, adds the attributed product to cart, quotes shipping, creates an order, initiates a `Fake` payment, posts a signed fake paid webhook, then reads the aggregate admin buyer-growth report as `admin@mabuntle.local`.
 
 Useful options:
 

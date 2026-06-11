@@ -1,4 +1,4 @@
-# Swyftly High-Fidelity UI Progress
+# Mabuntle High-Fidelity UI Progress
 
 ## Summary
 
@@ -12,12 +12,12 @@ The active next visual target is the luxury editorial screen pack at `Documentat
 |---|---|---|
 | `Documentation/UI UX/desktop-contact-sheet.jpg` | Desktop overview of the 10 high-fidelity mockups. | Reviewed |
 | `Documentation/UI UX/mobile-contact-sheet.jpg` | Mobile overview of the 10 high-fidelity mockups. | Reviewed |
-| `Documentation/UI UX/swyftly_ui_mockups/swyftly_ui_mockups/*.html` | Static HTML references for layout and spacing. | Reviewed |
-| `Documentation/UI UX/swyftly_ui_mockups/swyftly_ui_mockups/*.png` | Rendered high-fidelity screen references. | Reviewed |
-| `Documentation/UI UX/swyftly_ui_mockups/swyftly_ui_mockups/style.css` | Luxe Blush palette and visual-language reference. | Reviewed |
-| `Documentation/UI UX/swyftly_detailed_ux_flows_and_screen_inventory.md` | Detailed route and state inventory. | Reviewed |
-| `Documentation/UI UX/swyftly_route_map.json` | Blueprint route map. | Reviewed |
-| `Documentation/UI UX/swyftly_screen_inventory.csv` | Blueprint screen inventory. | Reviewed |
+| `Documentation/UI UX/mabuntle_ui_mockups/mabuntle_ui_mockups/*.html` | Static HTML references for layout and spacing. | Reviewed |
+| `Documentation/UI UX/mabuntle_ui_mockups/mabuntle_ui_mockups/*.png` | Rendered high-fidelity screen references. | Reviewed |
+| `Documentation/UI UX/mabuntle_ui_mockups/mabuntle_ui_mockups/style.css` | Luxe Blush palette and visual-language reference. | Reviewed |
+| `Documentation/UI UX/mabuntle_detailed_ux_flows_and_screen_inventory.md` | Detailed route and state inventory. | Reviewed |
+| `Documentation/UI UX/mabuntle_route_map.json` | Blueprint route map. | Reviewed |
+| `Documentation/UI UX/mabuntle_screen_inventory.csv` | Blueprint screen inventory. | Reviewed |
 | `Documentation/UI UX/luxury-editorial-screen-pack` | New luxury editorial route-complete mockup pack inspired by Luxity, Apsley, NET-A-PORTER, and Mytheresa patterns without copying assets or layouts. | Generated |
 
 ## Design Direction

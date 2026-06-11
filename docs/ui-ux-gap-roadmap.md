@@ -1,4 +1,4 @@
-# Swyftly UI/UX Gap Roadmap
+# Mabuntle UI/UX Gap Roadmap
 
 ## Summary
 
@@ -106,7 +106,7 @@ High-level coverage:
 
 | ID | Blueprint screen | Current route/component | Status | Notes |
 |---|---|---|---|---|
-| S-01 | Sell on Swyftly Landing | `/sell`, `SellOnSwyftlyPageComponent`; `/register/seller` | Implemented | Public seller acquisition page explains the review-led seller path, readiness checklist, seller operations, honest deferred integrations, and routes sellers to registration/sign-in. |
+| S-01 | Sell on Mabuntle Landing | `/sell`, `SellOnMabuntlePageComponent`; `/register/seller` | Implemented | Public seller acquisition page explains the review-led seller path, readiness checklist, seller operations, honest deferred integrations, and routes sellers to registration/sign-in. |
 | S-02 | Seller Registration/Login | `/register/seller`, `/login` | Partial | Auth flow exists with seller-specific copy, `/sell` context, and success-to-login behavior. Auto-login and deeper post-registration guidance remain future polish. |
 | S-03 | Seller Onboarding Wizard | `/seller`, `SellerPageComponent` | Partial | Multi-step onboarding exists with readiness cards, clearer save/submit states, optional verification evidence upload/list/remove/download, and separate non-verified versus verified dashboard presentation. Evidence is review context only and does not alter submit gating. |
 | S-04 | Seller Verification Status | `/seller`, `SellerPageComponent` | Partial | Pending, under-review, rejected, suspended, and verified states are now distinct, with seller-facing rejection/suspension reasons where existing records provide them and optional evidence context for review. Dedicated standalone status routes are not needed for MVP. |
@@ -301,7 +301,7 @@ This keeps UI work tied to real contracts instead of creating fake surfaces that
 For any UI implementation pass:
 
 ```powershell
-cd frontend\swyftly-web
+cd frontend\mabuntle-web
 cmd /c npm run build
 cmd /c npm run test:ci
 ```

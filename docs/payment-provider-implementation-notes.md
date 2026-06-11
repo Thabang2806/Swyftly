@@ -4,13 +4,13 @@ Last updated: 2026-05-21
 
 Phase 8C implements PayFast as the first real provider adapter foundation. `PaymentProvider:ProviderName` still defaults to `Fake` outside explicit configuration, and PayU South Africa remains deferred until merchant technical docs and sandbox credentials are available.
 
-## Shared Swyftly Constraints
+## Shared Mabuntle Constraints
 
 - Keep Angular provider-neutral. The frontend should only receive and navigate to the backend `checkoutUrl`.
 - Keep signed provider webhooks as the only settlement source of truth.
 - Continue storing every provider event in `payment_events` and enforcing duplicate-event idempotency.
 - Reject settlement when provider amount, currency, or local provider reference does not match the local payment.
-- Keep local ledger, seller balance, refund, and payout records authoritative for Swyftly operations.
+- Keep local ledger, seller balance, refund, and payout records authoritative for Mabuntle operations.
 - Do not add real provider secrets to source. Use environment variables or a secret store.
 
 ## PayFast Adapter Status
@@ -31,7 +31,7 @@ Implemented in Phase 8C:
 - `GET /api/admin/payments/reconciliation-candidates` gives finance a read-only queue for stale pending/authorized payments and failed webhook events. This is operational triage only; it does not query PayFast or mutate local settlement state.
 - Phase 9B added `payment_reconciliation_reviews` and `POST /api/admin/payments/{paymentId}/reconciliation-reviews` for `FinanceApprove` users to record provider-dashboard evidence, outcome, reason, and optional snooze timestamps. These reviews are evidence only and never settle payments or change orders/ledger/cart/reservation/refund/payout state.
 - `/admin/payments` now shows latest reconciliation review state and warns that `ProviderPaidMissingWebhook` requires provider investigation or valid ITN replay, not manual settlement.
-- `/admin/refunds` now makes PayFast `Processing` refunds explicit: complete the dashboard refund first, then confirm the manual provider refund reference in Swyftly.
+- `/admin/refunds` now makes PayFast `Processing` refunds explicit: complete the dashboard refund first, then confirm the manual provider refund reference in Mabuntle.
 - Sandbox verification steps live in `docs/payfast-sandbox-runbook.md`.
 
 Remaining PayFast hardening:
@@ -52,7 +52,7 @@ Required inputs before implementation:
 - Exact webhook/notification payload and signature algorithm for the selected PayU South Africa integration path.
 - Status query/reconciliation endpoint details.
 - Refund API behavior, including partial refunds, asynchronous statuses, and webhook updates.
-- Confirmation of whether PaymentsOS is the intended Swyftly integration path or whether PayU South Africa provides a direct merchant integration path.
+- Confirmation of whether PaymentsOS is the intended Mabuntle integration path or whether PayU South Africa provides a direct merchant integration path.
 
 ## Config Placeholders
 

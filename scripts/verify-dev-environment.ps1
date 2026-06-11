@@ -114,13 +114,13 @@ if (Test-CommandAvailable "dotnet") {
     }
 }
 
-$apiAssetsPath = Join-Path $repoRoot "backend\src\Swyftly.Api\obj\project.assets.json"
-$seedAssetsPath = Join-Path $repoRoot "scripts\Swyftly.DevSeed\obj\project.assets.json"
+$apiAssetsPath = Join-Path $repoRoot "backend\src\Mabuntle.Api\obj\project.assets.json"
+$seedAssetsPath = Join-Path $repoRoot "scripts\Mabuntle.DevSeed\obj\project.assets.json"
 if ((Test-Path $apiAssetsPath) -and (Test-Path $seedAssetsPath)) {
     Add-Check "Restore assets" "Pass" "Backend API and dev seed project.assets.json files exist."
 }
 else {
-    Add-Check "Restore assets" "Warning" "One or more project.assets.json files are missing. Run dotnet restore backend\Swyftly.sln and dotnet restore scripts\Swyftly.DevSeed\Swyftly.DevSeed.csproj after NuGet access is fixed."
+    Add-Check "Restore assets" "Warning" "One or more project.assets.json files are missing. Run dotnet restore backend\Mabuntle.sln and dotnet restore scripts\Mabuntle.DevSeed\Mabuntle.DevSeed.csproj after NuGet access is fixed."
 }
 
 if ([string]::IsNullOrWhiteSpace($ConnectionString)) {
@@ -128,7 +128,7 @@ if ([string]::IsNullOrWhiteSpace($ConnectionString)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($ConnectionString)) {
-    $appSettingsPath = Join-Path $repoRoot "backend\src\Swyftly.Api\appsettings.Development.json"
+    $appSettingsPath = Join-Path $repoRoot "backend\src\Mabuntle.Api\appsettings.Development.json"
     if (Test-Path $appSettingsPath) {
         $settings = Get-Content $appSettingsPath -Raw | ConvertFrom-Json
         $ConnectionString = $settings.ConnectionStrings.DefaultConnection
@@ -172,12 +172,12 @@ else {
     Add-Check "npm" "Fail" "npm was not found on PATH." $true
 }
 
-$frontendRoot = Join-Path $repoRoot "frontend\swyftly-web"
+$frontendRoot = Join-Path $repoRoot "frontend\mabuntle-web"
 if (Test-Path (Join-Path $frontendRoot "node_modules")) {
-    Add-Check "Frontend dependencies" "Pass" "frontend\swyftly-web\node_modules exists."
+    Add-Check "Frontend dependencies" "Pass" "frontend\mabuntle-web\node_modules exists."
 }
 else {
-    Add-Check "Frontend dependencies" "Warning" "frontend\swyftly-web\node_modules is missing. Run cmd /c npm install in frontend\swyftly-web."
+    Add-Check "Frontend dependencies" "Warning" "frontend\mabuntle-web\node_modules is missing. Run cmd /c npm install in frontend\mabuntle-web."
 }
 
 if (Test-Path (Join-Path $frontendRoot "karma.conf.js")) {
@@ -207,7 +207,7 @@ else {
 }
 
 Write-Host ""
-Write-Host "Swyftly development environment preflight"
+Write-Host "Mabuntle development environment preflight"
 Write-Host ""
 $checks | Format-Table -AutoSize
 

@@ -1,12 +1,12 @@
-# Swyftly Database Schema
+# Mabuntle Database Schema
 
 The database is PostgreSQL with EF Core migrations.
 
 ## Current State
 
-The scaffold includes a `SwyftlyDbContext` and default schema name `mabuntle`.
+The scaffold includes a `MabuntleDbContext` and default schema name `mabuntle`.
 
-EF Core migrations live in `backend/src/Swyftly.Infrastructure/Persistence/Migrations` and are generated through the Infrastructure project with the API project as startup.
+EF Core migrations live in `backend/src/Mabuntle.Infrastructure/Persistence/Migrations` and are generated through the Infrastructure project with the API project as startup.
 
 Current migrations create:
 

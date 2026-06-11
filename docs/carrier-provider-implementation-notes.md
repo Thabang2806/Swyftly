@@ -2,15 +2,15 @@
 
 Last updated: 2026-05-21
 
-## Current Swyftly Baseline
+## Current Mabuntle Baseline
 
-Swyftly already has provider-neutral carrier booking/tracking with `Manual` and `Fake` providers. Sellers can mark orders ready to ship, book a configured provider, sync tracking, add manual tracking, and handle delivery exceptions. Seller-managed delivery methods still determine checkout shipping price.
+Mabuntle already has provider-neutral carrier booking/tracking with `Manual` and `Fake` providers. Sellers can mark orders ready to ship, book a configured provider, sync tracking, add manual tracking, and handle delivery exceptions. Seller-managed delivery methods still determine checkout shipping price.
 
 This document is for provider adapter planning only. It does not enable a real carrier.
 
 ## Preferred Path: Bob Go Adapter
 
-Bob Go is the preferred first candidate because its public product page aligns with Swyftly's intended marketplace path:
+Bob Go is the preferred first candidate because its public product page aligns with Mabuntle's intended marketplace path:
 
 - live rates at checkout;
 - order sync and shipment generation;
@@ -24,7 +24,7 @@ Minimum adapter shape:
 
 - Add `BobGoCarrierProvider` behind `ICarrierProvider`.
 - Add non-secret config under `CarrierProvider:BobGo` for base URLs, API key, sandbox mode, timeout, and optional webhook secret if Bob Go supports webhooks.
-- Support booking from Swyftly `ReadyToShip` orders using existing package dimensions and seller fulfilment address.
+- Support booking from Mabuntle `ReadyToShip` orders using existing package dimensions and seller fulfilment address.
 - Store provider shipment reference, tracking URL, label URL, service code, provider status, provider timestamps, and provider errors in existing shipment fields.
 - Use tracking polling first unless Bob Go webhook contracts are verified.
 - Keep checkout rates seller-managed initially; add live provider rates only in a separate phase after pricing, margin, and seller display rules are defined.

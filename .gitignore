@@ -295,7 +295,7 @@ tmp/
 out-tsc/
 bazel-out/
 **/.angular/cache/
-frontend/swyftly-web/src/environments/environment.cloudflare.ts
+frontend/mabuntle-web/src/environments/environment.cloudflare.ts
 coverage/
 typings/
 connect.lock
@@ -414,7 +414,7 @@ FodyWeavers.xsd
 
 # Local API-managed media uploads
 /storage/
-/backend/src/Swyftly.Api/storage/
+/backend/src/Mabuntle.Api/storage/
 
 # Local environment files
 .env

@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - frontend/swyftly-web/**
+      - frontend/mabuntle-web/**
       - .github/workflows/deploy-frontend.yml
 
 permissions:
@@ -23,20 +23,20 @@ jobs:
         include:
           - app: client
             build_script: build:client:cloudflare
-            output_dir: dist/swyftly-client/browser
+            output_dir: dist/mabuntle-client/browser
             project_var: CLOUDFLARE_PAGES_PROJECT_CLIENT
           - app: seller
             build_script: build:seller:cloudflare
-            output_dir: dist/swyftly-seller/browser
+            output_dir: dist/mabuntle-seller/browser
             project_var: CLOUDFLARE_PAGES_PROJECT_SELLER
           - app: admin
             build_script: build:admin:cloudflare
-            output_dir: dist/swyftly-admin/browser
+            output_dir: dist/mabuntle-admin/browser
             project_var: CLOUDFLARE_PAGES_PROJECT_ADMIN
 
     defaults:
       run:
-        working-directory: frontend/swyftly-web
+        working-directory: frontend/mabuntle-web
 
     steps:
       - name: Checkout
@@ -47,7 +47,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: frontend/swyftly-web/package-lock.json
+          cache-dependency-path: frontend/mabuntle-web/package-lock.json
 
       - name: Validate deployment configuration
         shell: bash
@@ -55,7 +55,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_PAGES_PROJECT_NAME: ${{ vars[matrix.project_var] }}
-          SWYFTLY_API_BASE_URL: ${{ vars.SWYFTLY_API_BASE_URL }}
+          MABUNTLE_API_BASE_URL: ${{ vars.MABUNTLE_API_BASE_URL || vars.SWYFTLY_API_BASE_URL }}
         run: |
           missing=0
           require() {
@@ -68,10 +68,10 @@ jobs:
           require CLOUDFLARE_API_TOKEN
           require CLOUDFLARE_ACCOUNT_ID
           require CLOUDFLARE_PAGES_PROJECT_NAME
-          require SWYFTLY_API_BASE_URL
+          require MABUNTLE_API_BASE_URL
 
-          if ! [[ "$SWYFTLY_API_BASE_URL" =~ ^https:// ]]; then
-            echo "::error::SWYFTLY_API_BASE_URL must be an HTTPS API origin"
+          if ! [[ "$MABUNTLE_API_BASE_URL" =~ ^https:// ]]; then
+            echo "::error::MABUNTLE_API_BASE_URL must be an HTTPS API origin"
             missing=1
           fi
 
@@ -85,7 +85,7 @@ jobs:
 
       - name: Build static Cloudflare output
         env:
-          SWYFTLY_API_BASE_URL: ${{ vars.SWYFTLY_API_BASE_URL }}
+          MABUNTLE_API_BASE_URL: ${{ vars.MABUNTLE_API_BASE_URL || vars.SWYFTLY_API_BASE_URL }}
         run: npm run ${{ matrix.build_script }}
 
       - name: Deploy to Cloudflare Pages

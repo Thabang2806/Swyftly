@@ -1,4 +1,4 @@
-# Swyftly Coding Standards
+# Mabuntle Coding Standards
 
 ## Backend
 
@@ -35,6 +35,6 @@
 
 ## Testing
 
-- Backend: `dotnet test backend\Swyftly.sln`.
-- Frontend: `cmd /c npm test` from `frontend\swyftly-web`.
+- Backend: `dotnet test backend\Mabuntle.sln`.
+- Frontend: `cmd /c npm test` from `frontend\mabuntle-web`.
 - Build both backend and frontend before handing off a scaffold or feature branch.

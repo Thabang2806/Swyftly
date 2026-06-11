@@ -20,9 +20,9 @@ Seeded accounts:
 
 | Account | Role | Purpose |
 |---|---|---|
-| `buyer@swyftly.local` | Buyer | Buyer flow smoke testing with default saved delivery address. |
-| `seller@swyftly.local` | Seller | Verified seller with published sample products and delivery method. |
-| `admin@swyftly.local` | Admin/SuperAdmin | Optional post-purchase/admin workflow setup. |
+| `buyer@mabuntle.local` | Buyer | Buyer flow smoke testing with default saved delivery address. |
+| `seller@mabuntle.local` | Seller | Verified seller with published sample products and delivery method. |
+| `admin@mabuntle.local` | Admin/SuperAdmin | Optional post-purchase/admin workflow setup. |
 
 ## Smoke Coverage
 
@@ -34,7 +34,7 @@ Public route DOM smoke checked these routes and confirmed they rendered nonempty
 | `/shop` | Pass | Catalog route rendered. |
 | `/category/dresses` | Pass | Category route rendered. |
 | `/product/rose-linen-midi-dress` | Pass | Seeded product route rendered. |
-| `/seller/swyftly-dev-store` | Pass | Seeded seller storefront route rendered. |
+| `/seller/mabuntle-dev-store` | Pass | Seeded seller storefront route rendered. |
 | `/cart` | Pass | Empty/unauthenticated cart surface rendered. |
 | `/checkout` | Pass | Checkout route rendered and guards/API state remained non-fatal. |
 | `/login` | Pass | Auth route rendered. |
@@ -46,7 +46,7 @@ Authenticated buyer API smoke after the fix:
 
 | Step | Result | Evidence |
 |---|---|---|
-| Login as `buyer@swyftly.local` | Pass | JWT session created. |
+| Login as `buyer@mabuntle.local` | Pass | JWT session created. |
 | Load seeded product detail | Pass | `rose-linen-midi-dress` returned product and variant ids. |
 | Add product to wishlist | Pass | Wishlist item returned. |
 | Move wishlist item to cart | Pass after fix | Returned cart with one item. |

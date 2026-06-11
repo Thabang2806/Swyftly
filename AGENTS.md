@@ -1,8 +1,8 @@
-# Swyftly Agent Guide
+# Mabuntle Agent Guide
 
 ## Project Overview
 
-Swyftly is a transactional ecommerce marketplace for fashion, clothing, jewellery, accessories, and beauty products. The codebase starts as a modular monolith with Clean Architecture boundaries.
+Mabuntle is a transactional ecommerce marketplace for fashion, clothing, jewellery, accessories, and beauty products. The codebase starts as a modular monolith with Clean Architecture boundaries.
 
 ## Tech Stack
 
@@ -15,11 +15,11 @@ Swyftly is a transactional ecommerce marketplace for fashion, clothing, jeweller
 
 - Keep the backend as a modular monolith.
 - Follow Clean Architecture dependencies:
-  - `Swyftly.Domain` depends on no infrastructure.
-  - `Swyftly.Application` depends on `Domain`.
-  - `Swyftly.Infrastructure` depends on `Application` and `Domain`.
-  - `Swyftly.Api` depends on `Application` and `Infrastructure`.
-  - `Swyftly.Worker` depends on `Application` and `Infrastructure`.
+  - `Mabuntle.Domain` depends on no infrastructure.
+  - `Mabuntle.Application` depends on `Domain`.
+  - `Mabuntle.Infrastructure` depends on `Application` and `Domain`.
+  - `Mabuntle.Api` depends on `Application` and `Infrastructure`.
+  - `Mabuntle.Worker` depends on `Application` and `Infrastructure`.
 - Use vertical slices for feature implementation.
 - Keep controllers/endpoints thin.
 - Put business rules in domain/application code.
@@ -29,11 +29,11 @@ Swyftly is a transactional ecommerce marketplace for fashion, clothing, jeweller
 
 ## Backend Structure
 
-- `backend/src/Swyftly.Api`: HTTP endpoints, auth wiring, middleware, API formatting.
-- `backend/src/Swyftly.Application`: commands, queries, DTOs, validators, interfaces.
-- `backend/src/Swyftly.Domain`: entities, value objects, domain events, business rules.
-- `backend/src/Swyftly.Infrastructure`: EF Core, provider adapters, storage, search, external integrations.
-- `backend/src/Swyftly.Worker`: background job host.
+- `backend/src/Mabuntle.Api`: HTTP endpoints, auth wiring, middleware, API formatting.
+- `backend/src/Mabuntle.Application`: commands, queries, DTOs, validators, interfaces.
+- `backend/src/Mabuntle.Domain`: entities, value objects, domain events, business rules.
+- `backend/src/Mabuntle.Infrastructure`: EF Core, provider adapters, storage, search, external integrations.
+- `backend/src/Mabuntle.Worker`: background job host.
 - `backend/tests`: unit and integration tests.
 
 ## Frontend Structure
@@ -47,10 +47,10 @@ Swyftly is a transactional ecommerce marketplace for fashion, clothing, jeweller
 ## Commands
 
 ```powershell
-dotnet restore backend\Swyftly.sln
-dotnet build backend\Swyftly.sln
-dotnet test backend\Swyftly.sln
-cd frontend\swyftly-web
+dotnet restore backend\Mabuntle.sln
+dotnet build backend\Mabuntle.sln
+dotnet test backend\Mabuntle.sln
+cd frontend\mabuntle-web
 cmd /c npm install
 cmd /c npm run build
 cmd /c npm test

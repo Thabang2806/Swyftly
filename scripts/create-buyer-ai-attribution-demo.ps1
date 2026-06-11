@@ -4,8 +4,8 @@ param(
 
     [string]$ApiBaseUrl = "https://localhost:7268",
     [string]$FrontendBaseUrl = "http://localhost:4200",
-    [string]$BuyerEmail = "buyer@swyftly.local",
-    [string]$AdminEmail = "admin@swyftly.local",
+    [string]$BuyerEmail = "buyer@mabuntle.local",
+    [string]$AdminEmail = "admin@mabuntle.local",
     [string]$ProductSlug = "rose-linen-midi-dress",
     [int]$Quantity = 1,
     [int]$ReservationMinutes = 15,
@@ -251,7 +251,7 @@ function Complete-AttributedOrder {
     $signature = Get-FakeWebhookSignature -Payload $webhookPayload -Secret $WebhookSigningSecret
 
     $webhookResult = Invoke-Api -Method "Post" -Path "/api/payments/webhook/Fake" -Headers @{
-        "X-Swyftly-Fake-Signature" = $signature
+        "X-Mabuntle-Fake-Signature" = $signature
     } -Body $webhookPayload
 
     $paidOrder = Wait-ForOrderStatus -Headers $BuyerHeaders -OrderId $order.orderId -ExpectedStatus "Paid"

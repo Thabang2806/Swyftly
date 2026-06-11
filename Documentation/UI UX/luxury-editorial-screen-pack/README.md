@@ -1,10 +1,10 @@
-# Swyftly Luxury Editorial Screen Pack
+# Mabuntle Luxury Editorial Screen Pack
 
 This pack contains deterministic high-fidelity mockup screenshots for the current Angular route surface. It is a design reference only; it does not change runtime Angular code.
 
 ## Visual Direction
 
-The direction is a Swyftly-specific luxury editorial hybrid informed by South African and global luxury commerce references: restrained black and warm ivory, champagne borders, plum workspace navigation, rose accents, product-led editorial surfaces, and dense operational seller/admin dashboards.
+The direction is a Mabuntle-specific luxury editorial hybrid informed by South African and global luxury commerce references: restrained black and warm ivory, champagne borders, plum workspace navigation, rose accents, product-led editorial surfaces, and dense operational seller/admin dashboards.
 
 The references were used for broad commerce patterns only. No third-party product imagery, brand assets, layouts, or copy are copied into the mockups.
 

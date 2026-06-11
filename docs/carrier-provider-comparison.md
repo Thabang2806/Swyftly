@@ -4,7 +4,7 @@ Last updated: 2026-05-21
 
 ## Decision
 
-Recommended first adapter candidate: **Bob Go**, provided Swyftly can obtain API documentation export/sandbox credentials from Bob Go.
+Recommended first adapter candidate: **Bob Go**, provided Mabuntle can obtain API documentation export/sandbox credentials from Bob Go.
 
 Fallback candidate: **The Courier Guy / PUDO Locker API**, if Bob Go field-level API documentation or sandbox credentials are not available. PUDO has the most inspectable public API details today, but it is narrower than Bob Go for a marketplace that needs multi-courier rates, booking, labels, and tracking.
 
@@ -35,7 +35,7 @@ Do not implement Shiplogic, The Courier Guy Direct, or Pargo first until merchan
 | Sandbox | Public product page says dedicated sandbox is available. | The Courier Guy help search result referenced Shiplogic sandbox, but article now requires sign-in. | Public production docs are visible; sandbox/credential path needs confirmation. | Needs merchant onboarding confirmation. |
 | Webhooks vs polling | Needs API-doc verification. | Needs API-doc verification. | Public docs show tracking reads; webhook support not evident from static review. | Needs API-doc verification. |
 | Returns | Needs API-doc verification. | Needs API-doc verification. | Public docs expose returning a shipment. | Product page mentions returns solutions, but field details unavailable. |
-| Pricing ownership fit | Best fit if Swyftly later replaces seller-managed rates with provider live rates. Also supports current seller-managed phase by using booking/tracking only first. | Unknown until docs are available. | Good technical fallback, but narrower and more The Courier Guy-specific. | Good pickup fit, but likely needs commercial onboarding before API work. |
+| Pricing ownership fit | Best fit if Mabuntle later replaces seller-managed rates with provider live rates. Also supports current seller-managed phase by using booking/tracking only first. | Unknown until docs are available. | Good technical fallback, but narrower and more The Courier Guy-specific. | Good pickup fit, but likely needs commercial onboarding before API work. |
 | Implementation risk | Medium: best product fit, but field-level docs/credentials are required. | High: public docs insufficient. | Medium-low for a narrow adapter because public docs are detailed. | High until merchant technical docs are available. |
 
 ## Recommendation
@@ -45,9 +45,9 @@ Build the next real adapter as **Bob Go** only after obtaining:
 - API key/sandbox account.
 - Static/exported endpoint documentation for authentication, rates, shipment creation, labels, tracking, cancellation, and error codes.
 - Confirmation of webhook support, or confirmation that polling is the supported tracking model.
-- Confirmation of how courier/service choices map to Swyftly `CarrierProviderShipmentStatus`.
+- Confirmation of how courier/service choices map to Mabuntle `CarrierProviderShipmentStatus`.
 
-If those are not available, build a narrower **PUDO adapter** first for rate lookup, shipment creation, labels, tracking polling, returns, cancellation, and locker import. That would give Swyftly a real provider path without inventing undocumented Bob Go behavior.
+If those are not available, build a narrower **PUDO adapter** first for rate lookup, shipment creation, labels, tracking polling, returns, cancellation, and locker import. That would give Mabuntle a real provider path without inventing undocumented Bob Go behavior.
 
 ## Current Runtime Position
 

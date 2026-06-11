@@ -1,4 +1,4 @@
-# Swyftly API Contracts
+# Mabuntle API Contracts
 
 ## Health
 
@@ -13,7 +13,7 @@ Response:
 ```json
 {
   "status": "Healthy",
-  "applicationName": "Swyftly.Api",
+  "applicationName": "Mabuntle.Api",
   "timestampUtc": "2026-05-18T10:00:00.0000000+00:00"
 }
 ```
@@ -29,7 +29,7 @@ Response when healthy:
 ```json
 {
   "status": "Healthy",
-  "applicationName": "Swyftly.Api",
+  "applicationName": "Mabuntle.Api",
   "timestampUtc": "2026-05-18T10:00:00.0000000+00:00",
   "totalDurationMilliseconds": 12.34,
   "checks": {
@@ -92,7 +92,7 @@ POST /api/auth/logout
 GET /api/auth/me
 ```
 
-Login and refresh return a JWT access token and user role data. Refresh tokens are not returned in JSON; the API sets `swyftly_rt` as an HttpOnly cookie scoped to `/api/auth`, plus a non-HttpOnly `swyftly_csrf` cookie for refresh/logout CSRF validation. Cookie path/domain/SameSite/Secure attributes are controlled by the `AuthCookies` configuration section; production validation requires secure cookies, `SameSite=Lax` or `Strict`, and a refresh-token path scoped to `/api/auth`.
+Login and refresh return a JWT access token and user role data. Refresh tokens are not returned in JSON; the API sets `mabuntle_rt` as an HttpOnly cookie scoped to `/api/auth`, plus a non-HttpOnly `mabuntle_csrf` cookie for refresh/logout CSRF validation. Cookie path/domain/SameSite/Secure attributes are controlled by the `AuthCookies` configuration section; production validation requires secure cookies, `SameSite=Lax` or `Strict`, and a refresh-token path scoped to `/api/auth`.
 
 ```json
 {
@@ -104,7 +104,7 @@ Login and refresh return a JWT access token and user role data. Refresh tokens a
 }
 ```
 
-The API never returns password hashes. Refresh tokens are stored server-side as hashes with a token-family id. Refresh rotation keeps the same family id; replaying an already-revoked refresh token revokes any active replacement token in that family and returns `401`. `POST /api/auth/refresh` and `POST /api/auth/logout` read the refresh token from the cookie and require `X-Swyftly-CSRF` to match the `swyftly_csrf` cookie. Angular stores the access token in memory only and calls refresh with credentials on startup.
+The API never returns password hashes. Refresh tokens are stored server-side as hashes with a token-family id. Refresh rotation keeps the same family id; replaying an already-revoked refresh token revokes any active replacement token in that family and returns `401`. `POST /api/auth/refresh` and `POST /api/auth/logout` read the refresh token from the cookie and require `X-Mabuntle-CSRF` to match the `mabuntle_csrf` cookie. Angular stores the access token in memory only and calls refresh with credentials on startup.
 
 Scaffold-only policy check endpoints exist for test coverage:
 
@@ -413,11 +413,11 @@ Response:
 }
 ```
 
-The endpoint aggregates existing `AiUsageLog`, `AiProductSuggestion`, `AiSuggestionFieldAudit`, and `AiModerationResult` data only. It does not call an AI provider. `averageQualityScoreImprovement` is intentionally nullable because Swyftly does not yet persist a pre-AI baseline listing quality score.
+The endpoint aggregates existing `AiUsageLog`, `AiProductSuggestion`, `AiSuggestionFieldAudit`, and `AiModerationResult` data only. It does not call an AI provider. `averageQualityScoreImprovement` is intentionally nullable because Mabuntle does not yet persist a pre-AI baseline listing quality score.
 
 ## Buyer AI Shopping Intent
 
-Prompt 61 added backend intent extraction contracts. Prompt 62 adds the buyer-only recommendation endpoint that uses those contracts and returns real Swyftly products only.
+Prompt 61 added backend intent extraction contracts. Prompt 62 adds the buyer-only recommendation endpoint that uses those contracts and returns real Mabuntle products only.
 
 Application contracts:
 
@@ -475,7 +475,7 @@ Response:
       "matchReasons": ["Available in Black.", "Available in size M."]
     }
   ],
-  "summary": "These matches come only from published Swyftly products returned by the backend search.",
+  "summary": "These matches come only from published Mabuntle products returned by the backend search.",
   "safetyNote": null
 }
 ```
@@ -539,7 +539,7 @@ Response:
       "matchReasons": ["Matches visual category Dresses.", "Available in Black."]
     }
   ],
-  "summary": "These matches use extracted visual attributes against published Swyftly products only.",
+  "summary": "These matches use extracted visual attributes against published Mabuntle products only.",
   "imageRetentionNote": "Uploaded image data is processed for this request only and is not persisted by the visual search MVP."
 }
 ```
@@ -1276,7 +1276,7 @@ Email delivery configuration keys:
 ```text
 EmailDelivery__ProviderName=LogOnly|Smtp
 EmailDelivery__FromAddress=
-EmailDelivery__FromName=Swyftly
+EmailDelivery__FromName=Mabuntle
 EmailDelivery__AppBaseUrl=http://localhost:4200
 EmailDelivery__BatchSize=25
 EmailDelivery__MaxAttempts=5
@@ -1293,7 +1293,7 @@ Production Resend SMTP configuration uses the existing `Smtp` provider and worke
 ```text
 EmailDelivery__ProviderName=Smtp
 EmailDelivery__FromAddress=no-reply@mail.mabuntle.com
-EmailDelivery__FromName=Swyftly
+EmailDelivery__FromName=Mabuntle
 EmailDelivery__AppBaseUrl=https://mabuntle.com
 EmailDelivery__Smtp__Host=smtp.resend.com
 EmailDelivery__Smtp__Port=587
@@ -2576,7 +2576,7 @@ Payment provider integration is prepared behind Application-layer contracts:
 - `PaymentWebhookEvent`
 - `PaymentProviderOptions`
 
-Runtime payment providers are selected with `PaymentProvider__ProviderName`. `FakePaymentProvider` remains the default outside explicit provider configuration. `Disabled` is allowed for production deployments before PayFast is configured; payment initiation, verification, webhooks, and refunds return `Payments.ProviderDisabled` without pretending provider settlement is available. Phase 8C adds `PayFastPaymentProvider` as the first real adapter foundation behind the same abstraction. It returns a Swyftly-hosted checkout bridge URL, renders a signed PayFast hosted-checkout form server-side, verifies PayFast ITN signatures, optionally performs PayFast remote ITN validation, and keeps PayFast refunds as manual provider actions until an automatic refund API is verified.
+Runtime payment providers are selected with `PaymentProvider__ProviderName`. `FakePaymentProvider` remains the default outside explicit provider configuration. `Disabled` is allowed for production deployments before PayFast is configured; payment initiation, verification, webhooks, and refunds return `Payments.ProviderDisabled` without pretending provider settlement is available. Phase 8C adds `PayFastPaymentProvider` as the first real adapter foundation behind the same abstraction. It returns a Mabuntle-hosted checkout bridge URL, renders a signed PayFast hosted-checkout form server-side, verifies PayFast ITN signatures, optionally performs PayFast remote ITN validation, and keeps PayFast refunds as manual provider actions until an automatic refund API is verified.
 
 Configuration keys:
 
@@ -2661,7 +2661,7 @@ GET /api/payments/payfast/checkout/{providerReference}
 
 The checkout bridge is anonymous and returns `text/html` with an auto-submit form posting to `PayFast__ProcessUrl`. It only serves pending local PayFast payments and includes signed PayFast fields, `notify_url`, return/cancel URLs, order id, payment id, amount, and item summary.
 
-Payment webhooks are anonymous because provider callbacks cannot carry buyer JWTs. They are protected with the `Webhook` rate-limit policy, reject payloads larger than 64 KB, verify the provider route, and require provider signature verification before parsing or persisting any webhook event. The fake provider requires `application/json` or `application/*+json` and expects the `X-Swyftly-Fake-Signature` header to contain the lowercase hex HMAC-SHA256 of the raw request body using `PaymentProvider__WebhookSigningSecret`. PayFast requires `application/x-www-form-urlencoded` at `/api/payments/webhook/payfast`.
+Payment webhooks are anonymous because provider callbacks cannot carry buyer JWTs. They are protected with the `Webhook` rate-limit policy, reject payloads larger than 64 KB, verify the provider route, and require provider signature verification before parsing or persisting any webhook event. The fake provider requires `application/json` or `application/*+json` and expects the `X-Mabuntle-Fake-Signature` header to contain the lowercase hex HMAC-SHA256 of the raw request body using `PaymentProvider__WebhookSigningSecret`. PayFast requires `application/x-www-form-urlencoded` at `/api/payments/webhook/payfast`.
 
 ```http
 POST /api/payments/webhook/{provider}
@@ -3191,7 +3191,7 @@ Health/readiness, identity foundation with HttpOnly refresh cookies, seller onbo
 
 ## Rate Limiting
 
-Swyftly uses ASP.NET Core fixed-window rate limiting with named policies configured under `SwyftlyRateLimits`.
+Mabuntle uses ASP.NET Core fixed-window rate limiting with named policies configured under `MabuntleRateLimits`.
 
 Current policies:
 

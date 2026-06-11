@@ -16,8 +16,8 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  API_IMAGE_NAME: swyftly-api
-  WORKER_IMAGE_NAME: swyftly-worker
+  API_IMAGE_NAME: mabuntle-api
+  WORKER_IMAGE_NAME: mabuntle-worker
 
 jobs:
   deploy:
@@ -124,25 +124,25 @@ jobs:
         run: dotnet tool restore
 
       - name: Restore backend
-        run: dotnet restore backend/Swyftly.sln
+        run: dotnet restore backend/Mabuntle.sln
 
       - name: Build backend
-        run: dotnet build backend/Swyftly.sln --no-restore --configuration Release
+        run: dotnet build backend/Mabuntle.sln --no-restore --configuration Release
 
       - name: Test backend
-        run: dotnet test backend/Swyftly.sln --no-build --configuration Release
+        run: dotnet test backend/Mabuntle.sln --no-build --configuration Release
 
       - name: Build EF migration bundle
         run: |
           mkdir -p deploy-artifacts
           dotnet ef migrations bundle \
-            --project backend/src/Swyftly.Infrastructure \
-            --startup-project backend/src/Swyftly.Api \
-            --context SwyftlyDbContext \
+            --project backend/src/Mabuntle.Infrastructure \
+            --startup-project backend/src/Mabuntle.Api \
+            --context MabuntleDbContext \
             --configuration Release \
             --self-contained \
             --runtime linux-x64 \
-            --output deploy-artifacts/swyftly-migrate
+            --output deploy-artifacts/mabuntle-migrate
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -155,7 +155,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: backend/src/Swyftly.Api/Dockerfile
+          file: backend/src/Mabuntle.Api/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER_LC }}/${{ env.API_IMAGE_NAME }}:${{ github.sha }}
@@ -165,7 +165,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: backend/src/Swyftly.Worker/Dockerfile
+          file: backend/src/Mabuntle.Worker/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER_LC }}/${{ env.WORKER_IMAGE_NAME }}:${{ github.sha }}
@@ -191,8 +191,8 @@ jobs:
           Cors__AllowedOrigins__1=${{ vars.SELLER_FRONTEND_ORIGIN }}
           Cors__AllowedOrigins__2=${{ vars.ADMIN_FRONTEND_ORIGIN }}
           ConnectionStrings__DefaultConnection=${{ secrets.PROD_DB_CONNECTION_STRING }}
-          Jwt__Issuer=Swyftly.Api
-          Jwt__Audience=Swyftly.Web
+          Jwt__Issuer=Mabuntle.Api
+          Jwt__Audience=Mabuntle.Web
           Jwt__SigningKey=${{ secrets.PROD_JWT_SIGNING_KEY }}
           AuthCookies__RefreshTokenPath=/api/auth
           AuthCookies__CsrfPath=/
@@ -205,7 +205,7 @@ jobs:
           PaymentProvider__FailureRedirectUrl=${{ vars.FRONTEND_ORIGIN }}/checkout/failed
           EmailDelivery__ProviderName=Smtp
           EmailDelivery__FromAddress=${{ vars.EMAIL_FROM_ADDRESS }}
-          EmailDelivery__FromName=Swyftly
+          EmailDelivery__FromName=Mabuntle
           EmailDelivery__AppBaseUrl=${{ vars.FRONTEND_ORIGIN }}
           EmailDelivery__Smtp__Host=${{ secrets.SMTP_HOST }}
           EmailDelivery__Smtp__Port=${{ vars.SMTP_PORT || '587' }}
@@ -243,7 +243,7 @@ jobs:
         shell: bash
         run: |
           ssh -i ~/.ssh/lightsail -p "${{ vars.LIGHTSAIL_SSH_PORT || '22' }}" "${{ secrets.LIGHTSAIL_SSH_USER }}@${{ secrets.LIGHTSAIL_HOST }}" "mkdir -p /tmp/mabuntle-deploy"
-          scp -i ~/.ssh/lightsail -P "${{ vars.LIGHTSAIL_SSH_PORT || '22' }}" deploy/lightsail/docker-compose.yml deploy/lightsail/Caddyfile deploy-artifacts/swyftly-migrate deploy-artifacts/.env.production deploy-artifacts/.ghcr-username deploy-artifacts/.ghcr-token "${{ secrets.LIGHTSAIL_SSH_USER }}@${{ secrets.LIGHTSAIL_HOST }}:/tmp/mabuntle-deploy/"
+          scp -i ~/.ssh/lightsail -P "${{ vars.LIGHTSAIL_SSH_PORT || '22' }}" deploy/lightsail/docker-compose.yml deploy/lightsail/Caddyfile deploy-artifacts/mabuntle-migrate deploy-artifacts/.env.production deploy-artifacts/.ghcr-username deploy-artifacts/.ghcr-token "${{ secrets.LIGHTSAIL_SSH_USER }}@${{ secrets.LIGHTSAIL_HOST }}:/tmp/mabuntle-deploy/"
 
       - name: Deploy on Lightsail
         shell: bash
@@ -258,13 +258,13 @@ jobs:
           cp /tmp/mabuntle-deploy/.env.production "$DEPLOY_PATH/.env.production"
           cp /tmp/mabuntle-deploy/.ghcr-username "$DEPLOY_PATH/.ghcr-username"
           cp /tmp/mabuntle-deploy/.ghcr-token "$DEPLOY_PATH/.ghcr-token"
-          cp /tmp/mabuntle-deploy/swyftly-migrate "$DEPLOY_PATH/swyftly-migrate"
-          chmod +x "$DEPLOY_PATH/swyftly-migrate"
+          cp /tmp/mabuntle-deploy/mabuntle-migrate "$DEPLOY_PATH/mabuntle-migrate"
+          chmod +x "$DEPLOY_PATH/mabuntle-migrate"
           chmod 600 "$DEPLOY_PATH/.env.production" "$DEPLOY_PATH/.ghcr-token"
 
           cd "$DEPLOY_PATH"
           DB_CONNECTION_STRING="$(awk '/^ConnectionStrings__DefaultConnection=/{sub(/^ConnectionStrings__DefaultConnection=/,""); print; exit}' .env.production)"
-          ./swyftly-migrate --connection "$DB_CONNECTION_STRING"
+          ./mabuntle-migrate --connection "$DB_CONNECTION_STRING"
 
           cat .ghcr-token | docker login ghcr.io -u "$(cat .ghcr-username)" --password-stdin
           docker compose --env-file .env.production pull
